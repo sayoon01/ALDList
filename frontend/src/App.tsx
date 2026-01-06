@@ -18,6 +18,8 @@ function App() {
   const [offset, setOffset] = useState(0);
   const [limit, setLimit] = useState(2000);
   const [rowRange, setRowRange] = useState<{ start: number; end: number } | null>(null);
+  const [manualRowStart, setManualRowStart] = useState<number>(0);
+  const [manualRowEnd, setManualRowEnd] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
 
   // 데이터셋 목록 로드
@@ -135,12 +137,28 @@ function App() {
 
   // 통계 계산
   const handleCalculateStats = async () => {
-    if (!selectedDatasetId || !rowRange || visibleColumns.length === 0) return;
+    if (!selectedDatasetId || visibleColumns.length === 0) return;
+
+    // 수동 입력 범위가 있으면 우선 사용, 없으면 드래그 선택 범위 사용
+    let rowStart: number;
+    let rowEnd: number;
+    
+    if (manualRowStart !== 0 || manualRowEnd !== 0) {
+      // 수동 입력 범위 사용
+      rowStart = manualRowStart;
+      rowEnd = manualRowEnd + 1; // end는 inclusive이므로 +1
+    } else if (rowRange) {
+      // 드래그 선택 범위 사용
+      rowStart = rowRange.start;
+      rowEnd = rowRange.end + 1; // end는 inclusive이므로 +1
+    } else {
+      // 범위가 없으면 통계 계산 불가
+      alert('통계 계산할 범위를 선택하거나 입력해주세요.');
+      return;
+    }
 
     setIsLoadingStats(true);
     try {
-      const rowStart = rowRange.start;
-      const rowEnd = rowRange.end + 1; // end는 inclusive이므로 +1
       const result = await getStats(selectedDatasetId, visibleColumns, rowStart, rowEnd);
       setStats(result);
     } catch (error: any) {
@@ -180,6 +198,14 @@ function App() {
     return () => window.removeEventListener('mouseup', handleMouseUp);
   }, [isSelecting]);
 
+  // 드래그 선택 완료 시 통계 계산 범위에 자동 반영
+  useEffect(() => {
+    if (rowRange && !isSelecting) {
+      setManualRowStart(rowRange.start);
+      setManualRowEnd(rowRange.end);
+    }
+  }, [rowRange, isSelecting]);
+
   // 선택된 행 범위에 스타일 적용
   const getRowStyle = (params: any) => {
     if (rowRange) {
@@ -212,6 +238,8 @@ function App() {
                 setPrevDatasetId(''); // 데이터셋 변경 시 이전 ID 초기화
                 setOffset(0);
                 setRowRange(null);
+                setManualRowStart(0);
+                setManualRowEnd(0);
                 setStats(null);
                 // 데이터셋 변경 시 컬럼은 자동으로 새 데이터셋의 모든 컬럼으로 설정됨
               }}
@@ -225,32 +253,94 @@ function App() {
             </select>
           </div>
 
-          <div className="section">
-            <h2>미리보기 범위</h2>
-            <div className="input-group">
-              <label>시작:</label>
-              <input
-                type="number"
-                value={offset}
-                onChange={(e) => setOffset(Number(e.target.value))}
-                min="0"
-                className="number-input"
-              />
+          <div className="section compact-section">
+            <h2>화면 표시 범위</h2>
+            <div className="compact-input-row">
+              <div className="compact-input-group">
+                <label>시작</label>
+                <input
+                  type="number"
+                  value={offset}
+                  onChange={(e) => setOffset(Number(e.target.value))}
+                  min="0"
+                  className="compact-input"
+                />
+              </div>
+              <div className="compact-input-group">
+                <label>개수</label>
+                <input
+                  type="number"
+                  value={limit}
+                  onChange={(e) => setLimit(Number(e.target.value))}
+                  min="1"
+                  max="10000"
+                  className="compact-input"
+                />
+              </div>
+              <button onClick={() => setOffset(0)} className="btn-compact">
+                처음
+              </button>
             </div>
-            <div className="input-group">
-              <label>개수:</label>
-              <input
-                type="number"
-                value={limit}
-                onChange={(e) => setLimit(Number(e.target.value))}
-                min="1"
-                max="10000"
-                className="number-input"
-              />
+          </div>
+
+          <div className="section compact-section">
+            <h2>통계 계산 범위</h2>
+            <div className="compact-input-row">
+              <div className="compact-input-group">
+                <label>시작</label>
+                <input
+                  type="number"
+                  value={manualRowStart === 0 && manualRowEnd === 0 ? '' : manualRowStart + 1}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? 0 : Number(e.target.value) - 1;
+                    setManualRowStart(Math.max(0, val));
+                  }}
+                  min="1"
+                  placeholder="1"
+                  className="compact-input"
+                />
+              </div>
+              <div className="compact-input-group">
+                <label>끝</label>
+                <input
+                  type="number"
+                  value={manualRowStart === 0 && manualRowEnd === 0 ? '' : manualRowEnd + 1}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? 0 : Number(e.target.value) - 1;
+                    setManualRowEnd(Math.max(0, val));
+                  }}
+                  min="1"
+                  placeholder="1"
+                  className="compact-input"
+                />
+              </div>
+              <button 
+                onClick={() => {
+                  setManualRowStart(0);
+                  setManualRowEnd(0);
+                }} 
+                className="btn-compact"
+              >
+                초기화
+              </button>
             </div>
-            <button onClick={() => setOffset(0)} className="btn-secondary">
-              처음으로
+            {rowRange && (
+              <div className="range-info-compact">
+                드래그: {rowRange.start + 1}~{rowRange.end + 1}행 ({rowRange.end - rowRange.start + 1}개)
+              </div>
+            )}
+            <button
+              onClick={handleCalculateStats}
+              disabled={isLoadingStats || visibleColumns.length === 0 || ((manualRowStart === 0 && manualRowEnd === 0) && !rowRange)}
+              className="btn-primary"
+            >
+              {isLoadingStats ? '계산 중...' : '통계 계산'}
             </button>
+            {(manualRowStart === 0 && manualRowEnd === 0 && !rowRange) && (
+              <div className="hint-text">
+                💡 범위를 입력하거나 그리드에서 행을 드래그하여 범위를 선택하세요
+              </div>
+            )}
           </div>
 
           <div className="section">
@@ -293,29 +383,6 @@ function App() {
               </div>
             </div>
           </div>
-
-          <div className="section">
-            <h2>통계 계산</h2>
-            {rowRange && (
-              <div className="range-info">
-                <strong>선택 범위:</strong> {rowRange.start} ~ {rowRange.end}행
-                <br />
-                <small>({rowRange.end - rowRange.start + 1}개 행)</small>
-              </div>
-            )}
-            <button
-              onClick={handleCalculateStats}
-              disabled={isLoadingStats || !rowRange || visibleColumns.length === 0}
-              className="btn-primary"
-            >
-              {isLoadingStats ? '계산 중...' : '통계 계산'}
-            </button>
-            {!rowRange && (
-              <div className="hint-text">
-                💡 그리드에서 행을 드래그하여 범위를 선택하세요
-              </div>
-            )}
-          </div>
         </div>
 
         {/* 중앙 그리드 */}
@@ -329,7 +396,7 @@ function App() {
             <div className="ag-theme-alpine" style={{ height: '100%', width: '100%' }}>
               {rowRange && (
                 <div className="range-indicator">
-                  선택된 범위: {rowRange.start} ~ {rowRange.end}행 ({rowRange.end - rowRange.start + 1}개 행)
+                  선택된 범위: {rowRange.start + 1} ~ {rowRange.end + 1}행 ({rowRange.end - rowRange.start + 1}개 행)
                 </div>
               )}
               <AgGridReact

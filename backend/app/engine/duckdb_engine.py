@@ -1,12 +1,13 @@
 """DuckDB를 사용한 CSV 쿼리 엔진"""
+from __future__ import annotations
 import duckdb
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 from pathlib import Path
 
 
 def quote_ident(name: str) -> str:
     """식별자 따옴표 처리"""
-    return f'"{name}"'
+    return f'"{name.replace('"', '""')}"'
 
 
 def preview_rows(
@@ -67,63 +68,132 @@ def preview_rows(
         conn.close()
 
 
+# 메트릭 레지스트리: 확장 포인트
+METRICS: Dict[str, Callable[[str], str]] = {
+    "count": lambda expr: f"COUNT(*)",
+    "non_null_count": lambda expr: f"COUNT({expr})",
+    "min": lambda expr: f"MIN({expr})",
+    "max": lambda expr: f"MAX({expr})",
+    "avg": lambda expr: f"AVG(TRY_CAST({expr} AS DOUBLE))",
+    "stddev": lambda expr: f"STDDEV(TRY_CAST({expr} AS DOUBLE))",
+}
+
+
 def compute_metrics(
     csv_path: str,
     columns: List[str],
     row_start: int = 0,
     row_end: Optional[int] = None,
 ) -> Dict[str, Dict[str, Any]]:
-    """통계 계산"""
+    """통계 계산 - 한 번의 쿼리로 모든 컬럼 통계 계산"""
     conn = duckdb.connect()
-    metrics = {}
     
     try:
         # 경로 정규화
         csv_path_normalized = str(Path(csv_path).resolve())
         
-        # 서브쿼리로 범위 지정 (더 정확함)
+        # 서브쿼리로 범위 지정
         if row_end is not None:
             limit_count = row_end - row_start
-            subquery = f"""
+            base_query = f"""
             SELECT * FROM read_csv_auto('{csv_path_normalized}')
             LIMIT {limit_count} OFFSET {row_start}
             """
         else:
-            subquery = f"""
+            base_query = f"""
             SELECT * FROM read_csv_auto('{csv_path_normalized}')
             OFFSET {row_start}
             """
         
+        # 기본 메트릭 (모든 컬럼에 대해)
+        base_metrics = ["count", "non_null_count", "min", "max"]
+        # 숫자 메트릭 (모든 컬럼에 대해 시도, TRY_CAST로 안전하게 처리)
+        numeric_metrics = ["avg", "stddev"]
+        
+        select_parts = []
+        metric_keys = []  # (col, metric) 매핑
+        
         for col in columns:
             col_quoted = quote_ident(col)
             
-            try:
-                # 기본 통계
-                query = f"""
-                SELECT 
-                    COUNT(*) as count,
-                    COUNT({col_quoted}) as non_null_count,
-                    MIN({col_quoted}) as min_val,
-                    MAX({col_quoted}) as max_val,
-                    AVG(TRY_CAST({col_quoted} AS DOUBLE)) as avg_val,
-                    STDDEV(TRY_CAST({col_quoted} AS DOUBLE)) as stddev_val
-                FROM ({subquery})
-                """
-                
-                result = conn.execute(query).fetchone()
-                
-                metrics[col] = {
-                    "count": int(result[0]) if result[0] is not None else 0,
-                    "non_null_count": int(result[1]) if result[1] is not None else 0,
-                    "min": float(result[2]) if result[2] is not None else None,
-                    "max": float(result[3]) if result[3] is not None else None,
-                    "avg": float(result[4]) if result[4] is not None else None,
-                    "stddev": float(result[5]) if result[5] is not None else None,
+            # 기본 메트릭 (모든 컬럼)
+            for metric_name in base_metrics:
+                alias = f"{col}__{metric_name}"
+                expr = col_quoted
+                select_parts.append(f"{METRICS[metric_name](expr)} AS {quote_ident(alias)}")
+                metric_keys.append((col, metric_name))
+            
+            # 숫자 메트릭 (모든 컬럼에 대해 시도, TRY_CAST로 안전하게 처리)
+            for metric_name in numeric_metrics:
+                alias = f"{col}__{metric_name}"
+                expr = col_quoted
+                select_parts.append(f"{METRICS[metric_name](expr)} AS {quote_ident(alias)}")
+                metric_keys.append((col, metric_name))
+        
+        # 한 번의 쿼리로 모든 통계 계산
+        if not select_parts:
+            # 컬럼이 없으면 빈 결과 반환
+            return {col: {"count": 0, "non_null_count": 0} for col in columns}
+        
+        query = f"SELECT {', '.join(select_parts)} FROM ({base_query})"
+        
+        try:
+            result_row = conn.execute(query).fetchone()
+            
+            if result_row is None:
+                # 결과가 없으면 빈 메트릭 반환
+                return {col: {"count": 0, "non_null_count": 0} for col in columns}
+            
+            # 결과를 dict로 reshape
+            metrics: Dict[str, Dict[str, Any]] = {col: {} for col in columns}
+            
+            for (col, metric_name), value in zip(metric_keys, result_row):
+                if value is None:
+                    metrics[col][metric_name] = None
+                elif metric_name == "count":
+                    metrics[col][metric_name] = int(value) if value is not None else 0
+                elif metric_name == "non_null_count":
+                    metrics[col][metric_name] = int(value) if value is not None else 0
+                elif metric_name in ["min", "max"]:
+                    # MIN/MAX는 원본 값 유지 (문자열/숫자 모두 가능)
+                    # 숫자로 변환 가능하면 변환, 아니면 문자열로 유지
+                    try:
+                        # 숫자로 변환 시도
+                        float_val = float(value)
+                        # 정수인지 확인
+                        if float_val.is_integer():
+                            metrics[col][metric_name] = int(float_val)
+                        else:
+                            metrics[col][metric_name] = float_val
+                    except (ValueError, TypeError):
+                        # 숫자 변환 실패 시 문자열로 유지
+                        metrics[col][metric_name] = str(value)
+                elif metric_name in ["avg", "stddev"]:
+                    # 숫자 메트릭 (TRY_CAST로 이미 NULL 처리됨)
+                    try:
+                        metrics[col][metric_name] = float(value) if value is not None else None
+                    except (ValueError, TypeError):
+                        metrics[col][metric_name] = None
+                else:
+                    metrics[col][metric_name] = value
+            
+            return metrics
+            
+        except Exception as e:
+            # 쿼리 실패 시 오류 로깅 및 반환
+            import traceback
+            error_msg = f"{str(e)}\n{traceback.format_exc()}"
+            print(f"통계 계산 오류: {error_msg}")  # 디버깅용
+            
+            # 쿼리 실패 시 각 컬럼에 오류 반환
+            return {
+                col: {
+                    "count": 0,
+                    "non_null_count": 0,
+                    "error": str(e)
                 }
-            except Exception as e:
-                metrics[col] = {"error": str(e)}
+                for col in columns
+            }
     finally:
         conn.close()
-    
-    return metrics
 

@@ -4,3 +4,4 @@ duckdb>=1.4.0
 pandas>=2.0.0
 python-multipart==0.0.6
 
+
