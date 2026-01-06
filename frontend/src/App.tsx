@@ -101,6 +101,10 @@ export default function App() {
           filter: true,
           sortable: true,
           resizable: true,
+          valueFormatter: (params: any) => {
+            if (params.value == null || params.value === '') return '—';
+            return params.value;
+          },
         })));
       } catch (e: any) {
         setError(String(e?.message ?? e));
