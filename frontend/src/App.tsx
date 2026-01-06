@@ -15,8 +15,35 @@ type Dataset = {
   columns: string[];
 };
 
+// Stats 변환 함수들
+function toStatsRows(stats: any) {
+  if (!stats?.results) return [];
+  return Object.entries(stats.results).map(([col, v]: any) => ({
+    column: col,
+    avg: v?.avg ?? null,
+    max: v?.max ?? null,
+    min: v?.min ?? null,
+    count: v?.count ?? null,
+  }));
+}
+
+function isAllNull(row: any) {
+  return row.avg == null && row.max == null && row.min == null && row.count == null;
+}
+
+function fmt(x: any) {
+  if (x == null) return "—";
+  if (typeof x === "number") {
+    // 너무 긴 소수 방지
+    const s = Number.isInteger(x) ? x.toString() : x.toFixed(4);
+    return s.replace(/\.?0+$/, "");
+  }
+  return String(x);
+}
+
 export default function App() {
   const gridApiRef = useRef<GridApi | null>(null);
+  const statsTimerRef = useRef<number | null>(null);
 
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [datasetId, setDatasetId] = useState<string>("");
@@ -33,6 +60,7 @@ export default function App() {
 
   const [stats, setStats] = useState<any>(null);
   const [error, setError] = useState<string>("");
+  const [isLoadingStats, setIsLoadingStats] = useState<boolean>(false);
 
   // 드래그로 row range 잡기 위한 상태
   const [isMouseDown, setIsMouseDown] = useState(false);
@@ -88,6 +116,16 @@ export default function App() {
     };
   }, []);
 
+  function scheduleStatsRecalc(cols: string[]) {
+    if (!cols.length) return;
+    if (statsTimerRef.current) window.clearTimeout(statsTimerRef.current);
+
+    // 드래그가 끝나기 직전에 여러 번 바뀌어도 마지막 한 번만 실행
+    statsTimerRef.current = window.setTimeout(() => {
+      runStats(cols);
+    }, 250);
+  }
+
   function applyRowRangeSelection(a: number, b: number) {
     const api = gridApiRef.current;
     if (!api) return;
@@ -104,6 +142,9 @@ export default function App() {
     // 좌측 row range 자동 입력
     setStart(lo);
     setEnd(hi + 1); // [start, end)라서 +1
+
+    // 드래그로 범위 바뀌면 자동 재계산
+    scheduleStatsRecalc(selectedColumns);
   }
 
   function onCellMouseDown(e: CellMouseDownEvent) {
@@ -133,11 +174,13 @@ export default function App() {
     if (!datasetId) return;
     if (!cols.length) {
       setStats(null);
+      setIsLoadingStats(false);
       return;
     }
 
     try {
       setError("");
+      setIsLoadingStats(true);
       const body = {
         columns: cols,
         row_range: { start, end },
@@ -147,6 +190,8 @@ export default function App() {
       setStats(j);
     } catch (e: any) {
       setError(String(e?.message ?? e));
+    } finally {
+      setIsLoadingStats(false);
     }
   }
 
@@ -219,15 +264,26 @@ export default function App() {
           <input
             type="number"
             value={start}
-            onChange={(e) => setStart(Number(e.target.value))}
+            onChange={(e) => {
+              const newStart = Number(e.target.value);
+              setStart(newStart);
+              scheduleStatsRecalc(selectedColumns);
+            }}
             style={{ width: "50%", padding: 8 }}
           />
           <input
             type="number"
             value={end}
-            onChange={(e) => setEnd(Number(e.target.value))}
+            onChange={(e) => {
+              const newEnd = Number(e.target.value);
+              setEnd(newEnd);
+              scheduleStatsRecalc(selectedColumns);
+            }}
             style={{ width: "50%", padding: 8 }}
           />
+        </div>
+        <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+          {start} ~ {end - 1} (총 {Math.max(0, end - start)} rows)
         </div>
 
         {error && (
@@ -253,20 +309,71 @@ export default function App() {
 
       {/* Right: Stats */}
       <div style={{ padding: 12, borderLeft: "1px solid #ddd", overflow: "auto" }}>
-        <h2 style={{ margin: "0 0 8px 0" }}>Stats</h2>
+        <h2 style={{ margin: "0 0 10px 0" }}>Stats</h2>
 
-        <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
-          선택된 컬럼: {selectedColumns.length}개 / row: [{start}, {end})
+        <div style={{ padding: 10, border: "1px solid #eee", borderRadius: 10, marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: "#666" }}>선택 요약</div>
+          <div style={{ marginTop: 6, lineHeight: 1.6 }}>
+            <div><b>Rows</b>: {start} ~ {end - 1} (총 {Math.max(0, end - start)}개)</div>
+            <div><b>Columns</b>: {selectedColumns.length}개</div>
+            <div><b>Metrics</b>: avg, max</div>
+          </div>
         </div>
 
-        {!stats ? (
-          <div style={{ color: "#444" }}>
-            컬럼을 클릭(체크)하거나, Avg/Max 계산 버튼을 눌러.
+        {!selectedColumns.length ? (
+          <div style={{ color: "#444" }}>왼쪽에서 컬럼을 선택해.</div>
+        ) : isLoadingStats ? (
+          <div style={{ color: "#666", padding: 20, textAlign: "center" }}>
+            계산 중...
           </div>
+        ) : !stats ? (
+          <div style={{ color: "#444" }}>계산 중이거나 아직 결과가 없어.</div>
         ) : (
-          <pre style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>
-            {JSON.stringify(stats, null, 2)}
-          </pre>
+          (() => {
+            const statsRows = toStatsRows(stats);
+            return (
+              <div style={{ border: "1px solid #eee", borderRadius: 10, overflow: "hidden" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr 0.8fr", background: "#fafafa", padding: "10px 12px", fontWeight: 700 }}>
+                  <div>Column</div>
+                  <div>Avg</div>
+                  <div>Max</div>
+                  <div>상태</div>
+                </div>
+
+                {statsRows.map((r: any) => {
+                  const nonNumeric = isAllNull(r); // avg/max 둘 다 null이면 사실상 숫자 아님
+                  return (
+                    <div
+                      key={r.column}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1.6fr 1fr 1fr 0.8fr",
+                        padding: "10px 12px",
+                        borderTop: "1px solid #f0f0f0",
+                        background: nonNumeric ? "#fff" : "#fff",
+                        opacity: nonNumeric ? 0.6 : 1,
+                      }}
+                    >
+                      <div style={{ fontFamily: "monospace", fontSize: 12 }}>{r.column}</div>
+                      <div>{fmt(r.avg)}</div>
+                      <div>{fmt(r.max)}</div>
+                      <div>
+                        {nonNumeric ? (
+                          <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "#f1f1f1" }}>
+                            숫자 아님
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "#eaf4ff" }}>
+                            OK
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()
         )}
       </div>
     </div>
