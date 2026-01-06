@@ -97,23 +97,11 @@ saved -> /home/keti_spark1/yune/aldList/metadata
 
 ### 2단계: Backend 서버 실행
 
-#### 방법 1: 실행 스크립트 사용 (권장)
-```bash
-cd backend
-./run.sh
-```
-
-#### 방법 2: 수동 실행
 ```bash
 cd backend
 source venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-
-**중요**: 
-- 반드시 `backend` 디렉토리에서 실행해야 합니다
-- 가상 환경(`venv`)이 활성화되어 있어야 합니다
-- 프로젝트 루트에서 `uvicorn backend.app.main:app`으로 실행하면 안 됩니다
 
 #### 이 단계에서 하는 일:
 1. FastAPI 서버가 시작됨
