@@ -28,24 +28,35 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const j = await getDatasets();
-      setDatasets(j.datasets);
-      if (j.datasets?.length) setDatasetId(j.datasets[0].dataset_id);
+      try {
+        const j = await getDatasets();
+        console.log("Datasets loaded:", j);
+        setDatasets(j.datasets || []);
+        if (j.datasets?.length) setDatasetId(j.datasets[0].dataset_id);
+      } catch (error) {
+        console.error("Failed to load datasets:", error);
+      }
     })();
   }, []);
 
   useEffect(() => {
     if (!datasetId) return;
     (async () => {
-      const cols = await getColumns(datasetId);
-      setAllColumns(cols.columns);
+      try {
+        const cols = await getColumns(datasetId);
+        console.log("Columns loaded:", cols);
+        setAllColumns(cols.columns || []);
 
-      const preview = await getPreview(datasetId, 0, 2000);
-      setRowData(preview.data);
+        const preview = await getPreview(datasetId, 0, 2000);
+        console.log("Preview loaded:", preview);
+        setRowData(preview.data || []);
 
-      // grid columns는 preview data의 key 기반으로 생성(데이터 바뀌어도 자동)
-      const keys = preview.data?.[0] ? Object.keys(preview.data[0]) : cols.columns;
-      setColumnDefs(keys.map((k: string) => ({ field: k, filter: true, sortable: true, resizable: true })));
+        // grid columns는 preview data의 key 기반으로 생성(데이터 바뀌어도 자동)
+        const keys = preview.data?.[0] ? Object.keys(preview.data[0]) : (cols.columns || []);
+        setColumnDefs(keys.map((k: string) => ({ field: k, filter: true, sortable: true, resizable: true })));
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      }
     })();
   }, [datasetId]);
 
