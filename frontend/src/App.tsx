@@ -96,18 +96,26 @@ export default function App() {
 
         // 그리드 컬럼 생성
         const keys = preview.data?.[0] ? Object.keys(preview.data[0]) : (preview.columns ?? []);
-        setColumnDefs(keys.map((k: string) => ({
-          field: k,
-          filter: true,
-          sortable: true,
-          resizable: true,
-          valueFormatter: (params: any) => {
-            // null, undefined, 빈 문자열만 "—"로 표시
-            if (params.value == null || params.value === '') return '—';
-            // 숫자 0도 유효한 값이므로 그대로 표시
-            return String(params.value);
-          },
-        })));
+        setColumnDefs(keys.map((k: string) => {
+          // 점(.)이나 특수문자가 포함된 컬럼명도 안전하게 처리
+          return {
+            headerName: k,
+            // valueGetter를 사용하여 명시적으로 데이터 접근 (점 포함 컬럼명 처리)
+            valueGetter: (params: any) => {
+              if (!params.data) return null;
+              return params.data[k];
+            },
+            filter: true,
+            sortable: true,
+            resizable: true,
+            valueFormatter: (params: any) => {
+              // null, undefined, 빈 문자열만 "—"로 표시
+              if (params.value == null || params.value === '') return '—';
+              // 숫자 0도 유효한 값이므로 그대로 표시
+              return String(params.value);
+            },
+          };
+        }));
       } catch (e: any) {
         setError(String(e?.message ?? e));
       }
