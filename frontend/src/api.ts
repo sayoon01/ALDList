@@ -1,5 +1,10 @@
 /** API 클라이언트 */
 
+// 환경 변수에서 API 베이스 URL 가져오기
+// 개발 환경: 비워두면 Vite 프록시 사용 (/api -> http://localhost:8000)
+// 프로덕션: VITE_API_BASE 환경 변수 설정 (예: https://aldlist-backend-production.up.railway.app)
+const API_BASE = import.meta.env.VITE_API_BASE ?? '';
+
 export interface Dataset {
   dataset_id: string;
   filename: string;
@@ -31,7 +36,8 @@ export interface StatsResponse {
 }
 
 async function fetchAPI<T>(endpoint: string): Promise<T> {
-  const response = await fetch(endpoint);
+  const url = `${API_BASE}${endpoint}`;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`API Error: ${response.statusText}`);
   }
@@ -39,7 +45,8 @@ async function fetchAPI<T>(endpoint: string): Promise<T> {
 }
 
 async function postAPI<T>(endpoint: string, body: any): Promise<T> {
-  const response = await fetch(endpoint, {
+  const url = `${API_BASE}${endpoint}`;
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -75,5 +82,6 @@ export async function getStats(
       : null,
   });
 }
+
 
 
