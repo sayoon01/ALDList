@@ -98,21 +98,26 @@ export default function App() {
         const keys = preview.data?.[0] ? Object.keys(preview.data[0]) : (preview.columns ?? []);
         setColumnDefs(keys.map((k: string) => {
           // 점(.)이나 특수문자가 포함된 컬럼명도 안전하게 처리
+          // field와 valueGetter를 모두 설정하여 안전하게 처리
           return {
             headerName: k,
-            // valueGetter를 사용하여 명시적으로 데이터 접근 (점 포함 컬럼명 처리)
+            field: k, // field도 설정 (일반 컬럼명용)
+            // valueGetter를 사용하여 명시적으로 데이터 접근 (점 포함 컬럼명도 처리)
             valueGetter: (params: any) => {
               if (!params.data) return null;
-              return params.data[k];
+              // 대괄호 표기법으로 안전하게 접근
+              const value = params.data[k];
+              return value;
             },
             filter: true,
             sortable: true,
             resizable: true,
             valueFormatter: (params: any) => {
               // null, undefined, 빈 문자열만 "—"로 표시
-              if (params.value == null || params.value === '') return '—';
+              const val = params.value;
+              if (val == null || val === '') return '—';
               // 숫자 0도 유효한 값이므로 그대로 표시
-              return String(params.value);
+              return String(val);
             },
           };
         }));
