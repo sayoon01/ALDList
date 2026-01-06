@@ -102,8 +102,10 @@ export default function App() {
           sortable: true,
           resizable: true,
           valueFormatter: (params: any) => {
+            // null, undefined, 빈 문자열만 "—"로 표시
             if (params.value == null || params.value === '') return '—';
-            return params.value;
+            // 숫자 0도 유효한 값이므로 그대로 표시
+            return String(params.value);
           },
         })));
       } catch (e: any) {
