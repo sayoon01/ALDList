@@ -7,15 +7,17 @@ router = APIRouter(prefix="/api", tags=["datasets"])
 
 @router.get("/datasets")
 def list_datasets():
+    # 프론트: 왼쪽 dataset picker
     return {"datasets": load_registry()}
 
-@router.get("/datasets/{dataset_id}/columns")
-def columns(dataset_id: str):
+@router.get("/datasets/{dataset_id}")
+def get_dataset_meta(dataset_id: str):
+    # 프론트: dataset 선택 시 columns를 여기서 받게 할 수도 있음
     try:
         ds = get_dataset(dataset_id)
     except KeyError:
         raise HTTPException(404, "dataset_id not found")
-    return {"dataset_id": dataset_id, "columns": ds.columns}
+    return ds
 
 @router.get("/datasets/{dataset_id}/preview")
 def preview(
@@ -29,4 +31,13 @@ def preview(
         raise HTTPException(404, "dataset_id not found")
 
     data = preview_rows(ds.path, offset=offset, limit=limit)
-    return {"dataset_id": dataset_id, "offset": offset, "limit": limit, "data": data}
+
+    # 프론트가 grid 만들 때 쓰기 쉽게 columns도 같이 내려줌
+    columns = list(data[0].keys()) if data else ds.columns
+    return {
+        "dataset_id": dataset_id,
+        "offset": offset,
+        "limit": limit,
+        "columns": columns,
+        "data": data,
+    }

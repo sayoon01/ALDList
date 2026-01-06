@@ -22,7 +22,7 @@ def stats(dataset_id: str, req: StatsRequest):
     if limit <= 0:
         return StatsResponse(dataset_id=dataset_id, row_range=req.row_range, results={})
 
-    # 없는 컬럼이 섞여도 운영에서 안 죽게 "스킵"
+    # 없는 컬럼은 스킵 (데이터 바뀌어도 서버 안 죽게)
     valid_cols = [c for c in req.columns if c in ds.columns]
     if not valid_cols:
         return StatsResponse(dataset_id=dataset_id, row_range=req.row_range, results={})
