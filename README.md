@@ -1,333 +1,157 @@
-# ALDList
+# ALDList - CSV 데이터 분석 도구
 
-CSV 데이터셋 관리 및 조회 시스템
+CSV 파일을 쉽게 탐색하고 분석할 수 있는 웹 애플리케이션입니다.
 
-## 프로젝트 구조
+## ✨ 특징
+
+- **완전 자동화**: CSV 파일만 `data/` 디렉토리에 넣으면 자동으로 작동
+- **실시간 분석**: 대용량 CSV 파일도 빠르게 탐색 및 분석
+- **직관적인 UI**: 드래그로 범위 선택, 컬럼 필터링, 통계 계산
+- **자동 메타데이터 생성**: 백엔드 시작 시 자동으로 메타데이터 생성
+
+## 📁 프로젝트 구조
 
 ```
 aldList/
-├── data/                         # CSV 파일 74개 (실제 데이터)
-├── metadata/                     # 자동 생성 (scan_and_export.py 실행 시)
-│   ├── datasets.json            # 레지스트리: 모든 데이터셋 메타데이터
-│   ├── columns_by_file.json     # 파일별 컬럼 목록
-│   ├── columns_union.json       # 모든 컬럼의 합집합 (207개)
-│   ├── columns_intersection.json # 모든 컬럼의 교집합 (207개)
-│   ├── columns_union.py         # Python 리스트 형식
-│   └── columns_union.txt        # 텍스트 형식
-│
-├── tools/
-│   └── scan_and_export.py       # 1단계: CSV 스캔 + 메타데이터 생성
-│
-├── backend/                      # 2단계: FastAPI 백엔드 서버
+├── data/              # CSV 파일 저장소 (여기에 CSV 파일 넣기)
+├── metadata/          # 자동 생성된 메타데이터 (자동 생성)
+│   ├── datasets.json
+│   └── ...
+├── tools/             # 유틸리티 스크립트
+│   └── scan_and_export.py
+├── backend/           # FastAPI 백엔드
 │   ├── app/
-│   │   ├── main.py              # FastAPI 애플리케이션 진입점
-│   │   ├── core/
-│   │   │   ├── settings.py      # 프로젝트 경로 설정
-│   │   │   └── registry.py      # 레지스트리 읽기/조회
-│   │   ├── engine/
-│   │   │   └── duckdb_engine.py # DuckDB를 이용한 CSV 쿼리
-│   │   ├── models/
-│   │   │   └── schemas.py       # Pydantic 스키마 정의
-│   │   └── api/
-│   │       ├── datasets.py      # 데이터셋 목록/조회 API
-│   │       └── stats.py         # 통계 계산 API
+│   │   ├── main.py
+│   │   ├── api/       # API 엔드포인트
+│   │   ├── core/      # 핵심 기능 (레지스트리, 자동 스캔)
+│   │   ├── engine/    # DuckDB 엔진
+│   │   └── models/    # 데이터 모델
 │   └── requirements.txt
-│
-└── frontend/                     # 3단계: React 프론트엔드
+└── frontend/          # React 프론트엔드
     ├── src/
-    │   ├── api.ts               # API 클라이언트
-    │   ├── App.tsx              # 메인 컴포넌트
-    │   └── components/
-    │       ├── DatasetPicker.tsx # 데이터셋 선택 드롭다운
-    │       ├── DataTable.tsx     # 데이터셋 정보 표시
-    │       └── StatsPanel.tsx    # 통계 패널
+    │   ├── App.tsx
+    │   ├── api.ts
+    │   └── ...
     └── package.json
 ```
 
-## 실행 순서 및 흐름
+## 🚀 빠른 시작
 
-### 1단계: 메타데이터 생성 (필수)
-
-```bash
-cd tools
-python3 scan_and_export.py
-```
-
-#### 이 단계에서 하는 일:
-1. `data/` 디렉토리의 모든 CSV 파일(74개)을 스캔
-2. 각 파일의 헤더(컬럼명)를 읽어서 추출
-3. 파일 메타데이터 수집 (파일명, 경로, 크기, 수정시간)
-4. 각 파일에 고유한 `dataset_id` 생성 (경로 기반 해시)
-
-#### 생성되는 파일들 (`metadata/` 디렉토리):
-
-- **`datasets.json`** (레지스트리)
-  - 모든 데이터셋의 메타데이터를 저장한 중앙 인덱스
-  - 각 데이터셋의 `dataset_id`, `path`, `filename`, `size_bytes`, `mtime`, `columns` 정보
-  - 백엔드가 이 파일을 읽어서 API로 제공
-
-- **`columns_by_file.json`**
-  - 파일 경로를 키로, 해당 파일의 컬럼 리스트를 값으로 저장
-  - 파일별 컬럼 추적용
-
-- **`columns_union.json`**
-  - 모든 데이터셋의 컬럼 합집합 (207개 고유 컬럼)
-  - 어떤 컬럼이 존재하는지 전체 목록
-
-- **`columns_intersection.json`**
-  - 모든 데이터셋에 공통으로 있는 컬럼 (현재 207개)
-  - 모든 파일이 동일한 구조를 가지고 있음을 확인
-
-- **`columns_union.py`** / **`columns_union.txt`**
-  - Python 코드나 텍스트로 컬럼 목록을 사용할 수 있도록 제공
-
-#### 출력 예시:
-```
-OK  : standard_trace_001.csv (207 cols)
-OK  : standard_trace_002.csv (207 cols)
-...
-=== Summary ===
-files=74
-union_cols=207
-intersection_cols=207
-saved -> /home/keti_spark1/yune/aldList/metadata
-```
-
----
-
-### 2단계: Backend 서버 실행
+### 1. CSV 파일 준비
 
 ```bash
-cd backend
-source venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# CSV 파일을 data/ 디렉토리에 복사
+cp your_file.csv data/
 ```
 
-#### 각 명령어 설명:
+**그게 전부입니다!** 백엔드가 시작될 때 자동으로 메타데이터를 생성합니다.
 
-1. **`cd backend`**
-   - 백엔드 디렉토리로 이동
-   - `app/` 디렉토리와 `venv/` 가상 환경이 있는 위치
-
-2. **`source venv/bin/activate`**
-   - Python 가상 환경을 활성화
-   - `venv/` 디렉토리에 설치된 패키지들(FastAPI, DuckDB, Pandas 등)을 사용할 수 있게 됨
-   - 프롬프트 앞에 `(venv)`가 표시되면 활성화 성공
-   - 가상 환경이 활성화되지 않으면 `ModuleNotFoundError` 발생
-
-3. **`uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`**
-   - `uvicorn`: ASGI 서버 (FastAPI 실행 도구)
-   - `app.main:app`: `app/main.py` 파일의 `app` 객체를 실행
-   - `--reload`: 코드 변경 시 자동으로 서버 재시작 (개발 모드)
-   - `--host 0.0.0.0`: 모든 네트워크 인터페이스에서 접근 가능 (로컬뿐만 아니라 외부에서도 접근 가능)
-   - `--port 8000`: 8000번 포트에서 서버 실행
-
-#### 이 명령어를 실행하면:
-
-1. **FastAPI 서버가 시작됨**
-   - Uvicorn 웹 서버가 백그라운드에서 실행
-   - 터미널에 "Uvicorn running on http://0.0.0.0:8000" 메시지 표시
-
-2. **레지스트리 로드**
-   - `metadata/datasets.json` 파일을 읽어서 메모리에 로드
-   - 74개 데이터셋의 메타데이터를 메모리에 저장
-   - 서버 시작 시 한 번만 로드 (서버 재시작 전까지 캐시됨)
-
-3. **API 엔드포인트 활성화**
-   - REST API 엔드포인트들이 활성화됨
-   - HTTP 요청을 받을 준비가 됨
-
-4. **Swagger UI 자동 생성**
-   - `http://localhost:8000/docs`에서 API 문서 확인 가능
-   - 각 엔드포인트를 브라우저에서 직접 테스트 가능
-
-#### 서버 실행 확인:
-
-- 터미널에 다음 메시지가 표시되면 성공:
-  ```
-  INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-  INFO:     Started reloader process
-  INFO:     Started server process
-  INFO:     Waiting for application startup.
-  INFO:     Application startup complete.
-  ```
-
-- 브라우저에서 `http://localhost:8000` 접속 시 API 정보가 JSON으로 표시됨
-- `http://localhost:8000/docs` 접속 시 Swagger UI가 표시됨
-
-#### 이 단계에서 하는 일:
-1. FastAPI 서버가 시작됨
-2. `metadata/datasets.json` (레지스트리)를 읽어서 메모리에 로드
-3. API 엔드포인트 제공
-
-#### 제공되는 API:
-
-- **`GET /api/datasets`**
-  - 모든 데이터셋 목록 반환
-  - 레지스트리에서 읽은 정보를 그대로 제공
-
-- **`GET /api/datasets/{dataset_id}/columns`**
-  - 특정 데이터셋의 컬럼 목록 반환
-  - 레지스트리에서 해당 `dataset_id`를 찾아서 컬럼 정보 제공
-
-- **`GET /api/datasets/{dataset_id}/preview?offset=0&limit=2000`**
-  - CSV 파일의 일부 행을 미리보기
-  - DuckDB를 사용해서 CSV를 읽고 지정된 범위의 행 반환
-
-- **`POST /api/datasets/{dataset_id}/stats`**
-  - 지정된 컬럼들에 대한 통계 계산 (avg, max, min, count)
-  - DuckDB를 사용해서 CSV를 읽고 집계 함수 실행
-
-#### API 문서:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
----
-
-### 3단계: Frontend 실행
+### 2. 백엔드 실행
 
 ```bash
-cd frontend
-npm install
-npm run dev
+# 프로젝트 루트에서
+./start_backend.sh
+
+# 또는 backend 디렉토리에서
+cd backend && ./start.sh
 ```
 
-#### 각 명령어 설명:
+백엔드가 시작되면:
+- 메타데이터 자동 생성 (없는 경우)
+- API 서버 실행: http://localhost:8000
+- API 문서: http://localhost:8000/docs
 
-1. **`cd frontend`**
-   - 프론트엔드 디렉토리로 이동
-   - `package.json`과 소스 코드가 있는 위치
+### 3. 프론트엔드 실행
 
-2. **`npm install`**
-   - `package.json`에 정의된 의존성 패키지들을 설치
-   - 설치되는 주요 패키지:
-     - `react`, `react-dom`: React 라이브러리
-     - `ag-grid-react`, `ag-grid-community`: AG Grid 테이블 컴포넌트
-     - `vite`: 빌드 도구 및 개발 서버
-   - `node_modules/` 디렉토리에 패키지들이 설치됨
-   - 최초 1회만 실행하면 됨 (의존성이 변경될 때만 재실행)
-
-3. **`npm run dev`**
-   - Vite 개발 서버를 시작
-   - React 애플리케이션을 빌드하고 개발 모드로 실행
-   - 코드 변경 시 자동으로 새로고침 (Hot Module Replacement)
-   - 기본적으로 `http://localhost:5173` (또는 3000)에서 실행
-
-#### 이 단계에서 하는 일:
-1. React 개발 서버 시작 (포트 5173 또는 3000)
-2. 백엔드 API(`http://localhost:8000/api`)를 호출
-3. AG Grid를 사용한 웹 인터페이스로 데이터셋 조회 및 통계 확인
-
-#### 주요 기능:
-- **데이터셋 선택**: 드롭다운에서 데이터셋 선택
-- **컬럼 멀티 선택**: 체크박스로 여러 컬럼 선택
-- **행 범위 지정**: 시작 행과 끝 행을 입력하여 범위 지정
-- **데이터 미리보기**: AG Grid로 선택한 데이터셋의 데이터를 테이블 형태로 표시 (필터링, 정렬, 리사이즈 지원)
-- **통계 계산**: 선택한 컬럼과 행 범위에 대해 평균(avg), 최대값(max) 등 통계 계산
-- **통계 결과 표시**: 계산된 통계 결과를 JSON 형태로 표시
-
-#### 접속:
-- Frontend: http://localhost:5173 (또는 터미널에 표시된 포트)
-- 백엔드가 `http://localhost:8000`에서 실행 중이어야 함
-
-
----
-
-## 데이터 흐름도
-
-```
-┌─────────────────┐
-│  data/*.csv     │  (74개 CSV 파일)
-│  (실제 데이터)   │
-└────────┬────────┘
-         │
-         │ scan_and_export.py 실행
-         ▼
-┌─────────────────┐
-│ metadata/       │  (메타데이터 생성)
-│ datasets.json   │  ← 레지스트리 (중앙 인덱스)
-│ columns_*.json  │
-└────────┬────────┘
-         │
-         │ 백엔드가 읽음
-         ▼
-┌─────────────────┐
-│  Backend API    │  (FastAPI 서버)
-│  /api/datasets  │  ← 레지스트리 기반으로 API 제공
-│  /api/stats     │  ← DuckDB로 CSV 직접 쿼리
-└────────┬────────┘
-         │
-         │ HTTP 요청
-         ▼
-┌─────────────────┐
-│  Frontend       │  (React 웹앱)
-│  웹 인터페이스   │  ← 사용자가 데이터 조회
-└─────────────────┘
-```
-
-## 핵심 개념
-
-### 레지스트리 (Registry)
-- **파일**: `metadata/datasets.json`
-- **의미**: 모든 CSV 데이터셋의 메타데이터를 저장한 중앙 집중식 인덱스
-- **역할**: 
-  - 매번 CSV 파일을 스캔하지 않고 빠르게 목록 제공
-  - 각 데이터셋의 ID, 경로, 컬럼 정보 등을 미리 저장
-  - 백엔드 API의 데이터 소스
-
-### Dataset ID
-- 각 데이터셋에 부여되는 고유 식별자
-- 형식: `ds_` + 파일 경로의 SHA1 해시 (12자리)
-- 예: `ds_843aa97e10bf`
-- 파일명이 바뀌어도 경로가 같으면 동일한 ID 유지
-
-## 데이터셋 정보
-
-- **총 데이터셋**: 74개
-- **각 데이터셋 컬럼 수**: 207개
-- **모든 데이터셋이 동일한 구조**를 가지고 있습니다 (intersection = union)
-
-## 주의사항
-
-- `data/*.csv` 파일들은 `.gitignore`에 포함되어 GitHub에 업로드되지 않습니다
-- 데이터가 변경되면 `tools/scan_and_export.py`를 다시 실행하여 레지스트리를 갱신해야 합니다
-- 백엔드 서버는 레지스트리를 시작 시 한 번만 읽습니다. 레지스트리가 변경되면 서버를 재시작해야 합니다
-
-## 데이터 변경 시 운영 루틴
-
-**"데이터가 바뀌어도 그대로"를 실제로 보장하는 운영 루틴**
-
-데이터 교체/추가/컬럼 변경이 발생했을 때 다음 순서로 진행:
-
-### 1. 메타데이터 재생성
+새 터미널에서:
 
 ```bash
-python tools/scan_and_export.py
+# 프로젝트 루트에서
+./start_frontend.sh
+
+# 또는 frontend 디렉토리에서
+cd frontend && npm install && npm run dev
 ```
 
-- `data/` 디렉토리의 모든 CSV 파일을 다시 스캔
-- 변경된 파일 정보를 `metadata/datasets.json`에 반영
-- 새로운 컬럼이 추가되면 `columns_union.json` 등도 자동 업데이트
+프론트엔드가 실행되면:
+- 웹 애플리케이션: http://localhost:5173
 
-### 2. 백엔드 재시작
+## 📖 사용 방법
+
+1. **데이터셋 선택**: 왼쪽 사이드바에서 분석할 CSV 파일 선택
+2. **컬럼 선택**: 원하는 컬럼만 체크하여 표시
+3. **데이터 탐색**: 중앙 그리드에서 데이터 스크롤 및 필터링
+4. **범위 선택**: 그리드에서 마우스로 드래그하여 행 범위 선택
+5. **통계 계산**: "통계 계산" 버튼 클릭하여 선택한 범위의 통계 확인
+
+## 🔧 주요 기능
+
+- ✅ **자동 메타데이터 생성**: CSV 파일만 넣으면 자동 처리
+- ✅ **실시간 미리보기**: 최대 10,000행까지 빠른 미리보기
+- ✅ **컬럼 선택**: 207개 컬럼 중 원하는 것만 선택하여 표시
+- ✅ **통계 계산**: 선택한 범위의 컬럼별 통계 (평균, 최소/최대값, 표준편차)
+- ✅ **필터링 및 정렬**: AG Grid의 강력한 필터링 및 정렬 기능
+- ✅ **드래그 범위 선택**: 직관적인 행 범위 선택
+
+## 📡 API 엔드포인트
+
+- `GET /api/datasets` - 데이터셋 목록 조회
+- `GET /api/datasets/{dataset_id}` - 데이터셋 메타데이터 조회
+- `GET /api/datasets/{dataset_id}/preview` - 데이터 미리보기
+- `POST /api/datasets/{dataset_id}/stats` - 통계 계산
+
+자세한 API 문서: http://localhost:8000/docs
+
+## 🛠 기술 스택
+
+- **Backend**: FastAPI, DuckDB, Python
+- **Frontend**: React, TypeScript, AG Grid, Vite
+- **Data**: CSV 파일, JSON 메타데이터
+
+## 📝 CSV 파일 변경 시
+
+### 자동 처리 (권장)
+
+**방법 1: 백엔드 자동 감지**
+- 백엔드가 실행 중이면 API 호출 시 자동으로 메타데이터 확인 및 생성
+
+**방법 2: 파일 변경 감지 스크립트**
+```bash
+./watch_csv.sh
+# CSV 파일 추가/삭제/변경 시 자동으로 메타데이터 재생성
+```
+
+### 수동 처리
 
 ```bash
-# 백엔드 서버 중지 (Ctrl+C)
-# 그 다음 다시 시작
-cd backend
-source venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# 메타데이터 수동 재생성
+./scan_metadata.sh
+
+# 또는 직접 실행
+python3 tools/scan_and_export.py
 ```
 
-- 백엔드는 시작 시 `metadata/datasets.json`을 한 번만 읽습니다
-- 레지스트리가 변경되면 서버를 재시작해야 새로운 데이터셋 정보가 반영됩니다
-- (향후 개선: `/api/reload` 엔드포인트로 레지스트리 재로드 기능 추가 가능)
+## 💡 팁
 
-### 3. 프론트엔드 자동 반영
+- CSV 파일은 반드시 `data/` 디렉토리에 넣어주세요
+- 백엔드와 프론트엔드는 별도의 터미널에서 실행해야 합니다
+- 대용량 파일의 경우 미리보기 제한(기본 2,000행)을 조정할 수 있습니다
+- 컬럼이 많을 경우 왼쪽 사이드바에서 원하는 컬럼만 선택하여 표시하세요
 
-- 프론트엔드는 **자동으로** 변경사항을 반영합니다
-- 데이터셋 목록(`/api/datasets`)이 바뀌면 드롭다운에 자동으로 표시
-- 컬럼 목록(`/api/datasets/{dataset_id}/columns`)이 바뀌면 체크박스 목록 자동 업데이트
-- 미리보기(`/api/datasets/{dataset_id}/preview`)는 실시간으로 최신 데이터를 표시
+## 🔄 워크플로우
 
-**핵심**: 프론트엔드는 별도 작업 없이 백엔드 API를 통해 항상 최신 데이터를 가져옵니다.
+```
+1. CSV 파일을 data/ 디렉토리에 넣기
+   ↓
+2. 백엔드 실행 (자동으로 메타데이터 생성)
+   ↓
+3. 프론트엔드 실행
+   ↓
+4. 브라우저에서 http://localhost:5173 접속
+   ↓
+5. 데이터 분석 시작!
+```
+
+## 📄 라이선스
+
+이 프로젝트는 내부 사용을 위한 것입니다.

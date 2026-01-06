@@ -1,18 +1,28 @@
+"""API 스키마 정의"""
+from typing import List, Optional
 from pydantic import BaseModel, Field
-from typing import Literal
 
-Metric = Literal["avg", "max", "min", "count"]
+
+class Metric(BaseModel):
+    count: Optional[int] = None
+    non_null_count: Optional[int] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
+    avg: Optional[float] = None
+    stddev: Optional[float] = None
+    error: Optional[str] = None
+
 
 class RowRange(BaseModel):
-    start: int = Field(ge=0)
-    end: int = Field(ge=0)  # [start, end) 권장
+    start: int = Field(ge=0, default=0)
+    end: Optional[int] = Field(gt=0, default=None)
+
 
 class StatsRequest(BaseModel):
-    columns: list[str] = Field(min_length=1)
-    row_range: RowRange
-    metrics: list[Metric] = Field(min_length=1)
+    columns: List[str]
+    row_range: Optional[RowRange] = None
+
 
 class StatsResponse(BaseModel):
-    dataset_id: str
-    row_range: RowRange
-    results: dict[str, dict[str, float | int | None]]
+    metrics: dict[str, Metric]
+

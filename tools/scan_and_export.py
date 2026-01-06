@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+"""
+CSV 파일 스캔 및 메타데이터 생성
+"""
 from __future__ import annotations
 
 import csv
@@ -12,6 +16,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 OUT_DIR = PROJECT_ROOT / "metadata"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
+
 @dataclass
 class DatasetMeta:
     dataset_id: str
@@ -21,15 +26,17 @@ class DatasetMeta:
     mtime: float
     columns: List[str]
 
+
 def read_header(p: Path) -> List[str]:
     with p.open("r", encoding="utf-8-sig", newline="") as f:
         r = csv.reader(f)
         return next(r)
 
+
 def make_dataset_id(p: Path) -> str:
-    # 파일명이 의미 없으니 "경로 기반 안정 ID"
     h = hashlib.sha1(str(p.resolve()).encode("utf-8")).hexdigest()[:12]
     return f"ds_{h}"
+
 
 def main():
     files = sorted(DATA_DIR.glob("*.csv"))
@@ -58,52 +65,42 @@ def main():
 
             columns_by_file[str(p)] = cols
             col_sets.append(set(cols))
-            print(f"OK  : {p.name} ({len(cols)} cols)")
+            print(f"✓ {p.name} ({len(cols)} cols)")
         except Exception as e:
-            print(f"FAIL: {p.name} -> {e}")
+            print(f"✗ {p.name} -> {e}")
 
     union = sorted(set().union(*col_sets)) if col_sets else []
     inter = sorted(set.intersection(*col_sets)) if col_sets else []
 
-    # 레지스트리(웹앱의 핵심 기반)
+    # 메타데이터 저장
     (OUT_DIR / "datasets.json").write_text(
         json.dumps([asdict(m) for m in metas], ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
 
-    # 파일별 컬럼(추적용)
     (OUT_DIR / "columns_by_file.json").write_text(
         json.dumps(columns_by_file, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
 
-    # union/intersection (UI/검증에 유용)
     (OUT_DIR / "columns_union.json").write_text(
         json.dumps(union, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    
     (OUT_DIR / "columns_intersection.json").write_text(
         json.dumps(inter, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
 
-    # py/txt (네가 원한 산출물)
-    (OUT_DIR / "columns_union.py").write_text(
-        "# auto-generated\n"
-        f"# files={len(metas)}\n"
-        f"# union_cols={len(union)}\n\n"
-        "columns_union = " + repr(union) + "\n",
-        encoding="utf-8",
-    )
-    (OUT_DIR / "columns_union.txt").write_text(
-        "\n".join(union) + "\n", encoding="utf-8"
-    )
+    print("\n" + "="*50)
+    print(f"✓ 처리 완료: {len(metas)}개 파일")
+    print(f"✓ 전체 컬럼 수: {len(union)}개")
+    print(f"✓ 공통 컬럼 수: {len(inter)}개")
+    print(f"✓ 저장 위치: {OUT_DIR}")
+    print("="*50)
 
-    print("\n=== Summary ===")
-    print(f"files={len(metas)}")
-    print(f"union_cols={len(union)}")
-    print(f"intersection_cols={len(inter)}")
-    print(f"saved -> {OUT_DIR}")
 
 if __name__ == "__main__":
     main()
+

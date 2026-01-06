@@ -1,3 +1,0 @@
-"""ALDLIST Backend Application"""
-
-

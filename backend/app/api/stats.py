@@ -1,38 +1,37 @@
+"""통계 API"""
 from fastapi import APIRouter, HTTPException
+
 from ..core.registry import get_dataset
-from ..models.schemas import StatsRequest, StatsResponse
 from ..engine.duckdb_engine import compute_metrics
+from ..models.schemas import StatsRequest, StatsResponse, Metric
 
-router = APIRouter(prefix="/api", tags=["stats"])
+router = APIRouter(prefix="/api/datasets", tags=["stats"])
 
-@router.post("/datasets/{dataset_id}/stats", response_model=StatsResponse)
-def stats(dataset_id: str, req: StatsRequest):
-    try:
-        ds = get_dataset(dataset_id)
-    except KeyError:
-        raise HTTPException(404, "dataset_id not found")
 
-    start = req.row_range.start
-    end = req.row_range.end
-    if end < start:
-        raise HTTPException(400, "row_range.end must be >= start")
+@router.post("/{dataset_id}/stats", response_model=StatsResponse)
+def stats(dataset_id: str, request: StatsRequest):
+    """통계 계산"""
+    meta = get_dataset(dataset_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    # 유효한 컬럼만 필터링
+    valid_columns = [c for c in request.columns if c in meta.columns]
+    if not valid_columns:
+        raise HTTPException(status_code=400, detail="No valid columns provided")
+    
+    # 행 범위 설정
+    row_start = 0
+    row_end = None
+    if request.row_range:
+        row_start = request.row_range.start
+        row_end = request.row_range.end
+    
+    # 통계 계산
+    metrics_dict = compute_metrics(meta.path, valid_columns, row_start, row_end)
+    
+    # 응답 형식 변환
+    metrics = {k: Metric(**v) for k, v in metrics_dict.items()}
+    
+    return StatsResponse(metrics=metrics)
 
-    offset = start
-    limit = end - start
-    if limit <= 0:
-        return StatsResponse(dataset_id=dataset_id, row_range=req.row_range, results={})
-
-    # 없는 컬럼은 스킵 (데이터 바뀌어도 서버 안 죽게)
-    valid_cols = [c for c in req.columns if c in ds.columns]
-    if not valid_cols:
-        return StatsResponse(dataset_id=dataset_id, row_range=req.row_range, results={})
-
-    results = compute_metrics(
-        csv_path=ds.path,
-        columns=valid_cols,
-        offset=offset,
-        limit=limit,
-        metrics=req.metrics,
-    )
-
-    return StatsResponse(dataset_id=dataset_id, row_range=req.row_range, results=results)

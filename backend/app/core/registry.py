@@ -1,8 +1,11 @@
-from __future__ import annotations
+"""데이터셋 레지스트리 관리"""
 import json
+from pathlib import Path
+from typing import List, Optional
 from dataclasses import dataclass
-from typing import List
+
 from .settings import REGISTRY_PATH
+
 
 @dataclass
 class DatasetMeta:
@@ -11,16 +14,22 @@ class DatasetMeta:
     filename: str
     size_bytes: int
     mtime: float
-    columns: list[str]
+    columns: List[str]
+
 
 def load_registry() -> List[DatasetMeta]:
+    """레지스트리 로드"""
     if not REGISTRY_PATH.exists():
-        raise FileNotFoundError(f"registry not found: {REGISTRY_PATH} (run tools/scan_and_export.py)")
-    raw = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
-    return [DatasetMeta(**x) for x in raw]
+        return []
+    
+    data = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
+    return [DatasetMeta(**item) for item in data]
 
-def get_dataset(dataset_id: str) -> DatasetMeta:
-    for d in load_registry():
-        if d.dataset_id == dataset_id:
-            return d
-    raise KeyError(dataset_id)
+
+def get_dataset(dataset_id: str) -> Optional[DatasetMeta]:
+    """특정 데이터셋 조회"""
+    for meta in load_registry():
+        if meta.dataset_id == dataset_id:
+            return meta
+    return None
+
