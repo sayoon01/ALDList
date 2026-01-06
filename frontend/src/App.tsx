@@ -89,6 +89,12 @@ export default function App() {
         setSelectedColumns([]);
 
         const preview = await getPreview(datasetId, 0, 2000);
+        console.log('Preview response:', {
+          dataRows: preview.data?.length ?? 0,
+          columns: preview.columns?.length ?? 0,
+          firstRow: preview.data?.[0],
+        });
+        
         setRowData(preview.data ?? []);
 
         // columns는 preview 응답에 포함되어 있음
@@ -96,28 +102,37 @@ export default function App() {
 
         // 그리드 컬럼 생성
         const keys = preview.data?.[0] ? Object.keys(preview.data[0]) : (preview.columns ?? []);
+        console.log('Creating columnDefs for keys:', keys.slice(0, 10), '... (total:', keys.length, ')');
+        console.log('Sample data row:', preview.data?.[0]);
+        
         setColumnDefs(keys.map((k: string) => {
-          // 모든 컬럼에 대해 valueGetter만 사용 (field 제거하여 충돌 방지)
-          // 점(.)이나 특수문자가 포함된 컬럼명도 안전하게 처리
-          return {
+          // 점(.)이 포함된 컬럼명은 valueGetter만 사용, 일반 컬럼명은 field 사용
+          const hasSpecialChars = k.includes('.') || k.includes('(') || k.includes(')');
+          
+          const colDef: any = {
             headerName: k,
-            // field를 제거하고 valueGetter만 사용하여 모든 컬럼명을 안전하게 처리
-            valueGetter: (params: any) => {
-              if (!params || !params.data) return null;
-              // 대괄호 표기법으로 명시적으로 접근 (점 포함 컬럼명도 처리)
-              return params.data[k] ?? null;
-            },
             filter: true,
             sortable: true,
             resizable: true,
             valueFormatter: (params: any) => {
-              // valueGetter에서 이미 null 처리했지만, 안전을 위해 다시 체크
               const val = params.value;
               if (val == null || val === '') return '—';
-              // 숫자 0도 유효한 값이므로 그대로 표시
               return String(val);
             },
           };
+
+          if (hasSpecialChars) {
+            // 특수문자가 있으면 valueGetter 사용
+            colDef.valueGetter = (params: any) => {
+              if (!params || !params.data) return null;
+              return params.data[k] ?? null;
+            };
+          } else {
+            // 일반 컬럼명은 field 사용 (더 효율적)
+            colDef.field = k;
+          }
+
+          return colDef;
         }));
       } catch (e: any) {
         setError(String(e?.message ?? e));
