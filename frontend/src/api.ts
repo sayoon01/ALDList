@@ -1,72 +1,25 @@
-/**
- * API 클라이언트
- */
-import axios from 'axios';
+export const API_BASE = "http://localhost:8000/api";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-export interface DatasetInfo {
-  name: string;
-  path: string;
-  column_count: number;
-  row_count: number;
+export async function getDatasets() {
+  const r = await fetch(`${API_BASE}/datasets`);
+  return r.json();
 }
 
-export interface DatasetDetail extends DatasetInfo {
-  columns: string[];
+export async function getPreview(datasetId: string, offset=0, limit=2000) {
+  const r = await fetch(`${API_BASE}/datasets/${datasetId}/preview?offset=${offset}&limit=${limit}`);
+  return r.json();
 }
 
-export interface StatsResponse {
-  total_datasets: number;
-  total_rows: number;
-  total_columns: number;
-  union_columns: string[];
-  intersection_columns: string[];
+export async function getColumns(datasetId: string) {
+  const r = await fetch(`${API_BASE}/datasets/${datasetId}/columns`);
+  return r.json();
 }
 
-export const datasetsApi = {
-  /**
-   * 데이터셋 목록 조회
-   */
-  list: async (): Promise<DatasetInfo[]> => {
-    const response = await api.get<DatasetInfo[]>('/datasets');
-    return response.data;
-  },
-
-  /**
-   * 특정 데이터셋 상세 정보 조회
-   */
-  get: async (name: string): Promise<DatasetDetail> => {
-    const response = await api.get<DatasetDetail>(`/datasets/${name}`);
-    return response.data;
-  },
-
-  /**
-   * 데이터셋의 컬럼 목록 조회
-   */
-  getColumns: async (name: string): Promise<{ name: string; columns: string[]; count: number }> => {
-    const response = await api.get(`/datasets/${name}/columns`);
-    return response.data;
-  },
-};
-
-export const statsApi = {
-  /**
-   * 전체 통계 정보 조회
-   */
-  get: async (): Promise<StatsResponse> => {
-    const response = await api.get<StatsResponse>('/stats');
-    return response.data;
-  },
-};
-
-export default api;
-
-
+export async function postStats(datasetId: string, body: any) {
+  const r = await fetch(`${API_BASE}/datasets/${datasetId}/stats`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return r.json();
+}
