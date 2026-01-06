@@ -95,32 +95,20 @@ export default function App() {
         setAllColumns(preview.columns ?? []);
 
         // 그리드 컬럼 생성
+        // CSV 필드명을 그대로 사용하여 간단하게 처리
         const keys = preview.data?.[0] ? Object.keys(preview.data[0]) : (preview.columns ?? []);
-        setColumnDefs(keys.map((k: string) => {
-          // 점(.)이나 특수문자가 포함된 컬럼명도 안전하게 처리
-          // field와 valueGetter를 모두 설정하여 안전하게 처리
-          return {
-            headerName: k,
-            field: k, // field도 설정 (일반 컬럼명용)
-            // valueGetter를 사용하여 명시적으로 데이터 접근 (점 포함 컬럼명도 처리)
-            valueGetter: (params: any) => {
-              if (!params.data) return null;
-              // 대괄호 표기법으로 안전하게 접근
-              const value = params.data[k];
-              return value;
-            },
-            filter: true,
-            sortable: true,
-            resizable: true,
-            valueFormatter: (params: any) => {
-              // null, undefined, 빈 문자열만 "—"로 표시
-              const val = params.value;
-              if (val == null || val === '') return '—';
-              // 숫자 0도 유효한 값이므로 그대로 표시
-              return String(val);
-            },
-          };
-        }));
+        setColumnDefs(keys.map((k: string) => ({
+          field: k, // 필드명을 그대로 사용 (점 포함 필드명도 AG Grid가 자동 처리)
+          headerName: k,
+          filter: true,
+          sortable: true,
+          resizable: true,
+          valueFormatter: (params: any) => {
+            // null, undefined, 빈 문자열만 "—"로 표시
+            if (params.value == null || params.value === '') return '—';
+            return String(params.value);
+          },
+        })));
       } catch (e: any) {
         setError(String(e?.message ?? e));
       }
