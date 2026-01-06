@@ -50,3 +50,7 @@ backend/dist/
 *.tmp
 *.temp
 *~
+
+# Build artifacts
+*.tar.gz
+dist.tar.gz
