@@ -25,6 +25,8 @@ export default function App() {
   const [start, setStart] = useState<number>(0);
   const [end, setEnd] = useState<number>(1000);
   const [stats, setStats] = useState<any>(null);
+  const [previewOffset, setPreviewOffset] = useState<number>(0);
+  const [previewLimit, setPreviewLimit] = useState<number>(2000);
 
   useEffect(() => {
     (async () => {
@@ -47,7 +49,7 @@ export default function App() {
         console.log("Columns loaded:", cols);
         setAllColumns(cols.columns || []);
 
-        const preview = await getPreview(datasetId, 0, 2000);
+        const preview = await getPreview(datasetId, previewOffset, previewLimit);
         console.log("Preview loaded:", preview);
         setRowData(preview.data || []);
 
@@ -58,7 +60,7 @@ export default function App() {
         console.error("Failed to load data:", error);
       }
     })();
-  }, [datasetId]);
+  }, [datasetId, previewOffset, previewLimit]);
 
   async function runStats() {
     if (!datasetId || selectedColumns.length === 0) return;
@@ -83,6 +85,45 @@ export default function App() {
             </option>
           ))}
         </select>
+
+        <h3 style={{ marginTop: 16 }}>Preview Range</h3>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: "12px", display: "block", marginBottom: 4 }}>Offset</label>
+            <input 
+              type="number" 
+              value={previewOffset} 
+              onChange={(e) => setPreviewOffset(Number(e.target.value))} 
+              style={{ width: "100%", padding: 4 }}
+              min={0}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: "12px", display: "block", marginBottom: 4 }}>Limit</label>
+            <input 
+              type="number" 
+              value={previewLimit} 
+              onChange={(e) => setPreviewLimit(Number(e.target.value))} 
+              style={{ width: "100%", padding: 4 }}
+              min={1}
+              max={10000}
+            />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+          <button 
+            onClick={() => { setPreviewOffset(0); setPreviewLimit(2000); }}
+            style={{ flex: 1, padding: 6, fontSize: "12px" }}
+          >
+            처음 2000줄
+          </button>
+          <button 
+            onClick={() => { setPreviewOffset(19420); setPreviewLimit(2000); }}
+            style={{ flex: 1, padding: 6, fontSize: "12px" }}
+          >
+            다른 Recipe 보기
+          </button>
+        </div>
 
         <h3 style={{ marginTop: 16 }}>Columns ({allColumns.length})</h3>
         <div style={{ display: "flex", gap: 8 }}>
