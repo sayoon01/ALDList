@@ -292,3 +292,42 @@ npm run dev
 - `data/*.csv` 파일들은 `.gitignore`에 포함되어 GitHub에 업로드되지 않습니다
 - 데이터가 변경되면 `tools/scan_and_export.py`를 다시 실행하여 레지스트리를 갱신해야 합니다
 - 백엔드 서버는 레지스트리를 시작 시 한 번만 읽습니다. 레지스트리가 변경되면 서버를 재시작해야 합니다
+
+## 데이터 변경 시 운영 루틴
+
+**"데이터가 바뀌어도 그대로"를 실제로 보장하는 운영 루틴**
+
+데이터 교체/추가/컬럼 변경이 발생했을 때 다음 순서로 진행:
+
+### 1. 메타데이터 재생성
+
+```bash
+python tools/scan_and_export.py
+```
+
+- `data/` 디렉토리의 모든 CSV 파일을 다시 스캔
+- 변경된 파일 정보를 `metadata/datasets.json`에 반영
+- 새로운 컬럼이 추가되면 `columns_union.json` 등도 자동 업데이트
+
+### 2. 백엔드 재시작
+
+```bash
+# 백엔드 서버 중지 (Ctrl+C)
+# 그 다음 다시 시작
+cd backend
+source venv/bin/activate
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+- 백엔드는 시작 시 `metadata/datasets.json`을 한 번만 읽습니다
+- 레지스트리가 변경되면 서버를 재시작해야 새로운 데이터셋 정보가 반영됩니다
+- (향후 개선: `/api/reload` 엔드포인트로 레지스트리 재로드 기능 추가 가능)
+
+### 3. 프론트엔드 자동 반영
+
+- 프론트엔드는 **자동으로** 변경사항을 반영합니다
+- 데이터셋 목록(`/api/datasets`)이 바뀌면 드롭다운에 자동으로 표시
+- 컬럼 목록(`/api/datasets/{dataset_id}/columns`)이 바뀌면 체크박스 목록 자동 업데이트
+- 미리보기(`/api/datasets/{dataset_id}/preview`)는 실시간으로 최신 데이터를 표시
+
+**핵심**: 프론트엔드는 별도 작업 없이 백엔드 API를 통해 항상 최신 데이터를 가져옵니다.
