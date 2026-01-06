@@ -103,6 +103,58 @@ source venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+#### 각 명령어 설명:
+
+1. **`cd backend`**
+   - 백엔드 디렉토리로 이동
+   - `app/` 디렉토리와 `venv/` 가상 환경이 있는 위치
+
+2. **`source venv/bin/activate`**
+   - Python 가상 환경을 활성화
+   - `venv/` 디렉토리에 설치된 패키지들(FastAPI, DuckDB, Pandas 등)을 사용할 수 있게 됨
+   - 프롬프트 앞에 `(venv)`가 표시되면 활성화 성공
+   - 가상 환경이 활성화되지 않으면 `ModuleNotFoundError` 발생
+
+3. **`uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`**
+   - `uvicorn`: ASGI 서버 (FastAPI 실행 도구)
+   - `app.main:app`: `app/main.py` 파일의 `app` 객체를 실행
+   - `--reload`: 코드 변경 시 자동으로 서버 재시작 (개발 모드)
+   - `--host 0.0.0.0`: 모든 네트워크 인터페이스에서 접근 가능 (로컬뿐만 아니라 외부에서도 접근 가능)
+   - `--port 8000`: 8000번 포트에서 서버 실행
+
+#### 이 명령어를 실행하면:
+
+1. **FastAPI 서버가 시작됨**
+   - Uvicorn 웹 서버가 백그라운드에서 실행
+   - 터미널에 "Uvicorn running on http://0.0.0.0:8000" 메시지 표시
+
+2. **레지스트리 로드**
+   - `metadata/datasets.json` 파일을 읽어서 메모리에 로드
+   - 74개 데이터셋의 메타데이터를 메모리에 저장
+   - 서버 시작 시 한 번만 로드 (서버 재시작 전까지 캐시됨)
+
+3. **API 엔드포인트 활성화**
+   - REST API 엔드포인트들이 활성화됨
+   - HTTP 요청을 받을 준비가 됨
+
+4. **Swagger UI 자동 생성**
+   - `http://localhost:8000/docs`에서 API 문서 확인 가능
+   - 각 엔드포인트를 브라우저에서 직접 테스트 가능
+
+#### 서버 실행 확인:
+
+- 터미널에 다음 메시지가 표시되면 성공:
+  ```
+  INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+  INFO:     Started reloader process
+  INFO:     Started server process
+  INFO:     Waiting for application startup.
+  INFO:     Application startup complete.
+  ```
+
+- 브라우저에서 `http://localhost:8000` 접속 시 API 정보가 JSON으로 표시됨
+- `http://localhost:8000/docs` 접속 시 Swagger UI가 표시됨
+
 #### 이 단계에서 하는 일:
 1. FastAPI 서버가 시작됨
 2. `metadata/datasets.json` (레지스트리)를 읽어서 메모리에 로드
