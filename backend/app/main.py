@@ -5,10 +5,10 @@ from .api.stats import router as stats_router
 
 app = FastAPI(title="CSV Analyzer")
 
-# CORS 설정
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 개발 환경에서는 모든 origin 허용
+    allow_origins=["*"],  # Adjust in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,3 +27,4 @@ async def root():
 
 app.include_router(datasets_router)
 app.include_router(stats_router)
+
