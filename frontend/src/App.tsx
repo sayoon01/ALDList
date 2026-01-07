@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { getDatasets, getPreview, getStats, Dataset, StatsResponse } from './api';
+import { getDatasets, getPreview, getStats, fetchDatasetColumns, Dataset, StatsResponse, ColumnMeta } from './api';
 import './App.css';
 
 function App() {
@@ -13,6 +13,7 @@ function App() {
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
   const [columnDefs, setColumnDefs] = useState<any[]>([]);
   const [rowData, setRowData] = useState<any[]>([]);
+  const [columnMeta, setColumnMeta] = useState<Record<string, ColumnMeta>>({});
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -36,6 +37,21 @@ function App() {
         alert('데이터셋 목록을 불러오는 중 오류가 발생했습니다: ' + error.message);
       });
   }, []);
+
+  // 선택된 데이터셋의 컬럼 메타데이터 로드
+  useEffect(() => {
+    if (!selectedDatasetId) return;
+
+    fetchDatasetColumns(selectedDatasetId)
+      .then((data) => {
+        setColumnMeta(data.meta);
+      })
+      .catch((error) => {
+        console.error('컬럼 메타데이터 로드 실패:', error);
+        // 메타데이터 로드 실패해도 계속 진행 (빈 메타데이터 사용)
+        setColumnMeta({});
+      });
+  }, [selectedDatasetId]);
 
   // 선택된 데이터셋의 미리보기 로드
   useEffect(() => {
@@ -106,13 +122,21 @@ function App() {
         // 점(.)이나 특수문자가 포함된 필드명은 valueGetter 사용
         const hasSpecialChars = /[.()]/.test(k);
         
+        // 메타데이터 가져오기 (항상 존재함을 전제)
+        const m = columnMeta[k];
+        const headerTooltip = m?.desc
+          ? `${m.desc}${m.unit ? ` (${m.unit})` : ""}${m.auto_generated ? " [auto]" : ""}`
+          : k;
+        
         const colDef: any = {
-          headerName: k,
+          headerName: m?.title ?? k,
           filter: true,
           sortable: true,
           resizable: true,
-          // 헤더 툴팁 (마우스 오버 시 전체 텍스트 표시)
-          headerTooltip: k,
+          // 헤더 툴팁 (메타데이터 설명 사용)
+          headerTooltip: headerTooltip,
+          // 셀 hover 시 값 tooltip
+          tooltipField: k,
           // 최소 너비 설정
           minWidth: 120,
           valueFormatter: (params: any) => {
@@ -133,7 +157,7 @@ function App() {
         return colDef;
       })
     );
-  }, [visibleColumns]);
+  }, [visibleColumns, columnMeta]);
 
   // 통계 계산
   const handleCalculateStats = async () => {

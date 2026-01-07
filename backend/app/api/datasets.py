@@ -5,7 +5,6 @@ from typing import Optional, Dict, Any
 from ..core.registry import load_registry, get_dataset
 from ..core.auto_scan import ensure_metadata
 from ..core.settings import PREVIEW_LIMIT_DEFAULT, PREVIEW_LIMIT_MAX
-from ..core.column_meta import load_global_column_meta
 from ..engine.duckdb_engine import preview_rows
 
 router = APIRouter(prefix="/api/datasets", tags=["datasets"])
@@ -65,22 +64,32 @@ def preview(
 
 @router.get("/{dataset_id}/columns")
 def get_dataset_columns(dataset_id: str) -> Dict[str, Any]:
-    """데이터셋 컬럼 메타데이터 조회"""
-    meta = get_dataset(dataset_id)
-    if not meta:
+    """
+    데이터셋 컬럼 메타데이터 조회
+    
+    모든 컬럼에 대해 메타데이터를 반환합니다.
+    우선순위: Dataset override > Global meta > Patterns 자동 생성
+    """
+    from ..core.column_meta import build_meta_map
+    
+    ds = get_dataset(dataset_id)
+    if ds is None:
         raise HTTPException(status_code=404, detail="Dataset not found")
     
-    # 데이터셋의 컬럼 목록
-    columns: list[str] = list(meta.columns)
+    # ds가 dict일 수도 있고 object일 수도 있으니 방어적으로 처리
+    columns = None
+    if isinstance(ds, dict):
+        columns = ds.get("columns")
+    else:
+        columns = getattr(ds, "columns", None)
     
-    # 전역 컬럼 메타데이터 로드
-    global_meta = load_global_column_meta()
+    if not columns:
+        raise HTTPException(status_code=500, detail="Dataset columns not found in registry")
     
-    # 이 데이터셋에서 쓰는 컬럼만 골라서 내려줌(가벼움)
-    meta_filtered = {c: global_meta[c] for c in columns if c in global_meta}
+    meta = build_meta_map(dataset_id, list(columns))
     
     return {
         "dataset_id": dataset_id,
-        "columns": columns,
-        "meta": meta_filtered,
+        "columns": list(columns),
+        "meta": meta,  # ✅ 이제 전체 컬럼 키가 다 들어감
     }

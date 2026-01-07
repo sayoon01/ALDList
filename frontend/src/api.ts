@@ -35,6 +35,26 @@ export interface StatsResponse {
   metrics: Record<string, Metric>;
 }
 
+export interface ColumnMeta {
+  key: string;
+  title?: string;
+  desc?: string;
+  unit?: string;
+  type?: string;
+  category?: string;
+  equipment_field?: string;
+  importance?: "A" | "B" | "C";
+  name_ko?: string;
+  name_en?: string;
+  auto_generated?: boolean;
+}
+
+export interface DatasetColumnsResponse {
+  dataset_id: string;
+  columns: string[];
+  meta: Record<string, ColumnMeta>;
+}
+
 async function fetchAPI<T>(endpoint: string): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
   const response = await fetch(url);
@@ -81,6 +101,10 @@ export async function getStats(
       ? { start: rowStart ?? 0, end: rowEnd ?? null }
       : null,
   });
+}
+
+export async function fetchDatasetColumns(datasetId: string): Promise<DatasetColumnsResponse> {
+  return fetchAPI(`/api/datasets/${datasetId}/columns`);
 }
 
 

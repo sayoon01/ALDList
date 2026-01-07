@@ -1,0 +1,147 @@
+# 컬럼 메타데이터 자동 생성 패턴 규칙
+# meta가 없는 컬럼에 대해 "그럴듯하게" 설명을 자동 생성
+
+zones:
+  U: "Upper"
+  CU: "Center-Upper"
+  C: "Center"
+  CL: "Center-Lower"
+  L: "Lower"
+
+patterns:
+  # Temperature actual/set
+  - match: '^TempAct_(U|CU|C|CL|L)$'
+    meta:
+      type: temperature
+      unit: "℃"
+      title: "Temp Actual {zone}"
+      desc: "챔버 온도 실제값(Actual) - {zone} zone"
+
+  - match: '^TempSet_(U|CU|C|CL|L)$'
+    meta:
+      type: temperature
+      unit: "℃"
+      title: "Temp Set {zone}"
+      desc: "챔버 온도 설정값(Set) - {zone} zone"
+
+  # Heater / Cascade TC
+  - match: '^HeaterTC_(U|CU|C|CL|L)$'
+    meta:
+      type: temperature
+      unit: "℃"
+      title: "Heater TC {zone}"
+      desc: "Heater Thermocouple 측정값 - {zone} zone"
+
+  - match: '^CascadeTC_(U|CU|C|CL|L)$'
+    meta:
+      type: temperature
+      unit: "℃"
+      title: "Cascade TC {zone}"
+      desc: "Cascade Thermocouple 측정값 - {zone} zone"
+
+  # TempAct_HT.* / TempAct_PR.*
+  - match: '^TempAct_(HT|PR)\.(U|CU|C|CL|L)$'
+    meta:
+      type: temperature
+      unit: "℃"
+      title: "TempAct {part} {zone}"
+      desc: "{part} 온도 실제값(Actual) - {zone} zone"
+
+  - match: '^TempTarg_(HT|PR)\.(U|CU|C|CL|L)$'
+    meta:
+      type: temperature
+      unit: "℃"
+      title: "Temp Target {part} {zone}"
+      desc: "{part} 목표온도(Target) - {zone} zone"
+
+  # Power_HT.*
+  - match: '^Power_HT\.(U|CU|C|CL|L)$'
+    meta:
+      type: heater
+      unit: "%"
+      title: "Heater Power {zone}"
+      desc: "히터 파워 출력 - {zone} zone"
+
+  # Pressure basics
+  - match: '^(PressAct|PressSet)$'
+    meta:
+      type: pressure
+      unit: "Torr"
+      title: "{col}"
+      desc: "챔버 압력 값"
+
+  - match: '^(VG11|VG12|VG13)$'
+    meta:
+      type: pressure
+      unit: "Torr"
+      title: "{col}"
+      desc: "Vacuum Gauge 압력 값"
+
+  # APC
+  - match: '^(APCValveMon|APCValveSet)$'
+    meta:
+      type: apc
+      unit: "%"
+      title: "{col}"
+      desc: "APC 밸브 값(모니터/설정)"
+
+  # ValveAct / ValveCtrl / ValveSet
+  - match: '^ValveAct_(\d+)$'
+    meta:
+      type: valve
+      title: "ValveAct {idx}"
+      desc: "밸브 동작 상태/값 - 채널 {idx}"
+
+  - match: '^ValveCtrl_(\d+)$'
+    meta:
+      type: valve
+      title: "ValveCtrl {idx}"
+      desc: "밸브 제어 값 - 채널 {idx}"
+
+  - match: '^ValveSet_(\d+)$'
+    meta:
+      type: valve
+      title: "ValveSet {idx}"
+      desc: "밸브 설정 값 - 채널 {idx}"
+
+  # MFCMon / MFCRcpSet / MFCRamp / MFCInput
+  - match: '^MFCMon_(.+)$'
+    meta:
+      type: gas
+      unit: "SLM"
+      title: "MFC Monitor {name}"
+      desc: "MFC 모니터 유량 값 - {name}"
+
+  - match: '^MFCRcpSet_(.+)$'
+    meta:
+      type: gas
+      unit: "SLM"
+      title: "MFC Recipe Set {name}"
+      desc: "레시피 기준 MFC 설정 유량 - {name}"
+
+  - match: '^MFCRamp_(.+)$'
+    meta:
+      type: gas
+      unit: "SLM"
+      title: "MFC Ramp {name}"
+      desc: "MFC 램프(변화율/전이) 관련 값 - {name}"
+
+  - match: '^MFCInput_(.+)$'
+    meta:
+      type: gas
+      unit: "SLM"
+      title: "MFC Input {name}"
+      desc: "MFC 입력/제어 입력값 - {name}"
+
+  # AUXMon_*
+  - match: '^AUXMon_(.+)$'
+    meta:
+      type: aux
+      title: "AUX Monitor {name}"
+      desc: "보조 센서/모니터 값 - {name}"
+
+fallback:
+  type: unknown
+  title: "{col}"
+  desc: "설명 없음(자동 생성). global_columns.yaml에 추가 가능"
+
