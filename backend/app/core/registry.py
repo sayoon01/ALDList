@@ -21,17 +21,29 @@ def _normalize_path(path_str: str) -> str:
     """경로를 DATA_DIR 기준으로 정규화"""
     path = Path(path_str)
     
-    # 이미 절대 경로이고 파일이 존재하면 그대로 사용
-    if path.is_absolute() and path.exists():
-        return str(path)
-    
-    # 상대 경로이거나 파일이 없으면 DATA_DIR 기준으로 변환
-    # filename만 있으면 DATA_DIR/filename
-    if not path.is_absolute():
-        # 상대 경로인 경우
-        normalized = DATA_DIR / path
+    # 절대 경로인 경우
+    if path.is_absolute():
+        # DATA_DIR 내부에 있으면 그대로 사용
+        try:
+            path.relative_to(DATA_DIR)
+            if path.exists():
+                return str(path.resolve())
+        except ValueError:
+            # DATA_DIR 밖에 있는 절대 경로는 filename만 사용
+            pass
+        
+        # DATA_DIR 밖에 있거나 존재하지 않으면 filename만 사용
+        filename = path.name
+        normalized = DATA_DIR / filename
         if normalized.exists():
             return str(normalized.resolve())
+        # 존재하지 않아도 DATA_DIR 기준 경로 반환
+        return str(normalized.resolve())
+    
+    # 상대 경로인 경우
+    normalized = DATA_DIR / path
+    if normalized.exists():
+        return str(normalized.resolve())
     
     # filename만 있는 경우 (메타데이터에 filename만 저장된 경우)
     filename = path.name
@@ -39,8 +51,8 @@ def _normalize_path(path_str: str) -> str:
     if normalized.exists():
         return str(normalized.resolve())
     
-    # 기존 경로 반환 (존재하지 않아도)
-    return str(path)
+    # 최종적으로 DATA_DIR/filename 반환
+    return str(normalized.resolve())
 
 
 def load_registry() -> List[DatasetMeta]:

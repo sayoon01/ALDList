@@ -38,6 +38,35 @@ def should_regenerate_metadata() -> bool:
             if registered_files != current_files:
                 print("📝 CSV 파일 목록이 변경되었습니다. 메타데이터 재생성이 필요합니다.")
                 return True
+            
+            # 메타데이터의 경로가 유효한지 확인 (로컬 경로가 아닌지)
+            for meta in metadata:
+                path_str = meta.get("path", "")
+                filename = meta.get("filename", "")
+                if path_str:
+                    path_obj = Path(path_str)
+                    # 절대 경로이고 DATA_DIR 밖에 있으면 재생성 필요
+                    if path_obj.is_absolute():
+                        try:
+                            path_obj.relative_to(DATA_DIR)
+                            # DATA_DIR 내부에 있지만 파일이 없으면 재생성
+                            if not path_obj.exists():
+                                print(f"📝 메타데이터의 파일이 존재하지 않습니다: {path_str}. 재생성합니다.")
+                                return True
+                        except ValueError:
+                            # DATA_DIR 밖에 있는 절대 경로는 무조건 재생성
+                            print(f"📝 메타데이터의 경로가 DATA_DIR 밖에 있습니다: {path_str}. 재생성합니다.")
+                            return True
+                    else:
+                        # 상대 경로인 경우 DATA_DIR 기준으로 확인
+                        data_dir_path = DATA_DIR / path_obj
+                        if not data_dir_path.exists():
+                            # filename으로도 확인
+                            if filename:
+                                filename_path = DATA_DIR / filename
+                                if not filename_path.exists():
+                                    print(f"📝 메타데이터의 파일을 찾을 수 없습니다: {path_str}. 재생성합니다.")
+                                    return True
         
         return False
     except Exception as e:
