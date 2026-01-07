@@ -34,7 +34,10 @@ def read_header(p: Path) -> List[str]:
 
 
 def make_dataset_id(p: Path) -> str:
-    h = hashlib.sha1(str(p.resolve()).encode("utf-8")).hexdigest()[:12]
+    # filename 기반으로 dataset_id 생성 (경로와 무관하게 동일한 ID 생성)
+    # 이렇게 하면 로컬과 배포 환경에서 동일한 dataset_id가 생성됨
+    filename = p.name
+    h = hashlib.sha1(filename.encode("utf-8")).hexdigest()[:12]
     return f"ds_{h}"
 
 
