@@ -19,7 +19,7 @@ function App() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [offset, setOffset] = useState(0);
-  const [limit, setLimit] = useState(2000);
+  const [limit, setLimit] = useState(500); // 초기 로딩 속도 개선: 2000 -> 500
   const [rowRange, setRowRange] = useState<{ start: number; end: number } | null>(null);
   const [manualRowStart, setManualRowStart] = useState<number>(0);
   const [manualRowEnd, setManualRowEnd] = useState<number>(0);
@@ -40,28 +40,26 @@ function App() {
       });
   }, []);
 
-  // 선택된 데이터셋의 컬럼 메타데이터 로드
-  useEffect(() => {
-    if (!selectedDatasetId) return;
-
-    fetchDatasetColumns(selectedDatasetId)
-      .then((data) => {
-        setColumnMeta(data.meta);
-      })
-      .catch((error) => {
-        console.error('컬럼 메타데이터 로드 실패:', error);
-        // 메타데이터 로드 실패해도 계속 진행 (빈 메타데이터 사용)
-        setColumnMeta({});
-      });
-  }, [selectedDatasetId]);
-
-  // 선택된 데이터셋의 미리보기 로드
+  // 선택된 데이터셋의 컬럼 메타데이터와 미리보기 데이터를 병렬로 로드 (성능 개선)
   useEffect(() => {
     if (!selectedDatasetId) return;
 
     setIsLoading(true);
-    getPreview(selectedDatasetId, offset, limit)
-      .then((data) => {
+    
+    // 병렬 로딩: 메타데이터와 미리보기 데이터를 동시에 가져옴
+    Promise.all([
+      fetchDatasetColumns(selectedDatasetId).catch((error) => {
+        console.error('컬럼 메타데이터 로드 실패:', error);
+        return { meta: {} }; // 실패 시 빈 메타데이터 반환
+      }),
+      getPreview(selectedDatasetId, offset, limit)
+    ])
+      .then(([columnsData, previewData]) => {
+        // 메타데이터 설정
+        setColumnMeta(columnsData.meta);
+        
+        // 미리보기 데이터 처리
+        const data = previewData;
         console.log('데이터 로드 성공:', { 
           rowCount: data.rows?.length, 
           columns: data.columns?.length,
@@ -113,6 +111,7 @@ function App() {
         setRowData([]);
         setAllColumns([]);
         setVisibleColumns([]);
+        setColumnMeta({});
       })
       .finally(() => {
         setIsLoading(false);
