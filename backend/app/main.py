@@ -42,7 +42,8 @@ def root():
         "endpoints": {
             "datasets": "/api/datasets",
             "preview": "/api/datasets/{dataset_id}/preview",
-            "stats": "/api/datasets/{dataset_id}/stats"
+            "stats": "/api/datasets/{dataset_id}/stats",
+            "columns": "/api/datasets/{dataset_id}/columns"
         }
     }
 

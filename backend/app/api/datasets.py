@@ -1,10 +1,11 @@
 """데이터셋 API"""
 from fastapi import APIRouter, HTTPException, Query
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from ..core.registry import load_registry, get_dataset
 from ..core.auto_scan import ensure_metadata
 from ..core.settings import PREVIEW_LIMIT_DEFAULT, PREVIEW_LIMIT_MAX
+from ..core.column_meta import load_global_column_meta
 from ..engine.duckdb_engine import preview_rows
 
 router = APIRouter(prefix="/api/datasets", tags=["datasets"])
@@ -59,4 +60,27 @@ def preview(
         "columns": columns,
         "rows": rows,
         "row_count": len(rows),
+    }
+
+
+@router.get("/{dataset_id}/columns")
+def get_dataset_columns(dataset_id: str) -> Dict[str, Any]:
+    """데이터셋 컬럼 메타데이터 조회"""
+    meta = get_dataset(dataset_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    # 데이터셋의 컬럼 목록
+    columns: list[str] = list(meta.columns)
+    
+    # 전역 컬럼 메타데이터 로드
+    global_meta = load_global_column_meta()
+    
+    # 이 데이터셋에서 쓰는 컬럼만 골라서 내려줌(가벼움)
+    meta_filtered = {c: global_meta[c] for c in columns if c in global_meta}
+    
+    return {
+        "dataset_id": dataset_id,
+        "columns": columns,
+        "meta": meta_filtered,
     }
