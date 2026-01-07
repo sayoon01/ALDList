@@ -129,14 +129,16 @@ function App() {
           : k;
         
         const colDef: any = {
-          headerName: m?.title ?? k,
+          headerName: k,  // 원본 컬럼명 유지
           filter: true,
           sortable: true,
           resizable: true,
-          // 헤더 툴팁 (메타데이터 설명 사용)
+          // 헤더 툴팁 (메타데이터 설명 사용) - AG Grid가 자동으로 표시
           headerTooltip: headerTooltip,
           // 셀 hover 시 값 tooltip
-          tooltipField: k,
+          tooltipValueGetter: (params: any) => {
+            return params.value != null ? String(params.value) : null;
+          },
           // 최소 너비 설정
           minWidth: 120,
           valueFormatter: (params: any) => {
@@ -437,6 +439,8 @@ function App() {
                 animateRows={true}
                 suppressRowClickSelection={true}
                 // 헤더 툴팁 활성화
+                tooltipShowDelay={500}
+                tooltipHideDelay={1000}
                 enableBrowserTooltips={true}
               />
             </div>
