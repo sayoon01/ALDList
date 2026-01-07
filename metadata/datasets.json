@@ -1,7 +1,7 @@
 [
   {
     "dataset_id": "ds_843aa97e10bf",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_001.csv",
+    "path": "standard_trace_001.csv",
     "filename": "standard_trace_001.csv",
     "size_bytes": 43688716,
     "mtime": 1767662285.9557357,
@@ -217,7 +217,7 @@
   },
   {
     "dataset_id": "ds_4a752a1e68d5",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_002.csv",
+    "path": "standard_trace_002.csv",
     "filename": "standard_trace_002.csv",
     "size_bytes": 31345259,
     "mtime": 1767662285.9677358,
@@ -433,7 +433,7 @@
   },
   {
     "dataset_id": "ds_893d8faf0b4c",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_003.csv",
+    "path": "standard_trace_003.csv",
     "filename": "standard_trace_003.csv",
     "size_bytes": 31308216,
     "mtime": 1767662285.9797359,
@@ -649,7 +649,7 @@
   },
   {
     "dataset_id": "ds_7d34f7a73c1b",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_004.csv",
+    "path": "standard_trace_004.csv",
     "filename": "standard_trace_004.csv",
     "size_bytes": 31129285,
     "mtime": 1767662285.9907358,
@@ -865,7 +865,7 @@
   },
   {
     "dataset_id": "ds_b1ae219e009e",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_005.csv",
+    "path": "standard_trace_005.csv",
     "filename": "standard_trace_005.csv",
     "size_bytes": 31458200,
     "mtime": 1767662286.0007358,
@@ -1081,7 +1081,7 @@
   },
   {
     "dataset_id": "ds_3cacc19297ea",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_006.csv",
+    "path": "standard_trace_006.csv",
     "filename": "standard_trace_006.csv",
     "size_bytes": 31548836,
     "mtime": 1767662286.008736,
@@ -1297,7 +1297,7 @@
   },
   {
     "dataset_id": "ds_6a507bb04837",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_007.csv",
+    "path": "standard_trace_007.csv",
     "filename": "standard_trace_007.csv",
     "size_bytes": 36595006,
     "mtime": 1767662286.018736,
@@ -1513,7 +1513,7 @@
   },
   {
     "dataset_id": "ds_7d1ed8886d04",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_008.csv",
+    "path": "standard_trace_008.csv",
     "filename": "standard_trace_008.csv",
     "size_bytes": 31078972,
     "mtime": 1767662286.027736,
@@ -1729,7 +1729,7 @@
   },
   {
     "dataset_id": "ds_b26fedc79962",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_009.csv",
+    "path": "standard_trace_009.csv",
     "filename": "standard_trace_009.csv",
     "size_bytes": 36267064,
     "mtime": 1767662286.037736,
@@ -1945,7 +1945,7 @@
   },
   {
     "dataset_id": "ds_05c4562224f9",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_010.csv",
+    "path": "standard_trace_010.csv",
     "filename": "standard_trace_010.csv",
     "size_bytes": 36397423,
     "mtime": 1767662286.046736,
@@ -2161,7 +2161,7 @@
   },
   {
     "dataset_id": "ds_0d7784c1089e",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_011.csv",
+    "path": "standard_trace_011.csv",
     "filename": "standard_trace_011.csv",
     "size_bytes": 30069822,
     "mtime": 1767662286.054736,
@@ -2377,7 +2377,7 @@
   },
   {
     "dataset_id": "ds_feddeb1dc801",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_012.csv",
+    "path": "standard_trace_012.csv",
     "filename": "standard_trace_012.csv",
     "size_bytes": 35536191,
     "mtime": 1767662286.0647361,
@@ -2593,7 +2593,7 @@
   },
   {
     "dataset_id": "ds_b96ab1cc3466",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_013.csv",
+    "path": "standard_trace_013.csv",
     "filename": "standard_trace_013.csv",
     "size_bytes": 35379252,
     "mtime": 1767662286.073736,
@@ -2809,7 +2809,7 @@
   },
   {
     "dataset_id": "ds_9f000b9be5e1",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_014.csv",
+    "path": "standard_trace_014.csv",
     "filename": "standard_trace_014.csv",
     "size_bytes": 35034785,
     "mtime": 1767662286.082736,
@@ -3025,7 +3025,7 @@
   },
   {
     "dataset_id": "ds_151061a390b5",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_015.csv",
+    "path": "standard_trace_015.csv",
     "filename": "standard_trace_015.csv",
     "size_bytes": 30447244,
     "mtime": 1767662286.0907362,
@@ -3241,7 +3241,7 @@
   },
   {
     "dataset_id": "ds_47cdd861015b",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_016.csv",
+    "path": "standard_trace_016.csv",
     "filename": "standard_trace_016.csv",
     "size_bytes": 30327373,
     "mtime": 1767662286.098736,
@@ -3457,7 +3457,7 @@
   },
   {
     "dataset_id": "ds_1a6c062297e2",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_017.csv",
+    "path": "standard_trace_017.csv",
     "filename": "standard_trace_017.csv",
     "size_bytes": 35432660,
     "mtime": 1767662286.107736,
@@ -3673,7 +3673,7 @@
   },
   {
     "dataset_id": "ds_65977203fe50",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_018.csv",
+    "path": "standard_trace_018.csv",
     "filename": "standard_trace_018.csv",
     "size_bytes": 35372708,
     "mtime": 1767662286.1167362,
@@ -3889,7 +3889,7 @@
   },
   {
     "dataset_id": "ds_352e903ee198",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_019.csv",
+    "path": "standard_trace_019.csv",
     "filename": "standard_trace_019.csv",
     "size_bytes": 30004718,
     "mtime": 1767662286.1247363,
@@ -4105,7 +4105,7 @@
   },
   {
     "dataset_id": "ds_ff6a6f275d26",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_020.csv",
+    "path": "standard_trace_020.csv",
     "filename": "standard_trace_020.csv",
     "size_bytes": 35329577,
     "mtime": 1767662286.1327362,
@@ -4321,7 +4321,7 @@
   },
   {
     "dataset_id": "ds_da9f78c51348",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_021.csv",
+    "path": "standard_trace_021.csv",
     "filename": "standard_trace_021.csv",
     "size_bytes": 35645748,
     "mtime": 1767662286.1427362,
@@ -4537,7 +4537,7 @@
   },
   {
     "dataset_id": "ds_1b48d8207914",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_022.csv",
+    "path": "standard_trace_022.csv",
     "filename": "standard_trace_022.csv",
     "size_bytes": 30174778,
     "mtime": 1767662286.1507363,
@@ -4753,7 +4753,7 @@
   },
   {
     "dataset_id": "ds_e57943684147",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_023.csv",
+    "path": "standard_trace_023.csv",
     "filename": "standard_trace_023.csv",
     "size_bytes": 35243508,
     "mtime": 1767662286.1587362,
@@ -4969,7 +4969,7 @@
   },
   {
     "dataset_id": "ds_0a45da18b54d",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_024.csv",
+    "path": "standard_trace_024.csv",
     "filename": "standard_trace_024.csv",
     "size_bytes": 33779984,
     "mtime": 1767662286.1677363,
@@ -5185,7 +5185,7 @@
   },
   {
     "dataset_id": "ds_2d4380df4b74",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_025.csv",
+    "path": "standard_trace_025.csv",
     "filename": "standard_trace_025.csv",
     "size_bytes": 29849658,
     "mtime": 1767662286.1747363,
@@ -5401,7 +5401,7 @@
   },
   {
     "dataset_id": "ds_dfaaa022b695",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_026.csv",
+    "path": "standard_trace_026.csv",
     "filename": "standard_trace_026.csv",
     "size_bytes": 35119079,
     "mtime": 1767662286.1837363,
@@ -5617,7 +5617,7 @@
   },
   {
     "dataset_id": "ds_cf16aba79c00",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_027.csv",
+    "path": "standard_trace_027.csv",
     "filename": "standard_trace_027.csv",
     "size_bytes": 35362343,
     "mtime": 1767662286.1927364,
@@ -5833,7 +5833,7 @@
   },
   {
     "dataset_id": "ds_7c3288f62b60",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_028.csv",
+    "path": "standard_trace_028.csv",
     "filename": "standard_trace_028.csv",
     "size_bytes": 29945528,
     "mtime": 1767662286.1997364,
@@ -6049,7 +6049,7 @@
   },
   {
     "dataset_id": "ds_b44d9c7d22d0",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_029.csv",
+    "path": "standard_trace_029.csv",
     "filename": "standard_trace_029.csv",
     "size_bytes": 35134624,
     "mtime": 1767662286.2087364,
@@ -6265,7 +6265,7 @@
   },
   {
     "dataset_id": "ds_780025963079",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_030.csv",
+    "path": "standard_trace_030.csv",
     "filename": "standard_trace_030.csv",
     "size_bytes": 35261234,
     "mtime": 1767662286.2177365,
@@ -6481,7 +6481,7 @@
   },
   {
     "dataset_id": "ds_6e9d5d50e6b1",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_031.csv",
+    "path": "standard_trace_031.csv",
     "filename": "standard_trace_031.csv",
     "size_bytes": 35614457,
     "mtime": 1767662286.2267365,
@@ -6697,7 +6697,7 @@
   },
   {
     "dataset_id": "ds_7542e47c7878",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_032.csv",
+    "path": "standard_trace_032.csv",
     "filename": "standard_trace_032.csv",
     "size_bytes": 30215124,
     "mtime": 1767662286.2347364,
@@ -6913,7 +6913,7 @@
   },
   {
     "dataset_id": "ds_603dc551a745",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_033.csv",
+    "path": "standard_trace_033.csv",
     "filename": "standard_trace_033.csv",
     "size_bytes": 35235933,
     "mtime": 1767662286.2437365,
@@ -7129,7 +7129,7 @@
   },
   {
     "dataset_id": "ds_d39221cc39a1",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_034.csv",
+    "path": "standard_trace_034.csv",
     "filename": "standard_trace_034.csv",
     "size_bytes": 35190912,
     "mtime": 1767662286.2527366,
@@ -7345,7 +7345,7 @@
   },
   {
     "dataset_id": "ds_dcf0b0b0f25d",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_035.csv",
+    "path": "standard_trace_035.csv",
     "filename": "standard_trace_035.csv",
     "size_bytes": 35239323,
     "mtime": 1767662286.2617366,
@@ -7561,7 +7561,7 @@
   },
   {
     "dataset_id": "ds_63bbf5825a43",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_036.csv",
+    "path": "standard_trace_036.csv",
     "filename": "standard_trace_036.csv",
     "size_bytes": 30080924,
     "mtime": 1767662286.2697365,
@@ -7777,7 +7777,7 @@
   },
   {
     "dataset_id": "ds_582a06ca2e11",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_037.csv",
+    "path": "standard_trace_037.csv",
     "filename": "standard_trace_037.csv",
     "size_bytes": 35576834,
     "mtime": 1767662286.2787366,
@@ -7993,7 +7993,7 @@
   },
   {
     "dataset_id": "ds_34f6781e19c3",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_038.csv",
+    "path": "standard_trace_038.csv",
     "filename": "standard_trace_038.csv",
     "size_bytes": 35341312,
     "mtime": 1767662286.2867367,
@@ -8209,7 +8209,7 @@
   },
   {
     "dataset_id": "ds_3a3e6870e37e",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_039.csv",
+    "path": "standard_trace_039.csv",
     "filename": "standard_trace_039.csv",
     "size_bytes": 29890650,
     "mtime": 1767662286.2937367,
@@ -8425,7 +8425,7 @@
   },
   {
     "dataset_id": "ds_6ada19c87e64",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_040.csv",
+    "path": "standard_trace_040.csv",
     "filename": "standard_trace_040.csv",
     "size_bytes": 35305336,
     "mtime": 1767662286.3027368,
@@ -8641,7 +8641,7 @@
   },
   {
     "dataset_id": "ds_56577c918b95",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_042.csv",
+    "path": "standard_trace_042.csv",
     "filename": "standard_trace_042.csv",
     "size_bytes": 35392233,
     "mtime": 1767662286.3117368,
@@ -8857,7 +8857,7 @@
   },
   {
     "dataset_id": "ds_17f03c735d19",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_043.csv",
+    "path": "standard_trace_043.csv",
     "filename": "standard_trace_043.csv",
     "size_bytes": 35294670,
     "mtime": 1767662286.320737,
@@ -9073,7 +9073,7 @@
   },
   {
     "dataset_id": "ds_f361c1f68c54",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_044.csv",
+    "path": "standard_trace_044.csv",
     "filename": "standard_trace_044.csv",
     "size_bytes": 30114330,
     "mtime": 1767662286.3277369,
@@ -9289,7 +9289,7 @@
   },
   {
     "dataset_id": "ds_4baebcfb0a3a",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_045.csv",
+    "path": "standard_trace_045.csv",
     "filename": "standard_trace_045.csv",
     "size_bytes": 35324330,
     "mtime": 1767662286.336737,
@@ -9505,7 +9505,7 @@
   },
   {
     "dataset_id": "ds_b5cc6cd33fc6",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_046.csv",
+    "path": "standard_trace_046.csv",
     "filename": "standard_trace_046.csv",
     "size_bytes": 35581421,
     "mtime": 1767662286.345737,
@@ -9721,7 +9721,7 @@
   },
   {
     "dataset_id": "ds_b30ca28260f6",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_047.csv",
+    "path": "standard_trace_047.csv",
     "filename": "standard_trace_047.csv",
     "size_bytes": 35394084,
     "mtime": 1767662286.3537369,
@@ -9937,7 +9937,7 @@
   },
   {
     "dataset_id": "ds_e7aa2277b086",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_048.csv",
+    "path": "standard_trace_048.csv",
     "filename": "standard_trace_048.csv",
     "size_bytes": 29896171,
     "mtime": 1767662286.361737,
@@ -10153,7 +10153,7 @@
   },
   {
     "dataset_id": "ds_4b61373bb8ca",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_049.csv",
+    "path": "standard_trace_049.csv",
     "filename": "standard_trace_049.csv",
     "size_bytes": 35139255,
     "mtime": 1767662286.369737,
@@ -10369,7 +10369,7 @@
   },
   {
     "dataset_id": "ds_4e12b991bff9",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_050.csv",
+    "path": "standard_trace_050.csv",
     "filename": "standard_trace_050.csv",
     "size_bytes": 35264240,
     "mtime": 1767662286.378737,
@@ -10585,7 +10585,7 @@
   },
   {
     "dataset_id": "ds_aea157380d3e",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_051.csv",
+    "path": "standard_trace_051.csv",
     "filename": "standard_trace_051.csv",
     "size_bytes": 30015284,
     "mtime": 1767662286.385737,
@@ -10801,7 +10801,7 @@
   },
   {
     "dataset_id": "ds_a4f6cf9bffb5",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_052.csv",
+    "path": "standard_trace_052.csv",
     "filename": "standard_trace_052.csv",
     "size_bytes": 35442522,
     "mtime": 1767662286.393737,
@@ -11017,7 +11017,7 @@
   },
   {
     "dataset_id": "ds_c5f291529946",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_053.csv",
+    "path": "standard_trace_053.csv",
     "filename": "standard_trace_053.csv",
     "size_bytes": 35318682,
     "mtime": 1767662286.4027371,
@@ -11233,7 +11233,7 @@
   },
   {
     "dataset_id": "ds_cfbb9b5b9162",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_054.csv",
+    "path": "standard_trace_054.csv",
     "filename": "standard_trace_054.csv",
     "size_bytes": 34986790,
     "mtime": 1767662286.410737,
@@ -11449,7 +11449,7 @@
   },
   {
     "dataset_id": "ds_ff6d370dcf17",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_055.csv",
+    "path": "standard_trace_055.csv",
     "filename": "standard_trace_055.csv",
     "size_bytes": 31161876,
     "mtime": 1767662286.417737,
@@ -11665,7 +11665,7 @@
   },
   {
     "dataset_id": "ds_19ed0725339d",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_057.csv",
+    "path": "standard_trace_057.csv",
     "filename": "standard_trace_057.csv",
     "size_bytes": 35396032,
     "mtime": 1767662286.426737,
@@ -11881,7 +11881,7 @@
   },
   {
     "dataset_id": "ds_79c150526125",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_058.csv",
+    "path": "standard_trace_058.csv",
     "filename": "standard_trace_058.csv",
     "size_bytes": 35103273,
     "mtime": 1767662286.4347372,
@@ -12097,7 +12097,7 @@
   },
   {
     "dataset_id": "ds_6710717bcc32",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_062.csv",
+    "path": "standard_trace_062.csv",
     "filename": "standard_trace_062.csv",
     "size_bytes": 35384497,
     "mtime": 1767662286.4437373,
@@ -12313,7 +12313,7 @@
   },
   {
     "dataset_id": "ds_a0ed3e89deb2",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_063.csv",
+    "path": "standard_trace_063.csv",
     "filename": "standard_trace_063.csv",
     "size_bytes": 29973351,
     "mtime": 1767662286.4507372,
@@ -12529,7 +12529,7 @@
   },
   {
     "dataset_id": "ds_030e4ff53064",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_064.csv",
+    "path": "standard_trace_064.csv",
     "filename": "standard_trace_064.csv",
     "size_bytes": 34954015,
     "mtime": 1767662286.4597373,
@@ -12745,7 +12745,7 @@
   },
   {
     "dataset_id": "ds_2bd268ec1a5c",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_065.csv",
+    "path": "standard_trace_065.csv",
     "filename": "standard_trace_065.csv",
     "size_bytes": 35240495,
     "mtime": 1767662286.4677372,
@@ -12961,7 +12961,7 @@
   },
   {
     "dataset_id": "ds_82f564efcc2c",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_066.csv",
+    "path": "standard_trace_066.csv",
     "filename": "standard_trace_066.csv",
     "size_bytes": 35386713,
     "mtime": 1767662286.4767373,
@@ -13177,7 +13177,7 @@
   },
   {
     "dataset_id": "ds_41d2436c627a",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_067.csv",
+    "path": "standard_trace_067.csv",
     "filename": "standard_trace_067.csv",
     "size_bytes": 30208996,
     "mtime": 1767662286.4837372,
@@ -13393,7 +13393,7 @@
   },
   {
     "dataset_id": "ds_cc5020fbe3b5",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_068.csv",
+    "path": "standard_trace_068.csv",
     "filename": "standard_trace_068.csv",
     "size_bytes": 35217262,
     "mtime": 1767662286.4927373,
@@ -13609,7 +13609,7 @@
   },
   {
     "dataset_id": "ds_9e898168ca5b",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_069.csv",
+    "path": "standard_trace_069.csv",
     "filename": "standard_trace_069.csv",
     "size_bytes": 34930433,
     "mtime": 1767662286.5007374,
@@ -13825,7 +13825,7 @@
   },
   {
     "dataset_id": "ds_2bacbbf9da48",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_070.csv",
+    "path": "standard_trace_070.csv",
     "filename": "standard_trace_070.csv",
     "size_bytes": 35166269,
     "mtime": 1767662286.5087373,
@@ -14041,7 +14041,7 @@
   },
   {
     "dataset_id": "ds_9d2149163bf4",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_071.csv",
+    "path": "standard_trace_071.csv",
     "filename": "standard_trace_071.csv",
     "size_bytes": 57293254,
     "mtime": 1767662286.5227375,
@@ -14257,7 +14257,7 @@
   },
   {
     "dataset_id": "ds_ffdded2d502c",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_072.csv",
+    "path": "standard_trace_072.csv",
     "filename": "standard_trace_072.csv",
     "size_bytes": 30119648,
     "mtime": 1767662286.5297375,
@@ -14473,7 +14473,7 @@
   },
   {
     "dataset_id": "ds_e35cc68a703b",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_073.csv",
+    "path": "standard_trace_073.csv",
     "filename": "standard_trace_073.csv",
     "size_bytes": 35099247,
     "mtime": 1767662286.5387375,
@@ -14689,7 +14689,7 @@
   },
   {
     "dataset_id": "ds_c977676ba1ed",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_074.csv",
+    "path": "standard_trace_074.csv",
     "filename": "standard_trace_074.csv",
     "size_bytes": 35165270,
     "mtime": 1767662286.5467374,
@@ -14905,7 +14905,7 @@
   },
   {
     "dataset_id": "ds_e529a11a4adc",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_075.csv",
+    "path": "standard_trace_075.csv",
     "filename": "standard_trace_075.csv",
     "size_bytes": 30050748,
     "mtime": 1767662286.5547376,
@@ -15121,7 +15121,7 @@
   },
   {
     "dataset_id": "ds_17820643a8a1",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_077.csv",
+    "path": "standard_trace_077.csv",
     "filename": "standard_trace_077.csv",
     "size_bytes": 35436400,
     "mtime": 1767662286.5637374,
@@ -15337,7 +15337,7 @@
   },
   {
     "dataset_id": "ds_3c3efcea74f4",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_078.csv",
+    "path": "standard_trace_078.csv",
     "filename": "standard_trace_078.csv",
     "size_bytes": 35313142,
     "mtime": 1767662286.5727375,
@@ -15553,7 +15553,7 @@
   },
   {
     "dataset_id": "ds_e7cd86b1e2f7",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_079.csv",
+    "path": "standard_trace_079.csv",
     "filename": "standard_trace_079.csv",
     "size_bytes": 40367846,
     "mtime": 1767662286.5827374,
@@ -15769,7 +15769,7 @@
   },
   {
     "dataset_id": "ds_b3597931b0fd",
-    "path": "/home/keti_spark1/yune/aldList/data/standard_trace_080.csv",
+    "path": "standard_trace_080.csv",
     "filename": "standard_trace_080.csv",
     "size_bytes": 30183509,
     "mtime": 1767662286.5897377,
