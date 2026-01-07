@@ -14,6 +14,8 @@ function App() {
   const [columnDefs, setColumnDefs] = useState<any[]>([]);
   const [rowData, setRowData] = useState<any[]>([]);
   const [columnMeta, setColumnMeta] = useState<Record<string, ColumnMeta>>({});
+  const [activeColumn, setActiveColumn] = useState<string | null>(null);
+  const [gridApi, setGridApi] = useState<any>(null);
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -75,6 +77,8 @@ function App() {
             // 새 데이터셋이거나 처음 로드 시: 모든 컬럼 표시
             setVisibleColumns(keys);
             setPrevDatasetId(selectedDatasetId);
+            // ✅ 추가: activeColumn 초기값 (첫 컬럼)
+            setActiveColumn(keys.length > 0 ? keys[0] : null);
           } else {
             // 같은 데이터셋이면 기존 선택 유지 (새로 추가된 컬럼만 추가)
             const newColumns = keys.filter(k => !visibleColumns.includes(k));
@@ -86,6 +90,12 @@ function App() {
                 ...newColumns
               ]);
             }
+            // ✅ 선택 컬럼이 사라졌으면 대체
+            setActiveColumn((prev) => {
+              if (!prev) return keys.length > 0 ? keys[0] : null;
+              if (keys.includes(prev)) return prev;
+              return keys.length > 0 ? keys[0] : null;
+            });
           }
           
           setRowData(data.rows);
@@ -160,6 +170,12 @@ function App() {
       })
     );
   }, [visibleColumns, columnMeta]);
+
+  // activeColumn이 바뀌면 그리드에서 해당 컬럼으로 스크롤
+  useEffect(() => {
+    if (!gridApi || !activeColumn) return;
+    gridApi.ensureColumnVisible(activeColumn);
+  }, [gridApi, activeColumn]);
 
   // 통계 계산
   const handleCalculateStats = async () => {
@@ -390,22 +406,74 @@ function App() {
                 </div>
               </div>
               <div className="column-list">
-                {allColumns.map((col) => (
-                  <label key={col} className="column-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={visibleColumns.includes(col)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setVisibleColumns([...visibleColumns, col]);
-                        } else {
-                          setVisibleColumns(visibleColumns.filter((c) => c !== col));
-                        }
+                {allColumns.map((col) => {
+                  const m = columnMeta[col]; // 항상 있음을 전제(없어도 안전)
+                  const isChecked = visibleColumns.includes(col);
+                  const isActive = activeColumn === col;
+
+                  const tip = m?.desc
+                    ? `${m.desc}${m.unit ? ` (${m.unit})` : ""}${m.auto_generated ? " [auto]" : ""}`
+                    : col;
+
+                  const labelText = m?.title ?? col;
+
+                  return (
+                    <label
+                      key={col}
+                      className="column-checkbox"
+                      title={tip} // ✅ hover tooltip
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "3px 6px",
+                        borderRadius: 6,
+                        background: isActive ? "rgba(0,0,0,0.06)" : "transparent",
+                        cursor: "pointer",
                       }}
-                    />
-                    <span title={col}>{col}</span>
-                  </label>
-                ))}
+                      onClick={() => {
+                        // ✅ 체크박스와 별개로 "상세패널 선택"을 바꿈
+                        setActiveColumn(col);
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+
+                          if (checked) {
+                            // 중복 방지
+                            if (!visibleColumns.includes(col)) {
+                              setVisibleColumns([...visibleColumns, col]);
+                            }
+                            // ✅ 체크하면 상세도 같이 선택되게
+                            setActiveColumn(col);
+                          } else {
+                            const next = visibleColumns.filter((c) => c !== col);
+                            setVisibleColumns(next);
+
+                            // ✅ 지금 선택중인 컬럼을 끄면, 상세패널도 대체
+                            if (activeColumn === col) {
+                              setActiveColumn(next.length > 0 ? next[0] : null);
+                            }
+                          }
+                        }}
+                        onClick={(e) => {
+                          // label 클릭으로 중복 이벤트 발생 방지
+                          e.stopPropagation();
+                        }}
+                      />
+
+                      <span style={{ userSelect: "none" }}>
+                        {labelText}
+                        {m?.importance ? (
+                          <span style={{ marginLeft: 6, opacity: 0.6 }}>({m.importance})</span>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -432,6 +500,7 @@ function App() {
                   flex: 1,
                   minWidth: 120,
                 }}
+                onGridReady={(params) => setGridApi(params.api)}
                 onCellMouseDown={onCellMouseDown}
                 onCellMouseOver={onCellMouseOver}
                 getRowStyle={getRowStyle}
@@ -449,6 +518,57 @@ function App() {
 
         {/* 오른쪽 통계 패널 */}
         <div className="stats-panel">
+          <div className="section">
+            <h2>컬럼 상세</h2>
+
+            {!activeColumn ? (
+              <div style={{ opacity: 0.75 }}>왼쪽에서 컬럼을 선택하세요.</div>
+            ) : (
+              (() => {
+                const m = columnMeta[activeColumn];
+                const title = m?.title ?? activeColumn;
+
+                return (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 700 }}>
+                        {title}
+                        {m?.importance ? (
+                          <span style={{ marginLeft: 8, opacity: 0.7 }}>중요도 {m.importance}</span>
+                        ) : null}
+                      </div>
+
+                      {(m?.name_ko || m?.name_en) ? (
+                        <div style={{ opacity: 0.75 }}>
+                          {m?.name_ko ?? ""}
+                          {m?.name_en ? ` / ${m.name_en}` : ""}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {m?.desc ? (
+                      <div style={{ lineHeight: 1.4 }}>{m.desc}</div>
+                    ) : (
+                      <div style={{ opacity: 0.7 }}>설명 없음</div>
+                    )}
+
+                    <div style={{ display: "grid", gap: 4, opacity: 0.9 }}>
+                      {m?.type ? <div>유형: {m.type}</div> : null}
+                      {m?.category ? <div>구분: {m.category}</div> : null}
+                      {m?.equipment_field ? <div>장비 필드명: {m.equipment_field}</div> : null}
+                      {m?.unit ? <div>단위: {m.unit}</div> : null}
+                      {m?.auto_generated ? (
+                        <div style={{ opacity: 0.7 }}>
+                          [자동 생성 메타] global_columns.yaml에 추가하면 더 정확해짐
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+          </div>
+
           <h2>통계 결과</h2>
           {stats ? (
             <div className="stats-content">
