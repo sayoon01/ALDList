@@ -51,11 +51,20 @@ def main():
         try:
             st = p.stat()
             cols = read_header(p)
+            
+            # DATA_DIR 기준 상대 경로 저장 (배포 환경 호환성)
+            try:
+                # DATA_DIR 기준 상대 경로 계산
+                rel_path = p.relative_to(DATA_DIR)
+                path_to_store = str(rel_path)
+            except ValueError:
+                # DATA_DIR 밖에 있으면 filename만 저장
+                path_to_store = p.name
 
             metas.append(
                 DatasetMeta(
                     dataset_id=make_dataset_id(p),
-                    path=str(p),
+                    path=path_to_store,  # 상대 경로 또는 filename만 저장
                     filename=p.name,
                     size_bytes=st.st_size,
                     mtime=st.st_mtime,
@@ -103,6 +112,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
