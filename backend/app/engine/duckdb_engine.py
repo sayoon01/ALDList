@@ -73,7 +73,7 @@ def preview_rows(
             # 캐시 사용 실패 시 기존 방식으로 fallback
             print(f"Warning: Cache failed for {dataset_id}, using fallback: {e}")
     
-    # Fallback: 기존 방식 (캐시 없이)
+    # Fallback: 기존 방식 (캐시 없이) - preview는 all_varchar로 빠르게 읽기
     conn = duckdb.connect()
     
     try:
@@ -83,29 +83,29 @@ def preview_rows(
         # 컬럼 목록 조회
         if columns is None:
             try:
-                # DuckDB의 DESCRIBE 사용
-                col_query = f"DESCRIBE SELECT * FROM read_csv_auto('{csv_path_normalized}')"
+                # DuckDB의 DESCRIBE 사용 (all_varchar로 빠르게)
+                col_query = f"DESCRIBE SELECT * FROM read_csv('{csv_path_normalized}', all_varchar=true, header=true)"
                 col_result = conn.execute(col_query).fetchall()
                 columns = [row[0] for row in col_result]
             except Exception:
                 # DESCRIBE 실패 시 실제 데이터 1행을 읽어서 컬럼 추출
-                test_query = f"SELECT * FROM read_csv_auto('{csv_path_normalized}') LIMIT 1"
+                test_query = f"SELECT * FROM read_csv('{csv_path_normalized}', all_varchar=true, header=true) LIMIT 1"
                 result = conn.execute(test_query)
                 columns = [desc[0] for desc in result.description]
                 result.close()
         
-        # 컬럼 선택
+        # 컬럼 선택 - preview는 all_varchar로 빠르게 읽기 (타입 추정 스킵)
         if columns:
             col_list = ", ".join(quote_ident(c) for c in columns)
             query = f"""
             SELECT {col_list}
-            FROM read_csv_auto('{csv_path_normalized}')
+            FROM read_csv('{csv_path_normalized}', all_varchar=true, header=true)
             LIMIT {limit} OFFSET {offset}
             """
         else:
             query = f"""
             SELECT *
-            FROM read_csv_auto('{csv_path_normalized}')
+            FROM read_csv('{csv_path_normalized}', all_varchar=true, header=true)
             LIMIT {limit} OFFSET {offset}
             """
         

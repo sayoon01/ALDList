@@ -75,15 +75,15 @@ class DuckDBCache:
     def get_view_query(self, dataset_id: str, csv_path: str) -> str:
         """
         View 이름 반환 (없으면 생성)
-        Returns: "view_name" 또는 "read_csv_auto('path')" (fallback)
+        Returns: "view_name" 또는 "read_csv('path', all_varchar=true, header=true)" (fallback)
         """
         try:
             view_name = self.ensure_view(dataset_id, csv_path)
             return view_name
         except Exception:
-            # View 생성 실패 시 원본 경로 사용 (fallback)
+            # View 생성 실패 시 원본 경로 사용 (fallback) - preview는 all_varchar로 빠르게
             csv_path_normalized = str(Path(csv_path).resolve())
-            return f"read_csv_auto('{csv_path_normalized}')"
+            return f"read_csv('{csv_path_normalized}', all_varchar=true, header=true)"
     
     def clear_view(self, dataset_id: str):
         """특정 데이터셋의 View 제거"""
