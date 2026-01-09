@@ -45,12 +45,18 @@ def preview(
     offset: int = Query(0, ge=0),
     limit: int = Query(PREVIEW_LIMIT_DEFAULT, ge=1, le=PREVIEW_LIMIT_MAX),
 ):
-    """데이터 미리보기"""
+    """데이터 미리보기 - DuckDB View 캐싱 사용"""
     meta = get_dataset(dataset_id)
     if not meta:
         raise HTTPException(status_code=404, detail="Dataset not found")
     
-    rows, columns = preview_rows(meta.path, offset=offset, limit=limit)
+    # dataset_id를 전달하여 캐시 사용
+    rows, columns = preview_rows(
+        meta.path, 
+        offset=offset, 
+        limit=limit,
+        dataset_id=dataset_id  # 캐시 활성화
+    )
     
     return {
         "dataset_id": dataset_id,

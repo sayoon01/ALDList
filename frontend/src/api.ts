@@ -93,13 +93,15 @@ export async function getStats(
   datasetId: string,
   columns: string[],
   rowStart?: number,
-  rowEnd?: number
+  rowEnd?: number,
+  computeColumns?: string[]  // 확장 포인트: 선택적으로 일부 컬럼만 계산 (없으면 columns 전체)
 ): Promise<StatsResponse> {
   return postAPI(`/api/datasets/${datasetId}/stats`, {
     columns,
     row_range: rowStart !== undefined || rowEnd !== undefined
       ? { start: rowStart ?? 0, end: rowEnd ?? null }
       : null,
+    compute_columns: computeColumns || undefined,  // 선택적 파라미터 (없으면 전체 columns 사용)
   });
 }
 
