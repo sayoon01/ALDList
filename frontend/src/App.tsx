@@ -42,24 +42,15 @@ function App() {
       });
   }, []);
 
-  // 선택된 데이터셋의 컬럼 메타데이터와 미리보기 데이터를 병렬로 로드 (성능 개선)
+  // 선택된 데이터셋의 미리보기 데이터를 먼저 로드, 메타데이터는 나중에 (UX 개선)
   useEffect(() => {
     if (!selectedDatasetId) return;
 
     setIsLoading(true);
     
-    // 병렬 로딩: 메타데이터와 미리보기 데이터를 동시에 가져옴
-    Promise.all([
-      fetchDatasetColumns(selectedDatasetId).catch((error) => {
-        console.error('컬럼 메타데이터 로드 실패:', error);
-        return { meta: {} }; // 실패 시 빈 메타데이터 반환
-      }),
-      getPreview(selectedDatasetId, offset, limit)
-    ])
-      .then(([columnsData, previewData]) => {
-        // 메타데이터 설정
-        setColumnMeta(columnsData.meta);
-        
+    // 1단계: preview 먼저 로드 (표를 먼저 보여줌)
+    getPreview(selectedDatasetId, offset, limit)
+      .then((previewData) => {
         // 미리보기 데이터 처리
         const data = previewData;
         console.log('데이터 로드 성공:', { 
@@ -106,6 +97,16 @@ function App() {
           setVisibleColumns([]);
           setRowData([]);
         }
+        
+        // 2단계: 메타데이터는 나중에 로드 (표는 이미 보여줌, 툴팁/상세 패널은 나중에 채움)
+        fetchDatasetColumns(selectedDatasetId)
+          .then((columnsData) => {
+            setColumnMeta(columnsData.meta);
+          })
+          .catch((error) => {
+            console.error('컬럼 메타데이터 로드 실패:', error);
+            // 실패해도 표는 이미 보여줌 (메타데이터 없이도 동작)
+          });
       })
       .catch((error) => {
         console.error('데이터 로딩 실패:', error);

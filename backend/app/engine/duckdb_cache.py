@@ -56,10 +56,11 @@ class DuckDBCache:
             csv_path_normalized = str(Path(csv_path).resolve())
             safe_view_name = view_name.replace('-', '_').replace('.', '_')
             
-            # View 생성
+            # View 생성 - all_varchar=True로 타입 추정 비용 제거 (성능 개선)
+            # preview는 타입 추정이 필요 없고, stats는 TRY_CAST로 처리하므로 문자열로 읽어도 OK
             create_query = f"""
             CREATE VIEW {safe_view_name} AS
-            SELECT * FROM read_csv_auto('{csv_path_normalized}')
+            SELECT * FROM read_csv('{csv_path_normalized}', all_varchar=true)
             """
             
             try:

@@ -3,7 +3,6 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, Dict, Any
 
 from ..core.registry import load_registry, get_dataset
-from ..core.auto_scan import ensure_metadata
 from ..core.settings import PREVIEW_LIMIT_DEFAULT, PREVIEW_LIMIT_MAX
 from ..engine.duckdb_engine import preview_rows
 
@@ -13,9 +12,7 @@ router = APIRouter(prefix="/api/datasets", tags=["datasets"])
 @router.get("")
 def list_datasets():
     """데이터셋 목록 조회"""
-    # 메타데이터가 없으면 자동 생성 시도
-    ensure_metadata()
-    
+    # ensure_metadata()는 startup 이벤트에서만 실행 (중복 호출 방지)
     return {"datasets": [{
         "dataset_id": m.dataset_id,
         "filename": m.filename,
@@ -50,11 +47,13 @@ def preview(
     if not meta:
         raise HTTPException(status_code=404, detail="Dataset not found")
     
+    # registry의 columns를 전달하여 DESCRIBE 제거 (성능 개선)
     # dataset_id를 전달하여 캐시 사용
     rows, columns = preview_rows(
         meta.path, 
         offset=offset, 
         limit=limit,
+        columns=meta.columns,  # DESCRIBE 제거: registry에서 이미 알고 있는 컬럼 사용
         dataset_id=dataset_id  # 캐시 활성화
     )
     
