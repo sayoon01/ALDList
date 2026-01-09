@@ -2,6 +2,19 @@
 
 CSV 파일을 쉽게 탐색하고 분석할 수 있는 웹 애플리케이션입니다.
 
+---
+
+## 1. 프로젝트 개요
+
+ALDList는 `data/` 폴더에 CSV 파일을 넣으면 서버가 자동으로 CSV들을 스캔해 데이터셋 메타데이터를 생성하고, 웹 UI에서 **미리보기(부분 로딩), 컬럼 의미(메타) 제공, 행 범위 통계 계산**을 수행하는 CSV 분석 웹 애플리케이션입니다.
+
+- 대용량 CSV도 전량 로딩 없이 빠르게 탐색(OFFSET/LIMIT)
+- 컬럼명만으로는 해석이 어려운 장비 로그를 메타 시스템으로 "설명 가능한 데이터"로 제공
+- 로컬/배포 환경 차이(절대경로 문제 등)에 강한 구조
+- Render(백엔드) + Vercel(프론트) 배포까지 바로 가능한 형태
+
+---
+
 ## ✨ 특징
 
 - **완전 자동화**: CSV 파일만 `data/` 디렉토리에 넣으면 자동으로 작동
@@ -13,26 +26,19 @@ CSV 파일을 쉽게 탐색하고 분석할 수 있는 웹 애플리케이션입
 
 ```
 aldList/
-├── data/              # CSV 파일 저장소 (여기에 CSV 파일 넣기)
-├── metadata/          # 자동 생성된 메타데이터 (자동 생성)
-│   ├── datasets.json
-│   └── ...
-├── tools/             # 유틸리티 스크립트
-│   └── scan_and_export.py
-├── backend/           # FastAPI 백엔드
+├── backend/
 │   ├── app/
 │   │   ├── main.py
-│   │   ├── api/       # API 엔드포인트
-│   │   ├── core/      # 핵심 기능 (레지스트리, 자동 스캔)
-│   │   ├── engine/    # DuckDB 엔진
-│   │   └── models/    # 데이터 모델
-│   └── requirements.txt
-└── frontend/          # React 프론트엔드
-    ├── src/
-    │   ├── App.tsx
-    │   ├── api.ts
-    │   └── ...
-    └── package.json
+│   │   ├── api/ (datasets.py, stats.py)
+│   │   ├── core/ (auto_scan.py, registry.py, column_meta.py, settings.py)
+│   │   └── engine/ (duckdb_engine.py)
+│   ├── requirements.txt
+│   └── Procfile
+├── frontend/
+│   └── src/ (App.tsx, api.ts)
+├── data/              # CSV 파일들 (배포 시 Git 포함)
+├── metadata/          # tools/scan_and_export.py 결과물
+└── column_meta/       # global_columns.yaml, patterns.yaml, datasets/*.yaml
 ```
 
 ## 🚀 빠른 시작
@@ -146,6 +152,27 @@ Vercel에서는 자동으로 처리됩니다:
 - **Frontend**: React, TypeScript, AG Grid, Vite
 - **Data**: CSV 파일, JSON 메타데이터
 
+---
+
+## 2. 기술 스택 및 의존성
+
+### Backend (Python)
+
+`backend/requirements.txt`
+
+- `fastapi==0.104.1` : REST API 서버
+- `uvicorn[standard]==0.24.0` : ASGI 서버 실행
+- `duckdb>=1.4.0` : CSV SQL 조회/집계 엔진(임베디드)
+- `pandas>=2.0.0` : (확장/데이터 처리용, 현재 코드에선 제한적으로 사용 가능)
+- `python-multipart==0.0.6` : (폼/업로드 확장 시 사용)
+- `pyyaml>=6.0` : column_meta YAML 로딩
+
+### Frontend
+
+- React + TypeScript
+- AG Grid(테이블/필터/정렬/툴팁)
+- Vite(빌드/환경변수)
+
 ## 📝 CSV 파일 변경 시
 
 ### 자동 처리 (권장)
@@ -197,6 +224,180 @@ python3 tools/scan_and_export.py
    ↓
 5. 데이터 분석 시작!
 ```
+
+---
+
+## 3. 전체 아키텍처
+
+- Backend는 레지스트리/메타/통계 API 제공
+- DuckDB는 CSV를 SQL로 읽고 집계 수행
+- Frontend는 병렬 로딩으로 "컬럼 메타 + 미리보기"를 동시에 불러와 그리드/툴팁/상세패널 구성
+
+---
+
+## 4. 동작 순서(End-to-End)
+
+### 4.1 서버 시작(Startup)
+
+1. FastAPI startup 이벤트에서 `ensure_metadata()` 실행
+2. CSV 변경/추가/삭제/경로 이상 여부 확인
+3. 필요하면 `tools/scan_and_export.py` 실행 → `metadata/*.json` 재생성
+4. API 서비스 시작
+
+### 4.2 프론트 접속 시
+
+1. `GET /api/datasets`로 목록 로드
+2. 첫 데이터셋 자동 선택
+3. 선택된 데이터셋에 대해 병렬 호출
+   - `GET /api/datasets/{id}/columns`
+   - `GET /api/datasets/{id}/preview?offset&limit`
+
+### 4.3 통계 계산
+
+1. 그리드에서 행 범위 드래그 선택 또는 수동 입력
+2. `POST /api/datasets/{id}/stats`에 columns + row_range 전송
+3. stats.metrics를 우측 카드로 표시
+
+---
+
+## 5. 메타데이터 생성(레지스트리) 설계
+
+### 5.1 생성 도구: tools/scan_and_export.py
+
+입력: `data/*.csv`
+
+출력:
+- `metadata/datasets.json`
+- `metadata/columns_by_file.json`
+- `metadata/columns_union.json`
+- `metadata/columns_intersection.json`
+
+**dataset_id 생성 규칙**
+- `ds_{sha1(filename)[:12]}`
+- 경로가 아니라 **파일명 기반** → 환경이 달라도 ID 안정적
+
+**path 저장 규칙**
+- DATA_DIR 기준 상대경로 저장(가능하면)
+- 그렇지 않으면 filename만 저장(절대경로 회피)
+
+### 5.2 자동 갱신: core/auto_scan.py
+
+- 레지스트리 없으면 생성
+- CSV 수정시간이 레지스트리보다 최신이면 재생성
+- 파일 추가/삭제 감지 시 재생성
+- 레지스트리의 path가 깨져 있거나 DATA_DIR 밖이면 재생성 시도
+
+---
+
+## 6. 레지스트리 경로 안정화(core/registry.py)
+
+레지스트리 로딩 시 `_normalize_path()`가 핵심입니다.
+
+- 레지스트리에 저장된 path가 무엇이든 무시하고
+- **항상 `DATA_DIR / filename` 경로로 재구성**
+- 배포 환경에서 "로컬 절대경로 때문에 파일 못 찾는 문제"를 구조적으로 방지
+
+---
+
+## 7. 컬럼 메타 시스템(core/column_meta.py + YAML)
+
+### 7.1 우선순위(확정)
+
+1. patterns.yaml 기반 자동 생성
+2. global_columns.yaml 기반 수동 정의 merge
+3. datasets/{dataset_id}.yaml override(최우선, auto_generated=False)
+
+### 7.2 patterns.yaml 규칙(자동 생성)
+
+- TempAct/TempSet/HeaterTC/CascadeTC: zone(U/CU/C/CL/L) 기반 설명 자동 생성
+- TempAct_HT.PR 같은 점(.) 포함 컬럼도 지원
+- ValveAct/Ctrl/Set: 채널 번호 idx 자동 삽입
+- MFCMon/MFCRcpSet/MFCRamp/MFCInput: 가스명 name 자동 삽입 + unit SLM
+- AUXMon_*: 보조 모니터 자동 설명
+- fallback: unknown + "global에 추가 가능"
+
+### 7.3 global_columns.yaml(도메인 정답 메타)
+
+중요 공정 컬럼에 대해:
+- title, name_ko/en, type/category, unit, importance(A/B/C), desc 제공
+
+프론트에서는 툴팁/상세패널에서 이 정보가 그대로 사용자에게 전달됩니다.
+
+---
+
+## 8. DuckDB 기반 미리보기/통계(engine/duckdb_engine.py)
+
+### 8.1 preview_rows()
+
+- `read_csv_auto()`로 CSV를 바로 읽음
+- 컬럼 목록이 없으면 DESCRIBE 또는 LIMIT 1로 추출
+- `LIMIT/OFFSET`로 부분 데이터만 반환
+
+### 8.2 compute_metrics() (1회 쿼리 집계)
+
+- row_range를 LIMIT/OFFSET으로 subquery 처리
+- 각 컬럼×메트릭을 한 SELECT에 포함(쿼리 1번)
+- avg/stddev는 TRY_CAST AS DOUBLE로 안전 계산
+- 결과 reshape + 타입 정리(숫자 가능하면 숫자, 아니면 문자열 유지)
+
+---
+
+## 9. Backend API 계약
+
+- `GET /api/datasets` - datasets.json 기반 목록 반환
+- `GET /api/datasets/{id}/preview` - preview_rows 반환
+- `GET /api/datasets/{id}/columns` - build_meta_map(meta map) 반환
+- `POST /api/datasets/{id}/stats` - compute_metrics 결과(metrics) 반환
+
+---
+
+## 10. Frontend UI 동작(App.tsx)
+
+- datasets 로드 후 선택
+- 선택 시 columns + preview 병렬 로딩
+- visibleColumns로 columnDefs 생성
+- headerTooltip에 desc/unit/[auto] 표시
+- rowRange 드래그 선택 및 하이라이트
+- 통계 계산 결과를 우측 카드로 렌더
+
+---
+
+## 11. 배포(Deployment)
+
+### 11.1 Backend(Render)
+
+Procfile:
+- `web: uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+핵심 설정:
+- Root Directory: `backend`
+- ENV: `PYTHONPATH=.`
+
+### 11.2 Frontend(Vercel)
+
+- Root Directory: `frontend`
+- ENV: `VITE_API_BASE=<Render backend URL>` (끝에 `/` 붙이면 안 됨)
+
+자세한 배포 가이드는 `DEPLOYMENT.md`를 참고하세요.
+
+---
+
+## 💡 개선점
+
+### (1) 성능 측면
+
+- 현재 preview와 stats 호출 시 `read_csv_auto()`가 반복 실행되면서 CSV 파싱 및 스키마 추정 비용이 누적될 수 있으므로, 데이터셋별 DuckDB View/Table 등록 또는 스키마/헤더 캐싱을 도입해 반복 요청 비용을 낮추는 것이 효과적입니다.
+- 또한 통계 계산은 현재 표시 중인 컬럼 전체를 대상으로 수행하므로 컬럼 수가 많아질수록 쿼리가 비대해질 수 있는데, 활성 컬럼/선택 컬럼만 통계를 계산하는 옵션을 제공하면 응답 속도와 사용성이 모두 개선됩니다.
+
+### (2) 메타데이터 측면
+
+- patterns 규칙과 global 정의를 확장하여 자동 생성 품질을 높이고, UI에서 메타 출처(자동 생성/전역 정의/데이터셋 오버라이드)를 시각적으로 구분해 신뢰도를 명확히 전달하는 기능이 유용합니다.
+
+### (3) 운영 측면
+
+- API 오류 발생 시 프론트에서 statusText 대신 서버의 상세 오류(detail)를 노출하도록 개선하면 배포 후 디버깅 효율이 크게 향상되며, 배포 환경에서의 데이터 파일 크기 제약을 고려해 Git LFS 또는 외부 스토리지 연계를 선택적으로 지원하는 방안도 검토할 수 있습니다.
+
+---
 
 ## 📄 라이선스
 
