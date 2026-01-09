@@ -24,6 +24,8 @@ function App() {
   const [manualRowStart, setManualRowStart] = useState<number>(0);
   const [manualRowEnd, setManualRowEnd] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
+  // 통계 계산 모드: 'all' (전체), 'active' (활성 컬럼만), 'selected' (선택 컬럼만 - 확장 포인트)
+  const [statsComputeMode, setStatsComputeMode] = useState<'all' | 'active'>('all');
 
   // 데이터셋 목록 로드
   useEffect(() => {
@@ -176,6 +178,13 @@ function App() {
     gridApi.ensureColumnVisible(activeColumn);
   }, [gridApi, activeColumn]);
 
+  // 활성 컬럼이 없을 때 'active' 모드 자동 전환
+  useEffect(() => {
+    if (statsComputeMode === 'active' && !activeColumn) {
+      setStatsComputeMode('all');
+    }
+  }, [activeColumn, statsComputeMode]);
+
   // 통계 계산
   const handleCalculateStats = async () => {
     if (!selectedDatasetId || visibleColumns.length === 0) return;
@@ -200,7 +209,18 @@ function App() {
 
     setIsLoadingStats(true);
     try {
-      const result = await getStats(selectedDatasetId, visibleColumns, rowStart, rowEnd);
+      // 통계 계산 대상 컬럼 선택 (확장 가능한 구조)
+      let computeColumns: string[] | undefined;
+      if (statsComputeMode === 'active' && activeColumn && visibleColumns.includes(activeColumn)) {
+        // 활성 컬럼만 계산
+        computeColumns = [activeColumn];
+      } else if (statsComputeMode === 'all') {
+        // 전체 컬럼 계산 (기본값)
+        computeColumns = undefined; // undefined면 전체 visibleColumns 사용
+      }
+      // 확장 포인트: 'selected' 모드는 나중에 추가 가능
+      
+      const result = await getStats(selectedDatasetId, visibleColumns, rowStart, rowEnd, computeColumns);
       setStats(result);
     } catch (error: any) {
       console.error('통계 계산 실패:', error);
@@ -370,9 +390,59 @@ function App() {
                 드래그: {rowRange.start + 1}~{rowRange.end + 1}행 ({rowRange.end - rowRange.start + 1}개)
               </div>
             )}
+            
+            {/* 통계 계산 대상 컬럼 선택 (확장 가능한 구조) */}
+            <div style={{ marginTop: 12, marginBottom: 12, padding: 8, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 4 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                계산 대상 컬럼
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: 12 }}>
+                  <input
+                    type="radio"
+                    name="statsComputeMode"
+                    value="all"
+                    checked={statsComputeMode === 'all'}
+                    onChange={(e) => setStatsComputeMode(e.target.value as 'all' | 'active')}
+                    style={{ marginRight: 6 }}
+                  />
+                  <span>전체 표시 컬럼 ({visibleColumns.length}개)</span>
+                </label>
+                <label 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    cursor: activeColumn ? 'pointer' : 'not-allowed',
+                    fontSize: 12,
+                    opacity: activeColumn ? 1 : 0.5
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="statsComputeMode"
+                    value="active"
+                    checked={statsComputeMode === 'active'}
+                    onChange={(e) => setStatsComputeMode(e.target.value as 'all' | 'active')}
+                    disabled={!activeColumn}
+                    style={{ marginRight: 6 }}
+                  />
+                  <span>
+                    활성 컬럼만 {activeColumn && `(${columnMeta[activeColumn]?.title ?? activeColumn})`}
+                    {!activeColumn && '(컬럼 선택 필요)'}
+                  </span>
+                </label>
+                {/* 확장 포인트: 'selected' 모드는 나중에 추가 가능 */}
+              </div>
+            </div>
+            
             <button
               onClick={handleCalculateStats}
-              disabled={isLoadingStats || visibleColumns.length === 0 || ((manualRowStart === 0 && manualRowEnd === 0) && !rowRange)}
+              disabled={
+                isLoadingStats || 
+                visibleColumns.length === 0 || 
+                ((manualRowStart === 0 && manualRowEnd === 0) && !rowRange) ||
+                (statsComputeMode === 'active' && !activeColumn)
+              }
               className="btn-primary"
             >
               {isLoadingStats ? '계산 중...' : '통계 계산'}
@@ -380,6 +450,11 @@ function App() {
             {(manualRowStart === 0 && manualRowEnd === 0 && !rowRange) && (
               <div className="hint-text">
                 💡 범위를 입력하거나 그리드에서 행을 드래그하여 범위를 선택하세요
+              </div>
+            )}
+            {statsComputeMode === 'active' && !activeColumn && (
+              <div className="hint-text" style={{ marginTop: 8 }}>
+                💡 왼쪽에서 컬럼을 선택하면 활성 컬럼만 계산할 수 있습니다
               </div>
             )}
           </div>
