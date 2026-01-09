@@ -145,3 +145,5 @@ fallback:
   title: "{col}"
   desc: "설명 없음(자동 생성). global_columns.yaml에 추가 가능"
 
+
+

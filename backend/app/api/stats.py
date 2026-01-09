@@ -27,6 +27,9 @@ def stats(dataset_id: str, request: StatsRequest):
         compute_target_columns = [c for c in request.compute_columns if c in valid_columns]
         if not compute_target_columns:
             raise HTTPException(status_code=400, detail="No valid compute_columns provided")
+        print(f"[Stats API] Computing stats for selected columns only: {len(compute_target_columns)}/{len(valid_columns)} columns")
+    else:
+        print(f"[Stats API] Computing stats for all columns: {len(compute_target_columns)} columns")
     
     # 행 범위 설정
     row_start = 0

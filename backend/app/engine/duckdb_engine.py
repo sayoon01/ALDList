@@ -3,6 +3,7 @@ from __future__ import annotations
 import duckdb
 from typing import List, Dict, Any, Optional, Callable
 from pathlib import Path
+from .duckdb_cache import get_cache
 
 
 def quote_ident(name: str) -> str:
@@ -15,8 +16,64 @@ def preview_rows(
     offset: int = 0,
     limit: int = 2000,
     columns: Optional[List[str]] = None,
+    dataset_id: Optional[str] = None,  # 캐시를 위한 dataset_id
 ) -> tuple[List[Dict[str, Any]], List[str]]:
-    """CSV 미리보기"""
+    """CSV 미리보기 - View 캐싱 지원"""
+    cache = get_cache()
+    
+    # dataset_id가 제공되면 View 캐싱 사용, 아니면 기존 방식 (fallback)
+    if dataset_id:
+        try:
+            # View 캐시 사용
+            view_query = cache.get_view_query(dataset_id, csv_path)
+            conn = cache._get_or_create_connection(dataset_id)
+            print(f"[Preview] Using DuckDB View cache for dataset {dataset_id}: {view_query}")
+            
+            # 컬럼 목록 조회
+            if columns is None:
+                try:
+                    col_query = f"DESCRIBE SELECT * FROM {view_query}"
+                    col_result = conn.execute(col_query).fetchall()
+                    columns = [row[0] for row in col_result]
+                except Exception:
+                    # DESCRIBE 실패 시 실제 데이터 1행을 읽어서 컬럼 추출
+                    test_query = f"SELECT * FROM {view_query} LIMIT 1"
+                    result = conn.execute(test_query)
+                    columns = [desc[0] for desc in result.description]
+                    result.close()
+            
+            # 컬럼 선택
+            if columns:
+                col_list = ", ".join(quote_ident(c) for c in columns)
+                query = f"""
+                SELECT {col_list}
+                FROM {view_query}
+                LIMIT {limit} OFFSET {offset}
+                """
+            else:
+                query = f"""
+                SELECT *
+                FROM {view_query}
+                LIMIT {limit} OFFSET {offset}
+                """
+            
+            result = conn.execute(query).fetchall()
+            
+            # 딕셔너리로 변환
+            rows = []
+            for row in result:
+                row_dict = {}
+                for i, col in enumerate(columns):
+                    value = row[i] if i < len(row) else None
+                    row_dict[col] = value
+                rows.append(row_dict)
+            
+            return rows, columns
+        except Exception as e:
+            # 캐시 사용 실패 시 기존 방식으로 fallback
+            print(f"Warning: Cache failed for {dataset_id}, using fallback: {e}")
+    
+    # Fallback: 기존 방식 (캐시 없이)
     conn = duckdb.connect()
     
     try:
@@ -84,24 +141,43 @@ def compute_metrics(
     columns: List[str],
     row_start: int = 0,
     row_end: Optional[int] = None,
+    dataset_id: Optional[str] = None,  # 캐시를 위한 dataset_id
 ) -> Dict[str, Dict[str, Any]]:
-    """통계 계산 - 한 번의 쿼리로 모든 컬럼 통계 계산"""
-    conn = duckdb.connect()
+    """통계 계산 - 한 번의 쿼리로 모든 컬럼 통계 계산 (View 캐싱 지원)"""
+    cache = get_cache()
+    
+    # dataset_id가 제공되면 View 캐싱 사용, 아니면 기존 방식 (fallback)
+    use_cache = dataset_id is not None
+    
+    if use_cache:
+        try:
+            # View 캐시 사용
+            view_query = cache.get_view_query(dataset_id, csv_path)
+            conn = cache._get_or_create_connection(dataset_id)
+            print(f"[Stats] Using DuckDB View cache for dataset {dataset_id}: {view_query}")
+            print(f"[Stats] Computing metrics for {len(columns)} columns")
+        except Exception as e:
+            # 캐시 사용 실패 시 기존 방식으로 fallback
+            print(f"Warning: Cache failed for {dataset_id}, using fallback: {e}")
+            use_cache = False
+    
+    if not use_cache:
+        # Fallback: 기존 방식 (캐시 없이)
+        conn = duckdb.connect()
+        csv_path_normalized = str(Path(csv_path).resolve())
+        view_query = f"read_csv_auto('{csv_path_normalized}')"
     
     try:
-        # 경로 정규화
-        csv_path_normalized = str(Path(csv_path).resolve())
-        
         # 서브쿼리로 범위 지정
         if row_end is not None:
             limit_count = row_end - row_start
             base_query = f"""
-            SELECT * FROM read_csv_auto('{csv_path_normalized}')
+            SELECT * FROM {view_query}
             LIMIT {limit_count} OFFSET {row_start}
             """
         else:
             base_query = f"""
-            SELECT * FROM read_csv_auto('{csv_path_normalized}')
+            SELECT * FROM {view_query}
             OFFSET {row_start}
             """
         
@@ -195,5 +271,7 @@ def compute_metrics(
                 for col in columns
             }
     finally:
-        conn.close()
+        # 캐시를 사용하지 않은 경우에만 connection 닫기
+        if not use_cache:
+            conn.close()
 
