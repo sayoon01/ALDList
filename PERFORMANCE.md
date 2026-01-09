@@ -4,6 +4,37 @@
 
 ---
 
+## 🔥 최우선 개선: Preview에서 `read_csv_auto` 제거
+
+### ✅ 핵심 개선 (Phase 0 - 즉시 효과)
+
+**문제:**
+- `read_csv_auto()`는 타입 추정을 위해 CSV 파일을 여러 번 스캔
+- 큰 파일(100MB+)에서 타입 추정에 10~30초 소요
+- Preview는 "보여주기"만 하면 되므로 타입이 필요 없음
+
+**해결:**
+```python
+# Before
+SELECT * FROM read_csv_auto('file.csv') LIMIT 500
+
+# After
+SELECT * FROM read_csv('file.csv', all_varchar=true, header=true) LIMIT 500
+```
+
+**효과:**
+- ✅ **타입 추정 완전 스킵** → 10배 이상 빠름
+- ✅ Render에서 첫 로딩: **30초 → 2~5초** (예상)
+- ✅ Preview는 문자열로 읽어도 문제 없음 (표시만 하면 됨)
+- ✅ Stats는 `TRY_CAST`로 처리하므로 안전
+
+**적용 위치:**
+- `duckdb_cache.py`: View 생성 시 `read_csv(all_varchar=true, header=true)`
+- `duckdb_engine.py`: `preview_rows` fallback도 동일하게 적용
+- `compute_metrics`는 stats용이므로 `read_csv_auto` 유지 (타입 필요)
+
+---
+
 ## 1️⃣ DuckDB View 캐싱 개선
 
 ### ❌ Before (개선 전)
