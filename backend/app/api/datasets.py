@@ -98,3 +98,40 @@ def get_dataset_columns(dataset_id: str) -> Dict[str, Any]:
         "columns": list(columns),
         "meta": meta,  # ✅ 이제 전체 컬럼 키가 다 들어감
     }
+
+
+@router.get("/{dataset_id}/fields")
+def get_fields_by_type(dataset_id: str, type: str = Query(..., description="컬럼 타입 (gas, temperature, pressure, etc.)")):
+    """
+    타입별 컬럼 필터링
+    
+    예: /api/datasets/{dataset_id}/fields?type=gas
+    → 가스 관련 필드만 반환
+    """
+    from ..core.column_meta import build_meta_map
+    
+    ds = get_dataset(dataset_id)
+    if ds is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    columns = None
+    if isinstance(ds, dict):
+        columns = ds.get("columns")
+    else:
+        columns = getattr(ds, "columns", None)
+    
+    if not columns:
+        raise HTTPException(status_code=500, detail="Dataset columns not found in registry")
+    
+    meta = build_meta_map(dataset_id, list(columns))
+    
+    # ✅ type으로 필터
+    filtered = [c for c in columns if meta.get(c, {}).get("type") == type]
+    
+    return {
+        "dataset_id": dataset_id,
+        "type": type,
+        "count": len(filtered),
+        "columns": filtered,
+        "meta": {c: meta[c] for c in filtered}  # 필터링된 컬럼의 메타데이터만 반환
+    }

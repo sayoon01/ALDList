@@ -1,0 +1,16 @@
+# 압력 관련 컬럼 목록
+
+이 문서는 동일한 타입의 컬럼을 묶은 목록 문서이다.
+사용자는 '가스 관련 필드 보여줘' 같은 질문으로 이 문서를 검색할 수 있다.
+
+- type: pressure
+
+## 컬럼 목록
+- APCValveMon
+- APCValveSet
+- PressAct
+- PressSet
+- SlowVacRate
+- VG11
+- VG12
+- VG13

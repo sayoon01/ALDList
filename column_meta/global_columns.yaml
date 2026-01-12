@@ -1,270 +1,1489 @@
-# ALDList 컬럼 메타데이터
-# CSV 헤더명과 키 이름이 일치해야 함
-
-MFCMon_DCS:
-  title: "GAS DCS"
-  name_ko: "디클로로실란"
-  name_en: "Dichlorosilane"
-  type: "gas"
-  category: "process"
-  equipment_field: "MFCMon_DCS"
-  unit: "SLM"
-  importance: "A"
-  desc: "실리콘이 들어간 메인 프로세스 가스. 공정 반응에 직접 사용."
-
-MFCMon_F2:
-  title: "GAS F2"
-  name_ko: "F2 가스"
-  name_en: "Fluorine"
-  type: "gas"
-  category: "support"
-  equipment_field: "MFCMon_F2"
-  unit: "SLM"
-  importance: "B"
-  desc: "공정 사이클에는 직접 참여하지 않고, 공정 전후 챔버 분위기 조성을 위해 분사."
-
-MFCMon_N2-1:
-  title: "GAS N2-1"
-  name_ko: "질소 퍼지"
-  name_en: "Nitrogen purge"
-  type: "gas"
-  category: "purge"
-  equipment_field: "MFCMon_N2-1"
-  unit: "SLM"
-  importance: "A"
-  desc: "환경 유지 및 청소/대기/퍼지 용. N2_1~3은 용도에 따라 사이즈(유량)가 다름."
-
-MFCMon_N2-2:
-  title: "GAS N2-2"
-  name_ko: "질소 퍼지 2"
-  name_en: "Nitrogen purge 2"
-  type: "gas"
-  category: "purge"
-  equipment_field: "MFCMon_N2-2"
-  unit: "SLM"
-  importance: "B"
-  desc: "N2-1의 보조 퍼지 가스."
-
-MFCMon_N2-3:
-  title: "GAS N2-3"
-  name_ko: "질소 퍼지 3"
-  name_en: "Nitrogen purge 3"
-  type: "gas"
-  category: "purge"
-  equipment_field: "MFCMon_N2-3"
-  unit: "SLM"
-  importance: "B"
-  desc: "N2-1의 보조 퍼지 가스."
-
-MFCMon_N2-4:
-  title: "GAS N2-4"
-  name_ko: "질소 퍼지 4"
-  name_en: "Nitrogen purge 4"
-  type: "gas"
-  category: "purge"
-  equipment_field: "MFCMon_N2-4"
-  unit: "SLM"
-  importance: "B"
-  desc: "추가 퍼지 가스."
-
-MFCMon_NH3:
-  title: "GAS NH3"
-  name_ko: "암모니아"
-  name_en: "Ammonia"
-  type: "gas"
-  category: "process"
-  equipment_field: "MFCMon_NH3"
-  unit: "SLM"
-  importance: "A"
-  desc: "프로세스 가스. 공정 반응에 사용."
-
 APCValveMon:
-  title: "APC Angle"
-  name_ko: "APC 밸브 각도"
-  name_en: "APC valve angle"
-  type: "apc"
-  category: "control"
-  equipment_field: "APCValveMon"
-  unit: "%"
-  importance: "A"
-  desc: "가스 주입 시 압력 제어를 위해 밸브 각도를 조절. 100% 최대/0% 최소. 주입-펌핑 반복으로 계속 변동."
-
+  title: APCValveMon
+  type: pressure
+  category: control
+  equipment_field: APCValveMon
+  unit: '%'
+  desc: APC(Advanced Pressure Control) 밸브 관련 필드입니다. 압력 제어를 위해 사용됩니다.
 APCValveSet:
-  title: "APC Setpoint"
-  name_ko: "APC 밸브 설정값"
-  name_en: "APC valve setpoint"
-  type: "apc"
-  category: "control"
-  equipment_field: "APCValveSet"
-  unit: "%"
-  importance: "A"
-  desc: "APC 밸브 목표 각도 설정값."
-
-TempAct_U:
-  title: "Temperature Upper"
-  name_ko: "상부 온도"
-  name_en: "Upper temperature"
-  type: "temperature"
-  category: "process"
-  equipment_field: "TempAct_U"
-  unit: "°C"
-  importance: "A"
-  desc: "챔버 상부 실제 온도."
-
-TempAct_C:
-  title: "Temperature Center"
-  name_ko: "중앙 온도"
-  name_en: "Center temperature"
-  type: "temperature"
-  category: "process"
-  equipment_field: "TempAct_C"
-  unit: "°C"
-  importance: "A"
-  desc: "챔버 중앙 실제 온도."
-
-TempAct_L:
-  title: "Temperature Lower"
-  name_ko: "하부 온도"
-  name_en: "Lower temperature"
-  type: "temperature"
-  category: "process"
-  equipment_field: "TempAct_L"
-  unit: "°C"
-  importance: "A"
-  desc: "챔버 하부 실제 온도."
-
-TempSet_U:
-  title: "Temperature Setpoint Upper"
-  name_ko: "상부 온도 설정값"
-  name_en: "Upper temperature setpoint"
-  type: "temperature"
-  category: "control"
-  equipment_field: "TempSet_U"
-  unit: "°C"
-  importance: "A"
-  desc: "챔버 상부 목표 온도."
-
-TempSet_C:
-  title: "Temperature Setpoint Center"
-  name_ko: "중앙 온도 설정값"
-  name_en: "Center temperature setpoint"
-  type: "temperature"
-  category: "control"
-  equipment_field: "TempSet_C"
-  unit: "°C"
-  importance: "A"
-  desc: "챔버 중앙 목표 온도."
-
-TempSet_L:
-  title: "Temperature Setpoint Lower"
-  name_ko: "하부 온도 설정값"
-  name_en: "Lower temperature setpoint"
-  type: "temperature"
-  category: "control"
-  equipment_field: "TempSet_L"
-  unit: "°C"
-  importance: "A"
-  desc: "챔버 하부 목표 온도."
-
-PressAct:
-  title: "Process Pressure"
-  name_ko: "프로세스 압력"
-  name_en: "Process pressure"
-  type: "pressure"
-  category: "process"
-  equipment_field: "PressAct"
-  unit: "Torr"
-  importance: "A"
-  desc: "실제 프로세스 중 챔버 압력."
-
-PressSet:
-  title: "Pressure Setpoint"
-  name_ko: "압력 설정값"
-  name_en: "Pressure setpoint"
-  type: "pressure"
-  category: "control"
-  equipment_field: "PressSet"
-  unit: "Torr"
-  importance: "A"
-  desc: "목표 압력 설정값."
-
+  title: APCValveSet
+  type: pressure
+  category: control
+  equipment_field: APCValveSet
+  unit: '%'
+  desc: APC(Advanced Pressure Control) 밸브 관련 필드입니다. 압력 제어를 위해 사용됩니다.
+AUXMon_APC_OUT:
+  title: AUXMon_APC_OUT
+  type: aux
+  category: support
+  equipment_field: AUXMon_APC_OUT
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_APC_RING:
+  title: AUXMon_APC_RING
+  type: aux
+  category: support
+  equipment_field: AUXMon_APC_RING
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_DCS1_PIP:
+  title: AUXMon_DCS1_PIP
+  type: aux
+  category: support
+  equipment_field: AUXMon_DCS1_PIP
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_DCS_IN:
+  title: AUXMon_DCS_IN
+  type: aux
+  category: support
+  equipment_field: AUXMon_DCS_IN
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_DCS_TANK:
+  title: AUXMon_DCS_TANK
+  type: aux
+  category: support
+  equipment_field: AUXMon_DCS_TANK
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_FS101:
+  title: AUXMon_FS101
+  type: aux
+  category: support
+  equipment_field: AUXMon_FS101
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_FS102:
+  title: AUXMon_FS102
+  type: aux
+  category: support
+  equipment_field: AUXMon_FS102
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_FS104:
+  title: AUXMon_FS104
+  type: aux
+  category: support
+  equipment_field: AUXMon_FS104
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_FS105:
+  title: AUXMon_FS105
+  type: aux
+  category: support
+  equipment_field: AUXMon_FS105
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_FS106:
+  title: AUXMon_FS106
+  type: aux
+  category: support
+  equipment_field: AUXMon_FS106
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_FS111:
+  title: AUXMon_FS111
+  type: aux
+  category: support
+  equipment_field: AUXMon_FS111
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_G.PS1:
+  title: AUXMon_G.PS1
+  type: aux
+  category: support
+  equipment_field: AUXMon_G.PS1
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_G.PS13:
+  title: AUXMon_G.PS13
+  type: aux
+  category: support
+  equipment_field: AUXMon_G.PS13
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_G.PS14:
+  title: AUXMon_G.PS14
+  type: aux
+  category: support
+  equipment_field: AUXMon_G.PS14
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_G.PS15:
+  title: AUXMon_G.PS15
+  type: aux
+  category: support
+  equipment_field: AUXMon_G.PS15
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_G.PS16:
+  title: AUXMon_G.PS16
+  type: aux
+  category: support
+  equipment_field: AUXMon_G.PS16
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_G.PS2:
+  title: AUXMon_G.PS2
+  type: aux
+  category: support
+  equipment_field: AUXMon_G.PS2
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_G.PS3:
+  title: AUXMon_G.PS3
+  type: aux
+  category: support
+  equipment_field: AUXMon_G.PS3
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_G.PS4:
+  title: AUXMon_G.PS4
+  type: aux
+  category: support
+  equipment_field: AUXMon_G.PS4
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_G.PS5:
+  title: AUXMon_G.PS5
+  type: aux
+  category: support
+  equipment_field: AUXMon_G.PS5
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_G.PS6:
+  title: AUXMon_G.PS6
+  type: aux
+  category: support
+  equipment_field: AUXMon_G.PS6
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_IGS_DCS:
+  title: AUXMon_IGS_DCS
+  type: aux
+  category: support
+  equipment_field: AUXMon_IGS_DCS
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_IGS_N2-1:
+  title: AUXMon_IGS_N2-1
+  type: aux
+  category: support
+  equipment_field: AUXMon_IGS_N2-1
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH1:
+  title: AUXMon_JH1
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH1
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH10:
+  title: AUXMon_JH10
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH10
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH11:
+  title: AUXMon_JH11
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH11
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH12:
+  title: AUXMon_JH12
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH12
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH13:
+  title: AUXMon_JH13
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH13
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH2:
+  title: AUXMon_JH2
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH2
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH3:
+  title: AUXMon_JH3
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH3
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH4:
+  title: AUXMon_JH4
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH4
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH5:
+  title: AUXMon_JH5
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH5
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH6:
+  title: AUXMon_JH6
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH6
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH7:
+  title: AUXMon_JH7
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH7
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH8:
+  title: AUXMon_JH8
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH8
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_JH9:
+  title: AUXMon_JH9
+  type: aux
+  category: support
+  equipment_field: AUXMon_JH9
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_M.WAT:
+  title: AUXMon_M.WAT
+  type: aux
+  category: support
+  equipment_field: AUXMon_M.WAT
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_MS1:
+  title: AUXMon_MS1
+  type: aux
+  category: support
+  equipment_field: AUXMon_MS1
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_MS2:
+  title: AUXMon_MS2
+  type: aux
+  category: support
+  equipment_field: AUXMon_MS2
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_MS3:
+  title: AUXMon_MS3
+  type: aux
+  category: support
+  equipment_field: AUXMon_MS3
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_MS321:
+  title: AUXMon_MS321
+  type: aux
+  category: support
+  equipment_field: AUXMon_MS321
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_MS5:
+  title: AUXMon_MS5
+  type: aux
+  category: support
+  equipment_field: AUXMon_MS5
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_MS8:
+  title: AUXMon_MS8
+  type: aux
+  category: support
+  equipment_field: AUXMon_MS8
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_MS9:
+  title: AUXMon_MS9
+  type: aux
+  category: support
+  equipment_field: AUXMon_MS9
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_PORT:
+  title: AUXMon_PORT
+  type: aux
+  category: support
+  equipment_field: AUXMon_PORT
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_PURGE-1:
+  title: AUXMon_PURGE-1
+  type: aux
+  category: support
+  equipment_field: AUXMon_PURGE-1
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_R.PWR:
+  title: AUXMon_R.PWR
+  type: aux
+  category: support
+  equipment_field: AUXMon_R.PWR
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_RAXIS:
+  title: AUXMon_RAXIS
+  type: aux
+  category: support
+  equipment_field: AUXMon_RAXIS
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_REC-1:
+  title: AUXMon_REC-1
+  type: aux
+  category: support
+  equipment_field: AUXMon_REC-1
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_REC-2-1:
+  title: AUXMon_REC-2-1
+  type: aux
+  category: support
+  equipment_field: AUXMon_REC-2-1
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_REC-2-2:
+  title: AUXMon_REC-2-2
+  type: aux
+  category: support
+  equipment_field: AUXMon_REC-2-2
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_SEALCAP:
+  title: AUXMon_SEALCAP
+  type: aux
+  category: support
+  equipment_field: AUXMon_SEALCAP
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_VG11:
+  title: AUXMon_VG11
+  type: aux
+  category: support
+  equipment_field: AUXMon_VG11
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_VG12:
+  title: AUXMon_VG12
+  type: aux
+  category: support
+  equipment_field: AUXMon_VG12
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
 AUXMon_VG13:
-  title: "VG13 Pressure"
-  name_ko: "프로세스 압력 게이지"
-  name_en: "Vacuum Gauge 13"
-  type: "pressure"
-  category: "process"
-  equipment_field: "AUXMon_VG13"
-  unit: "Torr"
-  importance: "A"
-  desc: "Baratron 계열 게이지. 실제 프로세스 중 작은 압력 구간 측정."
-
-No.:
-  title: "Row Number"
-  name_ko: "행 번호"
-  name_en: "Row number"
-  type: "index"
-  category: "system"
-  equipment_field: "No."
-  unit: ""
-  importance: "C"
-  desc: "데이터 행 번호."
-
+  title: AUXMon_VG13
+  type: aux
+  category: support
+  equipment_field: AUXMon_VG13
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_VG14:
+  title: AUXMon_VG14
+  type: aux
+  category: support
+  equipment_field: AUXMon_VG14
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_VG21:
+  title: AUXMon_VG21
+  type: aux
+  category: support
+  equipment_field: AUXMon_VG21
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_Vdc:
+  title: AUXMon_Vdc
+  type: aux
+  category: support
+  equipment_field: AUXMon_Vdc
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+AUXMon_Vpp:
+  title: AUXMon_Vpp
+  type: aux
+  category: support
+  equipment_field: AUXMon_Vpp
+  unit: ''
+  desc: 장비 보조 센서 또는 모니터링용 필드입니다.
+CascadeTC_C:
+  title: CascadeTC_C
+  type: temperature
+  category: process
+  equipment_field: CascadeTC_C
+  unit: ℃
+  desc: Thermocouple(TC)를 통한 온도 측정값입니다.
+CascadeTC_CL:
+  title: CascadeTC_CL
+  type: temperature
+  category: process
+  equipment_field: CascadeTC_CL
+  unit: ℃
+  desc: Thermocouple(TC)를 통한 온도 측정값입니다.
+CascadeTC_CU:
+  title: CascadeTC_CU
+  type: temperature
+  category: process
+  equipment_field: CascadeTC_CU
+  unit: ℃
+  desc: Thermocouple(TC)를 통한 온도 측정값입니다.
+CascadeTC_L:
+  title: CascadeTC_L
+  type: temperature
+  category: process
+  equipment_field: CascadeTC_L
+  unit: ℃
+  desc: Thermocouple(TC)를 통한 온도 측정값입니다.
+CascadeTC_U:
+  title: CascadeTC_U
+  type: temperature
+  category: process
+  equipment_field: CascadeTC_U
+  unit: ℃
+  desc: Thermocouple(TC)를 통한 온도 측정값입니다.
 Date:
-  title: "Date"
-  name_ko: "날짜"
-  name_en: "Date"
-  type: "timestamp"
-  category: "system"
-  equipment_field: "Date"
-  unit: ""
-  importance: "A"
-  desc: "데이터 기록 날짜."
-
-Time:
-  title: "Time"
-  name_ko: "시간"
-  name_en: "Time"
-  type: "timestamp"
-  category: "system"
-  equipment_field: "Time"
-  unit: ""
-  importance: "A"
-  desc: "데이터 기록 시간."
-
+  title: Date
+  type: timestamp
+  category: system
+  equipment_field: Date
+  unit: ''
+  desc: 데이터가 기록된 시각 정보입니다.
+HeaterTC_C:
+  title: HeaterTC_C
+  type: temperature
+  category: process
+  equipment_field: HeaterTC_C
+  unit: ℃
+  desc: Thermocouple(TC)를 통한 온도 측정값입니다.
+HeaterTC_CL:
+  title: HeaterTC_CL
+  type: temperature
+  category: process
+  equipment_field: HeaterTC_CL
+  unit: ℃
+  desc: Thermocouple(TC)를 통한 온도 측정값입니다.
+HeaterTC_CU:
+  title: HeaterTC_CU
+  type: temperature
+  category: process
+  equipment_field: HeaterTC_CU
+  unit: ℃
+  desc: Thermocouple(TC)를 통한 온도 측정값입니다.
+HeaterTC_L:
+  title: HeaterTC_L
+  type: temperature
+  category: process
+  equipment_field: HeaterTC_L
+  unit: ℃
+  desc: Thermocouple(TC)를 통한 온도 측정값입니다.
+HeaterTC_U:
+  title: HeaterTC_U
+  type: temperature
+  category: process
+  equipment_field: HeaterTC_U
+  unit: ℃
+  desc: Thermocouple(TC)를 통한 온도 측정값입니다.
+LeakCheckPressMon:
+  title: LeakCheckPressMon
+  type: unknown
+  category: unknown
+  equipment_field: LeakCheckPressMon
+  unit: ''
+  desc: 자동 생성된 컬럼 설명. 추후 보완 필요.
+LeakChkStartPress:
+  title: LeakChkStartPress
+  type: unknown
+  category: unknown
+  equipment_field: LeakChkStartPress
+  unit: ''
+  desc: 자동 생성된 컬럼 설명. 추후 보완 필요.
+LeakQuantity:
+  title: LeakQuantity
+  type: unknown
+  category: unknown
+  equipment_field: LeakQuantity
+  unit: ''
+  desc: 자동 생성된 컬럼 설명. 추후 보완 필요.
+MFCInput_DCS:
+  title: MFCInput_DCS
+  type: gas
+  category: process
+  equipment_field: MFCInput_DCS
+  unit: SLM
+  desc: MFCInput_DCS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCInput_F.PWR:
+  title: MFCInput_F.PWR
+  type: gas
+  category: process
+  equipment_field: MFCInput_F.PWR
+  unit: SLM
+  desc: MFCInput_F.PWR은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCInput_F2:
+  title: MFCInput_F2
+  type: gas
+  category: process
+  equipment_field: MFCInput_F2
+  unit: SLM
+  desc: MFCInput_F2은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCInput_L.POS:
+  title: MFCInput_L.POS
+  type: gas
+  category: process
+  equipment_field: MFCInput_L.POS
+  unit: SLM
+  desc: MFCInput_L.POS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCInput_N2-1:
+  title: MFCInput_N2-1
+  type: gas
+  category: process
+  equipment_field: MFCInput_N2-1
+  unit: SLM
+  desc: MFCInput_N2-1은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCInput_N2-3:
+  title: MFCInput_N2-3
+  type: gas
+  category: process
+  equipment_field: MFCInput_N2-3
+  unit: SLM
+  desc: MFCInput_N2-3은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCInput_N2-4:
+  title: MFCInput_N2-4
+  type: gas
+  category: process
+  equipment_field: MFCInput_N2-4
+  unit: SLM
+  desc: MFCInput_N2-4은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCInput_NH3:
+  title: MFCInput_NH3
+  type: gas
+  category: process
+  equipment_field: MFCInput_NH3
+  unit: SLM
+  desc: MFCInput_NH3은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCInput_P.POS:
+  title: MFCInput_P.POS
+  type: gas
+  category: process
+  equipment_field: MFCInput_P.POS
+  unit: SLM
+  desc: MFCInput_P.POS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCMon_DCS:
+  title: MFCMon_DCS
+  type: gas
+  category: process
+  equipment_field: MFCMon_DCS
+  unit: SLM
+  desc: MFCMon_DCS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCMon_DCSMFM_7:
+  title: MFCMon_DCSMFM_7
+  type: gas
+  category: process
+  equipment_field: MFCMon_DCSMFM_7
+  unit: SLM
+  desc: MFCMon_DCSMFM_7은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를
+    통해 제어되며 공정 조건에 영향을 줍니다.
+MFCMon_F.PWR:
+  title: MFCMon_F.PWR
+  type: gas
+  category: process
+  equipment_field: MFCMon_F.PWR
+  unit: SLM
+  desc: MFCMon_F.PWR은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCMon_F2:
+  title: MFCMon_F2
+  type: gas
+  category: process
+  equipment_field: MFCMon_F2
+  unit: SLM
+  desc: MFCMon_F2은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCMon_F2MFM_9:
+  title: MFCMon_F2MFM_9
+  type: gas
+  category: process
+  equipment_field: MFCMon_F2MFM_9
+  unit: SLM
+  desc: MFCMon_F2MFM_9은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCMon_L.POS:
+  title: MFCMon_L.POS
+  type: gas
+  category: process
+  equipment_field: MFCMon_L.POS
+  unit: SLM
+  desc: MFCMon_L.POS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCMon_MFC51 N2:
+  title: MFCMon_MFC51 N2
+  type: gas
+  category: process
+  equipment_field: MFCMon_MFC51 N2
+  unit: SLM
+  desc: MFCMon_MFC51 N2은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를
+    통해 제어되며 공정 조건에 영향을 줍니다.
+MFCMon_N2-1:
+  title: MFCMon_N2-1
+  type: gas
+  category: process
+  equipment_field: MFCMon_N2-1
+  unit: SLM
+  desc: MFCMon_N2-1은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCMon_N2-2:
+  title: MFCMon_N2-2
+  type: gas
+  category: process
+  equipment_field: MFCMon_N2-2
+  unit: SLM
+  desc: MFCMon_N2-2은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCMon_N2-3:
+  title: MFCMon_N2-3
+  type: gas
+  category: process
+  equipment_field: MFCMon_N2-3
+  unit: SLM
+  desc: MFCMon_N2-3은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCMon_N2-4:
+  title: MFCMon_N2-4
+  type: gas
+  category: process
+  equipment_field: MFCMon_N2-4
+  unit: SLM
+  desc: MFCMon_N2-4은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCMon_N2-R:
+  title: MFCMon_N2-R
+  type: gas
+  category: process
+  equipment_field: MFCMon_N2-R
+  unit: SLM
+  desc: MFCMon_N2-R은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCMon_NH3:
+  title: MFCMon_NH3
+  type: gas
+  category: process
+  equipment_field: MFCMon_NH3
+  unit: SLM
+  desc: MFCMon_NH3은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCMon_NH3MFM_8:
+  title: MFCMon_NH3MFM_8
+  type: gas
+  category: process
+  equipment_field: MFCMon_NH3MFM_8
+  unit: SLM
+  desc: MFCMon_NH3MFM_8은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를
+    통해 제어되며 공정 조건에 영향을 줍니다.
+MFCMon_NOMFM_11:
+  title: MFCMon_NOMFM_11
+  type: gas
+  category: process
+  equipment_field: MFCMon_NOMFM_11
+  unit: SLM
+  desc: MFCMon_NOMFM_11은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를
+    통해 제어되며 공정 조건에 영향을 줍니다.
+MFCMon_P.POS:
+  title: MFCMon_P.POS
+  type: gas
+  category: process
+  equipment_field: MFCMon_P.POS
+  unit: SLM
+  desc: MFCMon_P.POS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRamp_DCS:
+  title: MFCRamp_DCS
+  type: gas
+  category: process
+  equipment_field: MFCRamp_DCS
+  unit: SLM
+  desc: MFCRamp_DCS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCRamp_F.PWR:
+  title: MFCRamp_F.PWR
+  type: gas
+  category: process
+  equipment_field: MFCRamp_F.PWR
+  unit: SLM
+  desc: MFCRamp_F.PWR은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRamp_L.POS:
+  title: MFCRamp_L.POS
+  type: gas
+  category: process
+  equipment_field: MFCRamp_L.POS
+  unit: SLM
+  desc: MFCRamp_L.POS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRamp_N2-1:
+  title: MFCRamp_N2-1
+  type: gas
+  category: process
+  equipment_field: MFCRamp_N2-1
+  unit: SLM
+  desc: MFCRamp_N2-1은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRamp_N2-3:
+  title: MFCRamp_N2-3
+  type: gas
+  category: process
+  equipment_field: MFCRamp_N2-3
+  unit: SLM
+  desc: MFCRamp_N2-3은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRamp_N2-4:
+  title: MFCRamp_N2-4
+  type: gas
+  category: process
+  equipment_field: MFCRamp_N2-4
+  unit: SLM
+  desc: MFCRamp_N2-4은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRamp_NH3:
+  title: MFCRamp_NH3
+  type: gas
+  category: process
+  equipment_field: MFCRamp_NH3
+  unit: SLM
+  desc: MFCRamp_NH3은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해 제어되며
+    공정 조건에 영향을 줍니다.
+MFCRamp_P.POS:
+  title: MFCRamp_P.POS
+  type: gas
+  category: process
+  equipment_field: MFCRamp_P.POS
+  unit: SLM
+  desc: MFCRamp_P.POS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRcpSet_DCS:
+  title: MFCRcpSet_DCS
+  type: gas
+  category: process
+  equipment_field: MFCRcpSet_DCS
+  unit: SLM
+  desc: MFCRcpSet_DCS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRcpSet_F2:
+  title: MFCRcpSet_F2
+  type: gas
+  category: process
+  equipment_field: MFCRcpSet_F2
+  unit: SLM
+  desc: MFCRcpSet_F2은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRcpSet_N2-1:
+  title: MFCRcpSet_N2-1
+  type: gas
+  category: process
+  equipment_field: MFCRcpSet_N2-1
+  unit: SLM
+  desc: MFCRcpSet_N2-1은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRcpSet_N2-3:
+  title: MFCRcpSet_N2-3
+  type: gas
+  category: process
+  equipment_field: MFCRcpSet_N2-3
+  unit: SLM
+  desc: MFCRcpSet_N2-3은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRcpSet_N2-4:
+  title: MFCRcpSet_N2-4
+  type: gas
+  category: process
+  equipment_field: MFCRcpSet_N2-4
+  unit: SLM
+  desc: MFCRcpSet_N2-4은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCRcpSet_NH3:
+  title: MFCRcpSet_NH3
+  type: gas
+  category: process
+  equipment_field: MFCRcpSet_NH3
+  unit: SLM
+  desc: MFCRcpSet_NH3은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를 통해
+    제어되며 공정 조건에 영향을 줍니다.
+MFCSet_MFC51 N2:
+  title: MFCSet_MFC51 N2
+  type: gas
+  category: process
+  equipment_field: MFCSet_MFC51 N2
+  unit: SLM
+  desc: MFCSet_MFC51 N2은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다. Mass Flow Controller(MFC)를
+    통해 제어되며 공정 조건에 영향을 줍니다.
+N2PurgeFlowMon:
+  title: N2PurgeFlowMon
+  type: unknown
+  category: unknown
+  equipment_field: N2PurgeFlowMon
+  unit: ''
+  desc: 자동 생성된 컬럼 설명. 추후 보완 필요.
+No.:
+  title: No.
+  type: index
+  category: system
+  equipment_field: No.
+  unit: ''
+  desc: 데이터 행 번호입니다.
+O.HT_Act_C:
+  title: O.HT_Act_C
+  type: temperature
+  category: safety
+  equipment_field: O.HT_Act_C
+  unit: ℃
+  desc: 과열 방지 또는 모니터링 관련 온도 필드입니다.
+O.HT_Act_CL:
+  title: O.HT_Act_CL
+  type: temperature
+  category: safety
+  equipment_field: O.HT_Act_CL
+  unit: ℃
+  desc: 과열 방지 또는 모니터링 관련 온도 필드입니다.
+O.HT_Act_CU:
+  title: O.HT_Act_CU
+  type: temperature
+  category: safety
+  equipment_field: O.HT_Act_CU
+  unit: ℃
+  desc: 과열 방지 또는 모니터링 관련 온도 필드입니다.
+O.HT_Act_L:
+  title: O.HT_Act_L
+  type: temperature
+  category: safety
+  equipment_field: O.HT_Act_L
+  unit: ℃
+  desc: 과열 방지 또는 모니터링 관련 온도 필드입니다.
+O.HT_Act_U:
+  title: O.HT_Act_U
+  type: temperature
+  category: safety
+  equipment_field: O.HT_Act_U
+  unit: ℃
+  desc: 과열 방지 또는 모니터링 관련 온도 필드입니다.
+O2DensityFOUP1Mon:
+  title: O2DensityFOUP1Mon
+  type: unknown
+  category: unknown
+  equipment_field: O2DensityFOUP1Mon
+  unit: ''
+  desc: 자동 생성된 컬럼 설명. 추후 보완 필요.
+O2DensityFOUP2Mon:
+  title: O2DensityFOUP2Mon
+  type: unknown
+  category: unknown
+  equipment_field: O2DensityFOUP2Mon
+  unit: ''
+  desc: 자동 생성된 컬럼 설명. 추후 보완 필요.
+O2DensityLAMon:
+  title: O2DensityLAMon
+  type: unknown
+  category: unknown
+  equipment_field: O2DensityLAMon
+  unit: ''
+  desc: 자동 생성된 컬럼 설명. 추후 보완 필요.
+OverHeat_ErrLimit:
+  title: OverHeat_ErrLimit
+  type: temperature
+  category: safety
+  equipment_field: OverHeat_ErrLimit
+  unit: ℃
+  desc: 과열 방지 또는 모니터링 관련 온도 필드입니다.
+Power_HT.C:
+  title: Power_HT.C
+  type: heater
+  category: control
+  equipment_field: Power_HT.C
+  unit: '%'
+  desc: 히터 파워 출력 값을 나타내는 필드입니다. 공정 온도 제어에 사용됩니다.
+Power_HT.CL:
+  title: Power_HT.CL
+  type: heater
+  category: control
+  equipment_field: Power_HT.CL
+  unit: '%'
+  desc: 히터 파워 출력 값을 나타내는 필드입니다. 공정 온도 제어에 사용됩니다.
+Power_HT.CU:
+  title: Power_HT.CU
+  type: heater
+  category: control
+  equipment_field: Power_HT.CU
+  unit: '%'
+  desc: 히터 파워 출력 값을 나타내는 필드입니다. 공정 온도 제어에 사용됩니다.
+Power_HT.L:
+  title: Power_HT.L
+  type: heater
+  category: control
+  equipment_field: Power_HT.L
+  unit: '%'
+  desc: 히터 파워 출력 값을 나타내는 필드입니다. 공정 온도 제어에 사용됩니다.
+Power_HT.U:
+  title: Power_HT.U
+  type: heater
+  category: control
+  equipment_field: Power_HT.U
+  unit: '%'
+  desc: 히터 파워 출력 값을 나타내는 필드입니다. 공정 온도 제어에 사용됩니다.
+PressAct:
+  title: PressAct
+  type: pressure
+  category: process
+  equipment_field: PressAct
+  unit: Torr
+  desc: 챔버 내부 압력의 실제 측정값입니다.
+PressSet:
+  title: PressSet
+  type: pressure
+  category: process
+  equipment_field: PressSet
+  unit: Torr
+  desc: 챔버 내부 압력의 설정값(목표값)입니다.
 Recipe(Table) Name:
-  title: "Recipe Name"
-  name_ko: "레시피 이름"
-  name_en: "Recipe name"
-  type: "recipe"
-  category: "system"
-  equipment_field: "Recipe(Table) Name"
-  unit: ""
-  importance: "A"
-  desc: "실행 중인 공정 레시피 이름."
-
+  title: Recipe(Table) Name
+  type: recipe
+  category: system
+  equipment_field: Recipe(Table) Name
+  unit: ''
+  desc: 실행 중인 공정 레시피 관련 정보입니다.
+SlowVacRate:
+  title: SlowVacRate
+  type: pressure
+  category: control
+  equipment_field: SlowVacRate
+  unit: ''
+  desc: 저속 진공 펌핑 속도 관련 필드입니다.
 Step ID:
-  title: "Step ID"
-  name_ko: "스텝 ID"
-  name_en: "Step ID"
-  type: "recipe"
-  category: "system"
-  equipment_field: "Step ID"
-  unit: ""
-  importance: "A"
-  desc: "현재 실행 중인 레시피 스텝 번호."
-
+  title: Step ID
+  type: recipe
+  category: system
+  equipment_field: Step ID
+  unit: ''
+  desc: 현재 실행 중인 레시피 스텝 정보입니다.
 Step Name:
-  title: "Step Name"
-  name_ko: "스텝 이름"
-  name_en: "Step name"
-  type: "recipe"
-  category: "system"
-  equipment_field: "Step Name"
-  unit: ""
-  importance: "A"
-  desc: "현재 실행 중인 레시피 스텝 이름."
-
-
-
-
+  title: Step Name
+  type: recipe
+  category: system
+  equipment_field: Step Name
+  unit: ''
+  desc: 현재 실행 중인 레시피 스텝 정보입니다.
+TempAct_C:
+  title: TempAct_C
+  type: temperature
+  category: process
+  equipment_field: TempAct_C
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_CL:
+  title: TempAct_CL
+  type: temperature
+  category: process
+  equipment_field: TempAct_CL
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_CU:
+  title: TempAct_CU
+  type: temperature
+  category: process
+  equipment_field: TempAct_CU
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_HT.C:
+  title: TempAct_HT.C
+  type: temperature
+  category: process
+  equipment_field: TempAct_HT.C
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_HT.CL:
+  title: TempAct_HT.CL
+  type: temperature
+  category: process
+  equipment_field: TempAct_HT.CL
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_HT.CU:
+  title: TempAct_HT.CU
+  type: temperature
+  category: process
+  equipment_field: TempAct_HT.CU
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_HT.L:
+  title: TempAct_HT.L
+  type: temperature
+  category: process
+  equipment_field: TempAct_HT.L
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_HT.U:
+  title: TempAct_HT.U
+  type: temperature
+  category: process
+  equipment_field: TempAct_HT.U
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_L:
+  title: TempAct_L
+  type: temperature
+  category: process
+  equipment_field: TempAct_L
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_PR.C:
+  title: TempAct_PR.C
+  type: temperature
+  category: process
+  equipment_field: TempAct_PR.C
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_PR.CL:
+  title: TempAct_PR.CL
+  type: temperature
+  category: process
+  equipment_field: TempAct_PR.CL
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_PR.CU:
+  title: TempAct_PR.CU
+  type: temperature
+  category: process
+  equipment_field: TempAct_PR.CU
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_PR.L:
+  title: TempAct_PR.L
+  type: temperature
+  category: process
+  equipment_field: TempAct_PR.L
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_PR.U:
+  title: TempAct_PR.U
+  type: temperature
+  category: process
+  equipment_field: TempAct_PR.U
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempAct_U:
+  title: TempAct_U
+  type: temperature
+  category: process
+  equipment_field: TempAct_U
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 실제 측정값입니다.
+TempSet_C:
+  title: TempSet_C
+  type: temperature
+  category: process
+  equipment_field: TempSet_C
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempSet_CL:
+  title: TempSet_CL
+  type: temperature
+  category: process
+  equipment_field: TempSet_CL
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempSet_CU:
+  title: TempSet_CU
+  type: temperature
+  category: process
+  equipment_field: TempSet_CU
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempSet_L:
+  title: TempSet_L
+  type: temperature
+  category: process
+  equipment_field: TempSet_L
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempSet_U:
+  title: TempSet_U
+  type: temperature
+  category: process
+  equipment_field: TempSet_U
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempTarg_HT.C:
+  title: TempTarg_HT.C
+  type: temperature
+  category: process
+  equipment_field: TempTarg_HT.C
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempTarg_HT.CL:
+  title: TempTarg_HT.CL
+  type: temperature
+  category: process
+  equipment_field: TempTarg_HT.CL
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempTarg_HT.CU:
+  title: TempTarg_HT.CU
+  type: temperature
+  category: process
+  equipment_field: TempTarg_HT.CU
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempTarg_HT.L:
+  title: TempTarg_HT.L
+  type: temperature
+  category: process
+  equipment_field: TempTarg_HT.L
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempTarg_HT.U:
+  title: TempTarg_HT.U
+  type: temperature
+  category: process
+  equipment_field: TempTarg_HT.U
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempTarg_PR.C:
+  title: TempTarg_PR.C
+  type: temperature
+  category: process
+  equipment_field: TempTarg_PR.C
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempTarg_PR.CL:
+  title: TempTarg_PR.CL
+  type: temperature
+  category: process
+  equipment_field: TempTarg_PR.CL
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempTarg_PR.CU:
+  title: TempTarg_PR.CU
+  type: temperature
+  category: process
+  equipment_field: TempTarg_PR.CU
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempTarg_PR.L:
+  title: TempTarg_PR.L
+  type: temperature
+  category: process
+  equipment_field: TempTarg_PR.L
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+TempTarg_PR.U:
+  title: TempTarg_PR.U
+  type: temperature
+  category: process
+  equipment_field: TempTarg_PR.U
+  unit: ℃
+  desc: 반도체 공정 중 챔버 또는 히터의 온도 설정값(목표값)입니다.
+Time:
+  title: Time
+  type: timestamp
+  category: system
+  equipment_field: Time
+  unit: ''
+  desc: 데이터가 기록된 시각 정보입니다.
+'Unnamed: 206':
+  title: 'Unnamed: 206'
+  type: unknown
+  category: unknown
+  equipment_field: 'Unnamed: 206'
+  unit: ''
+  desc: 자동 생성된 컬럼 설명. 추후 보완 필요.
+VG11:
+  title: VG11
+  type: pressure
+  category: process
+  equipment_field: VG11
+  unit: Torr
+  desc: 챔버 내부 압력과 관련된 필드입니다.
+VG12:
+  title: VG12
+  type: pressure
+  category: process
+  equipment_field: VG12
+  unit: Torr
+  desc: 챔버 내부 압력과 관련된 필드입니다.
+VG13:
+  title: VG13
+  type: pressure
+  category: process
+  equipment_field: VG13
+  unit: Torr
+  desc: 챔버 내부 압력과 관련된 필드입니다.
+ValveAct_1:
+  title: ValveAct_1
+  type: valve
+  category: control
+  equipment_field: ValveAct_1
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_11:
+  title: ValveAct_11
+  type: valve
+  category: control
+  equipment_field: ValveAct_11
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_12:
+  title: ValveAct_12
+  type: valve
+  category: control
+  equipment_field: ValveAct_12
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_13:
+  title: ValveAct_13
+  type: valve
+  category: control
+  equipment_field: ValveAct_13
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_14:
+  title: ValveAct_14
+  type: valve
+  category: control
+  equipment_field: ValveAct_14
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_15:
+  title: ValveAct_15
+  type: valve
+  category: control
+  equipment_field: ValveAct_15
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_16:
+  title: ValveAct_16
+  type: valve
+  category: control
+  equipment_field: ValveAct_16
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_2:
+  title: ValveAct_2
+  type: valve
+  category: control
+  equipment_field: ValveAct_2
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_26:
+  title: ValveAct_26
+  type: valve
+  category: control
+  equipment_field: ValveAct_26
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_27:
+  title: ValveAct_27
+  type: valve
+  category: control
+  equipment_field: ValveAct_27
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_28:
+  title: ValveAct_28
+  type: valve
+  category: control
+  equipment_field: ValveAct_28
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_29:
+  title: ValveAct_29
+  type: valve
+  category: control
+  equipment_field: ValveAct_29
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_3:
+  title: ValveAct_3
+  type: valve
+  category: control
+  equipment_field: ValveAct_3
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_30:
+  title: ValveAct_30
+  type: valve
+  category: control
+  equipment_field: ValveAct_30
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_4:
+  title: ValveAct_4
+  type: valve
+  category: control
+  equipment_field: ValveAct_4
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_5:
+  title: ValveAct_5
+  type: valve
+  category: control
+  equipment_field: ValveAct_5
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_60:
+  title: ValveAct_60
+  type: valve
+  category: control
+  equipment_field: ValveAct_60
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_63:
+  title: ValveAct_63
+  type: valve
+  category: control
+  equipment_field: ValveAct_63
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_73:
+  title: ValveAct_73
+  type: valve
+  category: control
+  equipment_field: ValveAct_73
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_75:
+  title: ValveAct_75
+  type: valve
+  category: control
+  equipment_field: ValveAct_75
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_76:
+  title: ValveAct_76
+  type: valve
+  category: control
+  equipment_field: ValveAct_76
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_77:
+  title: ValveAct_77
+  type: valve
+  category: control
+  equipment_field: ValveAct_77
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_8:
+  title: ValveAct_8
+  type: valve
+  category: control
+  equipment_field: ValveAct_8
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_80:
+  title: ValveAct_80
+  type: valve
+  category: control
+  equipment_field: ValveAct_80
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_81:
+  title: ValveAct_81
+  type: valve
+  category: control
+  equipment_field: ValveAct_81
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_86:
+  title: ValveAct_86
+  type: valve
+  category: control
+  equipment_field: ValveAct_86
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_87:
+  title: ValveAct_87
+  type: valve
+  category: control
+  equipment_field: ValveAct_87
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_88:
+  title: ValveAct_88
+  type: valve
+  category: control
+  equipment_field: ValveAct_88
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_89:
+  title: ValveAct_89
+  type: valve
+  category: control
+  equipment_field: ValveAct_89
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_9:
+  title: ValveAct_9
+  type: valve
+  category: control
+  equipment_field: ValveAct_9
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_90:
+  title: ValveAct_90
+  type: valve
+  category: control
+  equipment_field: ValveAct_90
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_91:
+  title: ValveAct_91
+  type: valve
+  category: control
+  equipment_field: ValveAct_91
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveAct_95:
+  title: ValveAct_95
+  type: valve
+  category: control
+  equipment_field: ValveAct_95
+  unit: ''
+  desc: 밸브의 실제 동작 상태 또는 값입니다.
+ValveCtrl_60:
+  title: ValveCtrl_60
+  type: valve
+  category: control
+  equipment_field: ValveCtrl_60
+  unit: ''
+  desc: 밸브의 제어 또는 설정 값입니다.
+ValveSet_60:
+  title: ValveSet_60
+  type: valve
+  category: control
+  equipment_field: ValveSet_60
+  unit: ''
+  desc: 밸브의 제어 또는 설정 값입니다.

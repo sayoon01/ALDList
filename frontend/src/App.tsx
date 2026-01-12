@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { getDatasets, getPreview, getStats, fetchDatasetColumns, Dataset, StatsResponse, ColumnMeta } from './api';
+import { getDatasets, getPreview, getStats, fetchDatasetColumns, getFieldsByType, Dataset, StatsResponse, ColumnMeta } from './api';
 import './App.css';
 
 function App() {
@@ -28,6 +28,8 @@ function App() {
   const [statsComputeMode, setStatsComputeMode] = useState<'all' | 'active'>('all');
   // 컬럼 검색 필터
   const [columnSearchQuery, setColumnSearchQuery] = useState<string>('');
+  // 타입 필터
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string | null>(null);
 
   // 데이터셋 목록 로드
   useEffect(() => {
@@ -104,6 +106,8 @@ function App() {
         fetchDatasetColumns(selectedDatasetId)
           .then((columnsData) => {
             setColumnMeta(columnsData.meta);
+            // 타입 필터 초기화
+            setSelectedTypeFilter(null);
           })
           .catch((error) => {
             console.error('컬럼 메타데이터 로드 실패:', error);
@@ -330,6 +334,7 @@ function App() {
                 setManualRowEnd(0);
                 setStats(null);
                 setColumnSearchQuery(''); // 데이터셋 변경 시 검색 필터 초기화
+                setSelectedTypeFilter(null); // 데이터셋 변경 시 타입 필터 초기화
                 // 데이터셋 변경 시 컬럼은 자동으로 새 데이터셋의 모든 컬럼으로 설정됨
               }}
               className="select-input"
@@ -506,6 +511,83 @@ function App() {
                     모두 해제
                   </button>
                 </div>
+              </div>
+              {/* 타입 필터 버튼 */}
+              <div style={{ marginBottom: "8px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                <button
+                  onClick={() => {
+                    setSelectedTypeFilter(null);
+                    setVisibleColumns([]);
+                  }}
+                  style={{
+                    padding: "4px 8px",
+                    fontSize: "11px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    background: selectedTypeFilter === null ? "#3498db" : "white",
+                    color: selectedTypeFilter === null ? "white" : "#333",
+                    cursor: "pointer"
+                  }}
+                >
+                  전체
+                </button>
+                {(() => {
+                  // 메타데이터에서 사용 가능한 타입 추출
+                  const types = new Set<string>();
+                  allColumns.forEach(col => {
+                    const m = columnMeta[col];
+                    if (m?.type) {
+                      types.add(m.type);
+                    }
+                  });
+                  const typeLabels: Record<string, string> = {
+                    gas: "가스",
+                    temperature: "온도",
+                    pressure: "압력",
+                    apc: "APC",
+                    valve: "밸브",
+                    aux: "AUX",
+                    heater: "히터",
+                    timestamp: "시간",
+                    recipe: "레시피",
+                    index: "인덱스",
+                    unknown: "기타"
+                  };
+                  return Array.from(types).sort().map(type => {
+                    const count = allColumns.filter(col => columnMeta[col]?.type === type).length;
+                    return (
+                      <button
+                        key={type}
+                        onClick={async () => {
+                          setSelectedTypeFilter(type);
+                          try {
+                            const result = await getFieldsByType(selectedDatasetId, type);
+                            setVisibleColumns(result.columns);
+                          } catch (error) {
+                            console.error('타입 필터 적용 실패:', error);
+                            // 실패 시 클라이언트 측 필터링으로 대체
+                            const filtered = allColumns.filter(col => {
+                              const m = columnMeta[col];
+                              return m?.type === type;
+                            });
+                            setVisibleColumns(filtered);
+                          }
+                        }}
+                        style={{
+                          padding: "4px 8px",
+                          fontSize: "11px",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          background: selectedTypeFilter === type ? "#3498db" : "white",
+                          color: selectedTypeFilter === type ? "white" : "#333",
+                          cursor: "pointer"
+                        }}
+                      >
+                        {typeLabels[type] || type} ({count})
+                      </button>
+                    );
+                  });
+                })()}
               </div>
               {/* 컬럼 검색 필터 */}
               <div style={{ marginBottom: "8px" }}>

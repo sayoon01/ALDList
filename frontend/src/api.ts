@@ -109,5 +109,17 @@ export async function fetchDatasetColumns(datasetId: string): Promise<DatasetCol
   return fetchAPI(`/api/datasets/${datasetId}/columns`);
 }
 
+export interface FieldsByTypeResponse {
+  dataset_id: string;
+  type: string;
+  count: number;
+  columns: string[];
+  meta: Record<string, ColumnMeta>;
+}
+
+export async function getFieldsByType(datasetId: string, type: string): Promise<FieldsByTypeResponse> {
+  return fetchAPI(`/api/datasets/${datasetId}/fields?type=${encodeURIComponent(type)}`);
+}
+
 
 
