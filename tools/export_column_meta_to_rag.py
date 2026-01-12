@@ -51,23 +51,25 @@ def enrich_lines(col: str, m: Dict[str, Any]) -> List[str]:
     Returns:
         마크다운 라인 리스트
     """
-    t = m.get("type", "unknown")
-    unit = m.get("unit", "")
-    cat = m.get("category", "")
+    t = (m.get("type") or "unknown").strip()
+    unit = (m.get("unit") or "").strip()
+    cat = (m.get("category") or "").strip()
     desc = (m.get("desc") or "").strip()
+    equip = (m.get("equipment_field") or col).strip()
 
     lines = []
     lines.append(f"# {col}\n")
 
-    # ✅ RAG 검색 힌트 문장(일관되게 반복)
+    # ✅ 공통: RAG 검색에 도움되는 문장(일관되게 반복)
     lines.append("이 문서는 CSV 헤더(컬럼)의 의미를 설명하는 데이터 사전이다.")
-    lines.append("이 컬럼은 반도체 장비 로그 CSV에 포함된 필드이다.\n")
+    lines.append("이 컬럼은 반도체 장비 로그 CSV에 포함된 필드이다.")
 
+    # ✅ 타입별: '가스 관련 필드 보여줘' 같은 질문에서 걸리도록 문장 추가
     if t == "gas":
         lines.append("이 컬럼은 반도체 공정에서 사용되는 가스와 관련된 필드이다.")
-        lines.append("MFC(질량유량제어기) 계열 가스 유량/설정/입력 값일 가능성이 높다.")
+        lines.append("MFC(질량유량제어기) 계열의 유량/설정/입력 값일 가능성이 높다.")
     elif t == "temperature":
-        lines.append("이 컬럼은 반도체 공정 장비의 온도(측정/설정/목표)와 관련된 필드이다.")
+        lines.append("이 컬럼은 반도체 장비의 온도(측정/설정/목표)와 관련된 필드이다.")
     elif t == "pressure":
         lines.append("이 컬럼은 챔버 압력/진공 게이지 등 압력과 관련된 필드이다.")
     elif t == "timestamp":
@@ -78,10 +80,6 @@ def enrich_lines(col: str, m: Dict[str, Any]) -> List[str]:
         lines.append("이 컬럼은 압력 제어(APC) 밸브/제어와 관련된 필드이다.")
     elif t == "valve":
         lines.append("이 컬럼은 밸브 상태/제어/설정과 관련된 필드이다.")
-    elif t == "heater":
-        lines.append("이 컬럼은 히터 파워/제어와 관련된 필드이다.")
-    elif t == "recipe":
-        lines.append("이 컬럼은 공정 레시피/스텝 정보와 관련된 필드이다.")
     else:
         lines.append("이 컬럼은 아직 분류되지 않았거나 일반적인 장비 필드이다.")
 
@@ -95,8 +93,7 @@ def enrich_lines(col: str, m: Dict[str, Any]) -> List[str]:
         lines.append(f"- category: {cat}")
     if unit:
         lines.append(f"- unit: {unit}")
-    if m.get("equipment_field"):
-        lines.append(f"- equipment_field: {m['equipment_field']}")
+    lines.append(f"- equipment_field: {equip}")
 
     return lines
 
@@ -133,8 +130,7 @@ def main():
         by_type.setdefault(t, []).append(col)
         count += 1
 
-    # ✅ 타입별 묶음 문서 (gas 관련 필드 보여줘에 강함)
-    print(f"📝 타입별 그룹 문서 생성 중...")
+    # ✅ 타입별 묶음 문서 생성 (검색에서 매우 강함)
     for t, cols in by_type.items():
         title = TYPE_KO.get(t, t)
         doc_lines = []

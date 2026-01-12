@@ -101,7 +101,10 @@ def get_dataset_columns(dataset_id: str) -> Dict[str, Any]:
 
 
 @router.get("/{dataset_id}/fields")
-def get_fields_by_type(dataset_id: str, type: str = Query(..., description="컬럼 타입 (gas, temperature, pressure, etc.)")):
+def get_fields_by_type(
+    dataset_id: str,
+    type: str = Query(..., description="필터할 컬럼 type (gas/temperature/pressure/...)")
+):
     """
     타입별 컬럼 필터링
     
@@ -110,11 +113,16 @@ def get_fields_by_type(dataset_id: str, type: str = Query(..., description="컬�
     """
     from ..core.column_meta import build_meta_map
     
+    # (선택) type 값 검증
+    ALLOWED_TYPES = {"gas", "temperature", "pressure", "apc", "valve", "aux", "heater", "timestamp", "recipe", "index", "unknown"}
+    if type not in ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid type: {type}. Allowed types: {', '.join(sorted(ALLOWED_TYPES))}")
+    
     ds = get_dataset(dataset_id)
     if ds is None:
         raise HTTPException(status_code=404, detail="Dataset not found")
     
-    columns = None
+    # ds가 dict 또는 object 둘 다 대응
     if isinstance(ds, dict):
         columns = ds.get("columns")
     else:
@@ -133,5 +141,4 @@ def get_fields_by_type(dataset_id: str, type: str = Query(..., description="컬�
         "type": type,
         "count": len(filtered),
         "columns": filtered,
-        "meta": {c: meta[c] for c in filtered}  # 필터링된 컬럼의 메타데이터만 반환
     }
