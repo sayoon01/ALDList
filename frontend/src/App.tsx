@@ -26,6 +26,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   // 통계 계산 모드: 'all' (전체), 'active' (활성 컬럼만), 'selected' (선택 컬럼만 - 확장 포인트)
   const [statsComputeMode, setStatsComputeMode] = useState<'all' | 'active'>('all');
+  // 컬럼 검색 필터
+  const [columnSearchQuery, setColumnSearchQuery] = useState<string>('');
 
   // 데이터셋 목록 로드
   useEffect(() => {
@@ -65,10 +67,10 @@ function App() {
           
           // 데이터셋이 변경되었거나 컬럼이 없을 때만 초기화
           if (prevDatasetId !== selectedDatasetId || visibleColumns.length === 0) {
-            // 새 데이터셋이거나 처음 로드 시: 모든 컬럼 표시
-            setVisibleColumns(keys);
+            // 새 데이터셋이거나 처음 로드 시: 기본값은 모두 선택 해제
+            setVisibleColumns([]);
             setPrevDatasetId(selectedDatasetId);
-            // ✅ 추가: activeColumn 초기값 (첫 컬럼)
+            // ✅ 추가: activeColumn 초기값 (첫 컬럼, 표시는 안 되지만 상세 패널 확인용)
             setActiveColumn(keys.length > 0 ? keys[0] : null);
           } else {
             // 같은 데이터셋이면 기존 선택 유지 (새로 추가된 컬럼만 추가)
@@ -191,7 +193,13 @@ function App() {
 
   // 통계 계산
   const handleCalculateStats = async () => {
-    if (!selectedDatasetId || visibleColumns.length === 0) return;
+    if (!selectedDatasetId) return;
+
+    // 컬럼이 선택되지 않았으면 경고
+    if (visibleColumns.length === 0) {
+      alert('통계 계산을 하려면 최소한 컬럼 1개를 선택해주세요.');
+      return;
+    }
 
     // 수동 입력 범위가 있으면 우선 사용, 없으면 드래그 선택 범위 사용
     let rowStart: number;
@@ -321,6 +329,7 @@ function App() {
                 setManualRowStart(0);
                 setManualRowEnd(0);
                 setStats(null);
+                setColumnSearchQuery(''); // 데이터셋 변경 시 검색 필터 초기화
                 // 데이터셋 변경 시 컬럼은 자동으로 새 데이터셋의 모든 컬럼으로 설정됨
               }}
               className="select-input"
@@ -498,78 +507,130 @@ function App() {
                   </button>
                 </div>
               </div>
+              {/* 컬럼 검색 필터 */}
+              <div style={{ marginBottom: "8px" }}>
+                <input
+                  type="text"
+                  placeholder="🔍 컬럼 검색..."
+                  value={columnSearchQuery}
+                  onChange={(e) => setColumnSearchQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "6px 10px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    fontSize: "13px",
+                    boxSizing: "border-box"
+                  }}
+                />
+              </div>
               <div className="column-list">
-                {allColumns.map((col) => {
-                  const m = columnMeta[col]; // 항상 있음을 전제(없어도 안전)
-                  const isChecked = visibleColumns.includes(col);
-                  const isActive = activeColumn === col;
+                {(() => {
+                  const filteredColumns = allColumns.filter((col) => {
+                    // 검색 쿼리가 없으면 모두 표시
+                    if (!columnSearchQuery.trim()) return true;
+                    // 컬럼명 또는 메타데이터에서 검색
+                    const searchLower = columnSearchQuery.toLowerCase();
+                    const m = columnMeta[col];
+                    return (
+                      col.toLowerCase().includes(searchLower) ||
+                      m?.title?.toLowerCase().includes(searchLower) ||
+                      m?.desc?.toLowerCase().includes(searchLower) ||
+                      m?.name_ko?.toLowerCase().includes(searchLower) ||
+                      m?.name_en?.toLowerCase().includes(searchLower)
+                    );
+                  });
 
-                  const tip = m?.desc
-                    ? `${m.desc}${m.unit ? ` (${m.unit})` : ""}${m.auto_generated ? " [auto]" : ""}`
-                    : col;
+                  // 검색 결과가 없을 때
+                  if (filteredColumns.length === 0 && columnSearchQuery.trim()) {
+                    return (
+                      <div style={{
+                        padding: "20px",
+                        textAlign: "center",
+                        color: "#999",
+                        fontSize: "13px"
+                      }}>
+                        검색 결과가 없습니다.
+                        <br />
+                        <span style={{ fontSize: "11px", opacity: 0.8 }}>
+                          다른 검색어를 시도해보세요.
+                        </span>
+                      </div>
+                    );
+                  }
 
-                  // 컬럼 선택 리스트에는 원본 컬럼명만 표시 (global_columns.yaml의 title은 사용하지 않음)
-                  // global_columns.yaml의 정보는 툴팁(tip)과 컬럼 상세 패널에서만 사용
-                  const labelText = col;
+                  return filteredColumns.map((col) => {
+                    const m = columnMeta[col]; // 항상 있음을 전제(없어도 안전)
+                    const isChecked = visibleColumns.includes(col);
+                    const isActive = activeColumn === col;
 
-                  return (
-                    <label
-                      key={col}
-                      data-column={col}
-                      className="column-checkbox"
-                      title={tip} // ✅ hover tooltip
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "3px 6px",
-                        borderRadius: 6,
-                        background: isActive ? "rgba(0,0,0,0.06)" : "transparent",
-                        cursor: "pointer",
-                      }}
-                      onClick={() => {
-                        // ✅ 체크박스와 별개로 "상세패널 선택"을 바꿈
-                        setActiveColumn(col);
-                      }}
-                    >
-                    <input
-                      type="checkbox"
-                        checked={isChecked}
-                      onChange={(e) => {
-                          const checked = e.target.checked;
+                    const tip = m?.desc
+                      ? `${m.desc}${m.unit ? ` (${m.unit})` : ""}${m.auto_generated ? " [auto]" : ""}`
+                      : col;
 
-                          if (checked) {
-                            // 중복 방지
-                            if (!visibleColumns.includes(col)) {
-                          setVisibleColumns([...visibleColumns, col]);
-                            }
-                            // ✅ 체크하면 상세도 같이 선택되게
-                            setActiveColumn(col);
-                        } else {
-                            const next = visibleColumns.filter((c) => c !== col);
-                            setVisibleColumns(next);
+                    // 컬럼 선택 리스트에는 원본 컬럼명만 표시 (global_columns.yaml의 title은 사용하지 않음)
+                    // global_columns.yaml의 정보는 툴팁(tip)과 컬럼 상세 패널에서만 사용
+                    const labelText = col;
 
-                            // ✅ 지금 선택중인 컬럼을 끄면, 상세패널도 대체
-                            if (activeColumn === col) {
-                              setActiveColumn(next.length > 0 ? next[0] : null);
-                        }
-                          }
+                    return (
+                      <label
+                        key={col}
+                        data-column={col}
+                        className="column-checkbox"
+                        title={tip} // ✅ hover tooltip
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "3px 6px",
+                          borderRadius: 6,
+                          background: isActive ? "rgba(0,0,0,0.06)" : "transparent",
+                          cursor: "pointer",
                         }}
-                        onClick={(e) => {
-                          // label 클릭으로 중복 이벤트 발생 방지
-                          e.stopPropagation();
-                      }}
-                    />
+                        onClick={() => {
+                          // ✅ 체크박스와 별개로 "상세패널 선택"을 바꿈
+                          setActiveColumn(col);
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
 
-                      <span style={{ userSelect: "none" }}>
-                        {labelText}
-                        {m?.importance ? (
-                          <span style={{ marginLeft: 6, opacity: 0.6 }}>({m.importance})</span>
-                        ) : null}
-                      </span>
-                  </label>
-                  );
-                })}
+                            if (checked) {
+                              // 중복 방지
+                              if (!visibleColumns.includes(col)) {
+                                setVisibleColumns([...visibleColumns, col]);
+                              }
+                              // ✅ 체크하면 상세도 같이 선택되게
+                              setActiveColumn(col);
+                            } else {
+                              const next = visibleColumns.filter((c) => c !== col);
+                              setVisibleColumns(next);
+
+                              // ✅ 지금 선택중인 컬럼을 끄면, 상세패널도 대체
+                              if (activeColumn === col) {
+                                setActiveColumn(next.length > 0 ? next[0] : null);
+                              }
+                            }
+                          }}
+                          onClick={(e) => {
+                            // label 클릭으로 중복 이벤트 발생 방지
+                            e.stopPropagation();
+                          }}
+                        />
+
+                        <span style={{ userSelect: "none" }}>
+                          {labelText}
+                          {m?.importance ? (
+                            <span style={{ marginLeft: 6, opacity: 0.6 }}>({m.importance})</span>
+                          ) : null}
+                        </span>
+                      </label>
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>
