@@ -38,7 +38,7 @@ def should_regenerate_metadata() -> bool:
             if registered_files != current_files:
                 print("📝 CSV 파일 목록이 변경되었습니다. 메타데이터 재생성이 필요합니다.")
                 return True
-            
+        
             # 메타데이터의 경로가 유효한지 확인 (로컬 경로가 아닌지)
             for meta in metadata:
                 path_str = meta.get("path", "")

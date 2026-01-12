@@ -146,7 +146,8 @@ function App() {
           sortable: true,
           resizable: true,
           // 헤더 툴팁 (메타데이터 설명 사용) - AG Grid가 자동으로 표시
-          headerTooltip: headerTooltip,
+          // 클릭 시 상세 정보를 보려면 헤더를 클릭하세요
+          headerTooltip: headerTooltip ? `${headerTooltip}\n\n💡 클릭하면 상세 정보를 확인할 수 있습니다.` : `💡 클릭하면 상세 정보를 확인할 수 있습니다.`,
           // 셀 hover 시 값 tooltip
           tooltipValueGetter: (params: any) => {
             return params.value != null ? String(params.value) : null;
@@ -157,6 +158,8 @@ function App() {
             if (params.value == null || params.value === '') return '—';
             return String(params.value);
           },
+          // 헤더 클릭 가능 표시를 위한 스타일
+          headerClass: 'clickable-header',
         };
         
         // 특수문자가 포함된 필드명은 valueGetter 사용, 아니면 field 사용
@@ -267,6 +270,21 @@ function App() {
       setManualRowEnd(rowRange.end);
     }
   }, [rowRange, isSelecting]);
+
+  // 그리드 헤더 클릭 시 컬럼 상세 패널로 이동
+  const onColumnHeaderClicked = (params: any) => {
+    if (params.column && params.column.getColId()) {
+      const columnId = params.column.getColId();
+      if (allColumns.includes(columnId)) {
+        setActiveColumn(columnId);
+        // 왼쪽 컬럼 리스트에서도 선택 상태 반영을 위해 스크롤
+        const element = document.querySelector(`[data-column="${columnId}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    }
+  };
 
   // 선택된 행 범위에 스타일 적용
   const getRowStyle = (params: any) => {
@@ -490,11 +508,14 @@ function App() {
                     ? `${m.desc}${m.unit ? ` (${m.unit})` : ""}${m.auto_generated ? " [auto]" : ""}`
                     : col;
 
-                  const labelText = m?.title ?? col;
+                  // 컬럼 선택 리스트에는 원본 컬럼명만 표시 (global_columns.yaml의 title은 사용하지 않음)
+                  // global_columns.yaml의 정보는 툴팁(tip)과 컬럼 상세 패널에서만 사용
+                  const labelText = col;
 
                   return (
                     <label
                       key={col}
+                      data-column={col}
                       className="column-checkbox"
                       title={tip} // ✅ hover tooltip
                       style={{
@@ -511,34 +532,34 @@ function App() {
                         setActiveColumn(col);
                       }}
                     >
-                      <input
-                        type="checkbox"
+                    <input
+                      type="checkbox"
                         checked={isChecked}
-                        onChange={(e) => {
+                      onChange={(e) => {
                           const checked = e.target.checked;
 
                           if (checked) {
                             // 중복 방지
                             if (!visibleColumns.includes(col)) {
-                              setVisibleColumns([...visibleColumns, col]);
+                          setVisibleColumns([...visibleColumns, col]);
                             }
                             // ✅ 체크하면 상세도 같이 선택되게
                             setActiveColumn(col);
-                          } else {
+                        } else {
                             const next = visibleColumns.filter((c) => c !== col);
                             setVisibleColumns(next);
 
                             // ✅ 지금 선택중인 컬럼을 끄면, 상세패널도 대체
                             if (activeColumn === col) {
                               setActiveColumn(next.length > 0 ? next[0] : null);
-                            }
+                        }
                           }
                         }}
                         onClick={(e) => {
                           // label 클릭으로 중복 이벤트 발생 방지
                           e.stopPropagation();
-                        }}
-                      />
+                      }}
+                    />
 
                       <span style={{ userSelect: "none" }}>
                         {labelText}
@@ -546,7 +567,7 @@ function App() {
                           <span style={{ marginLeft: 6, opacity: 0.6 }}>({m.importance})</span>
                         ) : null}
                       </span>
-                    </label>
+                  </label>
                   );
                 })}
               </div>
@@ -578,6 +599,7 @@ function App() {
                 onGridReady={(params) => setGridApi(params.api)}
                 onCellMouseDown={onCellMouseDown}
                 onCellMouseOver={onCellMouseOver}
+                onColumnHeaderClicked={onColumnHeaderClicked}
                 getRowStyle={getRowStyle}
                 rowSelection="multiple"
                 animateRows={true}
@@ -597,47 +619,190 @@ function App() {
             <h2>컬럼 상세</h2>
 
             {!activeColumn ? (
-              <div style={{ opacity: 0.75 }}>왼쪽에서 컬럼을 선택하세요.</div>
+              <div style={{ 
+                opacity: 0.75, 
+                padding: "20px",
+                textAlign: "center",
+                fontSize: 14,
+                color: "#666"
+              }}>
+                💡 그리드 헤더를 클릭하거나<br />왼쪽에서 컬럼을 선택하면<br />상세 정보를 확인할 수 있습니다.
+              </div>
             ) : (
               (() => {
                 const m = columnMeta[activeColumn];
                 const title = m?.title ?? activeColumn;
 
                 return (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 700 }}>
+                  <div style={{ display: "grid", gap: 16 }}>
+                    {/* 컬럼 기본 정보 */}
+                    <div style={{
+                      padding: "16px",
+                      backgroundColor: "#f8f9fa",
+                      borderRadius: "8px",
+                      border: "1px solid #e9ecef"
+                    }}>
+                      <div style={{ 
+                        fontSize: 18, 
+                        fontWeight: 700,
+                        marginBottom: 8,
+                        color: "#212529"
+                      }}>
                         {title}
-                        {m?.importance ? (
-                          <span style={{ marginLeft: 8, opacity: 0.7 }}>중요도 {m.importance}</span>
-                        ) : null}
+                      </div>
+                      
+                      {/* 원본 컬럼명 */}
+                      <div style={{
+                        fontSize: 12,
+                        color: "#6c757d",
+                        fontFamily: "monospace",
+                        marginBottom: 8,
+                        padding: "4px 8px",
+                        backgroundColor: "#fff",
+                        borderRadius: "4px",
+                        display: "inline-block"
+                      }}>
+                        {activeColumn}
                       </div>
 
-                      {(m?.name_ko || m?.name_en) ? (
-                        <div style={{ opacity: 0.75 }}>
-                          {m?.name_ko ?? ""}
-                          {m?.name_en ? ` / ${m.name_en}` : ""}
+                      {/* 한글/영문 이름 */}
+                      {(m?.name_ko || m?.name_en) && (
+                        <div style={{ 
+                          fontSize: 14,
+                          color: "#495057",
+                          marginTop: 8
+                        }}>
+                          {m?.name_ko && <span>{m.name_ko}</span>}
+                          {m?.name_ko && m?.name_en && <span style={{ margin: "0 4px" }}>/</span>}
+                          {m?.name_en && <span style={{ fontStyle: "italic" }}>{m.name_en}</span>}
                         </div>
-                      ) : null}
+                      )}
+
+                      {/* 중요도 배지 */}
+                      {m?.importance && (
+                        <div style={{ marginTop: 8 }}>
+                          <span style={{
+                            display: "inline-block",
+                            padding: "2px 8px",
+                            borderRadius: "12px",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            backgroundColor: m.importance === "A" ? "#fff3cd" : m.importance === "B" ? "#d1ecf1" : "#f8d7da",
+                            color: m.importance === "A" ? "#856404" : m.importance === "B" ? "#0c5460" : "#721c24"
+                          }}>
+                            중요도 {m.importance}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
+                    {/* 설명 */}
                     {m?.desc ? (
-                      <div style={{ lineHeight: 1.4 }}>{m.desc}</div>
+                      <div style={{
+                        padding: "16px",
+                        backgroundColor: "#fff",
+                        borderRadius: "8px",
+                        border: "1px solid #e9ecef"
+                      }}>
+                        <div style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#6c757d",
+                          marginBottom: 8,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px"
+                        }}>
+                          설명
+                        </div>
+                        <div style={{ 
+                          lineHeight: 1.6,
+                          fontSize: 14,
+                          color: "#212529"
+                        }}>
+                          {m.desc}
+                        </div>
+                      </div>
                     ) : (
-                      <div style={{ opacity: 0.7 }}>설명 없음</div>
+                      <div style={{
+                        padding: "16px",
+                        backgroundColor: "#fff",
+                        borderRadius: "8px",
+                        border: "1px solid #e9ecef",
+                        textAlign: "center",
+                        opacity: 0.6
+                      }}>
+                        <div style={{ fontSize: 13, color: "#6c757d" }}>
+                          설명이 없습니다.
+                          {m?.auto_generated && (
+                            <div style={{ marginTop: 8, fontSize: 11 }}>
+                              💡 <code>global_columns.yaml</code>에 추가하면 더 자세한 설명을 제공할 수 있습니다.
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
 
-                    <div style={{ display: "grid", gap: 4, opacity: 0.9 }}>
-                      {m?.type ? <div>유형: {m.type}</div> : null}
-                      {m?.category ? <div>구분: {m.category}</div> : null}
-                      {m?.equipment_field ? <div>장비 필드명: {m.equipment_field}</div> : null}
-                      {m?.unit ? <div>단위: {m.unit}</div> : null}
-                      {m?.auto_generated ? (
-                        <div style={{ opacity: 0.7 }}>
-                          [자동 생성 메타] global_columns.yaml에 추가하면 더 정확해짐
+                    {/* 상세 정보 카드 */}
+                    {(m?.type || m?.category || m?.unit || m?.equipment_field) && (
+                      <div style={{
+                        padding: "16px",
+                        backgroundColor: "#fff",
+                        borderRadius: "8px",
+                        border: "1px solid #e9ecef"
+                      }}>
+                        <div style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#6c757d",
+                          marginBottom: 12,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px"
+                        }}>
+                          상세 정보
                         </div>
-                      ) : null}
-                    </div>
+                        <div style={{ display: "grid", gap: 10 }}>
+                          {m?.type && (
+                            <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 8, borderBottom: "1px solid #f1f3f5" }}>
+                              <span style={{ fontSize: 13, color: "#6c757d" }}>유형</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: "#212529" }}>{m.type}</span>
+                            </div>
+                          )}
+                          {m?.category && (
+                            <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 8, borderBottom: "1px solid #f1f3f5" }}>
+                              <span style={{ fontSize: 13, color: "#6c757d" }}>구분</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: "#212529" }}>{m.category}</span>
+                            </div>
+                          )}
+                          {m?.unit && (
+                            <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 8, borderBottom: "1px solid #f1f3f5" }}>
+                              <span style={{ fontSize: 13, color: "#6c757d" }}>단위</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: "#212529", fontFamily: "monospace" }}>{m.unit}</span>
+                            </div>
+                          )}
+                          {m?.equipment_field && (
+                            <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 8 }}>
+                              <span style={{ fontSize: 13, color: "#6c757d" }}>장비 필드명</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: "#212529", fontFamily: "monospace" }}>{m.equipment_field}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 메타데이터 출처 안내 */}
+                    {m?.auto_generated && (
+                      <div style={{
+                        padding: "12px",
+                        backgroundColor: "#fff3cd",
+                        borderRadius: "6px",
+                        border: "1px solid #ffc107",
+                        fontSize: 12,
+                        color: "#856404"
+                      }}>
+                        <strong>⚠️ 자동 생성 메타데이터</strong><br />
+                        이 컬럼의 메타데이터는 패턴 매칭으로 자동 생성되었습니다. <code>global_columns.yaml</code>에 직접 추가하면 더 정확한 설명을 제공할 수 있습니다.
+                      </div>
+                    )}
                   </div>
                 );
               })()

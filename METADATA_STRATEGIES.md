@@ -201,3 +201,4 @@ def infer_meta_from_data(col: str, sample_values: List[Any]) -> Dict:
 
 필요하면 나중에 LLM 기능을 추가할 수 있지만, 지금은 patterns.yaml로 충분합니다.
 
+
