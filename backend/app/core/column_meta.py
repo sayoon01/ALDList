@@ -179,7 +179,8 @@ def build_meta_map(dataset_id: str, columns: list[str]) -> Dict[str, Dict[str, A
 
         # 2) global merge
         if c in global_meta:
-            base = {**base, **global_meta[c], "key": c, "auto_generated": base.get("auto_generated", False)}
+            # global_columns.yaml에 명시된 컬럼은 auto_generated = False
+            base = {**base, **global_meta[c], "key": c, "auto_generated": False}
 
         # 3) dataset override merge (최우선)
         if c in override_meta:

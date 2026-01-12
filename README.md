@@ -54,13 +54,30 @@ cp your_file.csv data/
 
 ### 2. 백엔드 실행
 
+**방법 1: 스크립트 사용 (권장)**
+
 ```bash
 # 프로젝트 루트에서
 ./start_backend.sh
-
-# 또는 backend 디렉토리에서
-cd backend && ./start.sh
 ```
+
+**방법 2: 수동 실행**
+
+```bash
+# backend 디렉토리로 이동
+cd backend
+
+# 가상환경 활성화 (있는 경우)
+source venv/bin/activate
+
+# 서버 실행
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**⚠️ 주의사항:**
+- `uvicorn app.main:app` 명령은 반드시 `backend` 디렉토리에서 실행해야 합니다
+- 프로젝트 루트에서 실행하면 `ModuleNotFoundError: No module named 'app'` 에러 발생
+- `PYTHONPATH`를 설정하거나 `backend` 디렉토리로 이동 후 실행
 
 백엔드가 시작되면:
 - 메타데이터 자동 생성 (없는 경우)
@@ -142,6 +159,7 @@ Vercel에서는 자동으로 처리됩니다:
 - `GET /api/datasets/{dataset_id}` - 데이터셋 메타데이터 조회
 - `GET /api/datasets/{dataset_id}/preview` - 데이터 미리보기
 - `GET /api/datasets/{dataset_id}/columns` - 컬럼 메타데이터 조회 (전체 컬럼)
+- `GET /api/datasets/{dataset_id}/fields?type={type}` - 타입별 컬럼 필터링
 - `POST /api/datasets/{dataset_id}/stats` - 통계 계산
 
 자세한 API 문서: http://localhost:8000/docs
@@ -213,16 +231,255 @@ python3 tools/scan_and_export.py
 
 ## 🔄 워크플로우
 
+### 초기 방식 (하드코딩 기반)
+
+**초기 워크플로우 (수동 메타데이터 관리):**
+
 ```
 1. CSV 파일을 data/ 디렉토리에 넣기
    ↓
-2. 백엔드 실행 (자동으로 메타데이터 생성)
+2. 백엔드 실행
+   → tools/scan_and_export.py 자동 실행
+   → metadata/datasets.json 생성 (데이터셋 목록)
+   → metadata/columns_union.json 생성 (전체 컬럼 목록)
    ↓
-3. 프론트엔드 실행
+3. 메타데이터 수동 작성
+   → column_meta/global_columns.yaml에 주요 컬럼 10~30개만 수동 작성
+   → 나머지 컬럼은 patterns.yaml 패턴 매칭으로 자동 생성
+   → auto_generated: true로 표시 (프론트에 경고 메시지)
    ↓
-4. 브라우저에서 http://localhost:5173 접속
+4. 프론트엔드 실행
+   → GET /api/datasets로 데이터셋 목록 로드
+   → GET /api/datasets/{id}/columns로 컬럼 메타데이터 로드
+   → build_meta_map()이 global_columns.yaml + patterns.yaml 병합
+   → 프론트엔드에서 메타데이터 표시 (일부는 경고 표시)
    ↓
-5. 데이터 분석 시작!
+5. 브라우저에서 http://localhost:5173 접속
+   → 데이터 분석 시작
+   → 대부분의 컬럼에 "⚠️ 자동 생성 메타데이터" 경고 표시
+```
+
+**초기 방식의 특징:**
+- ✅ 빠른 시작: 주요 컬럼만 정의하면 바로 사용 가능
+- ❌ 불완전한 메타데이터: 207개 중 10~30개만 정의
+- ❌ RAG 시스템 부재: LLM이 모든 컬럼을 이해하기 어려움
+- ❌ 사용자 경험: 대부분의 컬럼에 경고 메시지 표시
+
+---
+
+### 현재 방식 (자동 생성 + RAG 시스템)
+
+**현재 워크플로우 (완전 자동화 + RAG 지원):**
+
+#### Phase 1: 데이터 준비 및 스캔
+
+```
+1. CSV 파일을 data/ 디렉토리에 넣기
+   ↓
+2. 백엔드 실행 (또는 수동 실행)
+   → tools/scan_and_export.py 실행
+   → metadata/datasets.json 생성
+   → metadata/columns_union.json 생성 (207개 컬럼 목록)
+```
+
+#### Phase 2: 메타데이터 자동 생성
+
+```
+3. 메타데이터 시드 생성 (최초 1회 또는 컬럼 추가 시)
+   → python3 tools/generate_column_meta_seed.py 실행
+   → metadata/columns_union.json 읽기
+   → 컬럼명 패턴 분석 (MFC*, Temp*, Press* 등)
+   → column_meta/global_columns.generated.yaml 생성 (207개 전체)
+   → column_meta/global_columns.yaml로 복사 (공식 메타데이터)
+   → 모든 컬럼에 type, category, unit, desc 자동 생성
+   → auto_generated: false (공식 메타데이터로 취급)
+```
+
+**생성되는 메타데이터 예시:**
+```yaml
+MFCMon_DCS:
+  title: MFCMon_DCS
+  type: gas
+  category: process
+  unit: SLM
+  desc: "MFCMon_DCS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다..."
+```
+
+#### Phase 3: RAG 문서 생성
+
+```
+4. RAG 문서 생성 (최초 1회 또는 메타데이터 업데이트 시)
+   → python3 tools/export_column_meta_to_rag.py 실행
+   → column_meta/global_columns.yaml 읽기
+   ↓
+   a) 컬럼별 문서 생성
+      → rag_docs/columns/*.md (207개)
+      → 각 컬럼마다 RAG 검색 최적화 문장 포함
+      → 예: "이 컬럼은 반도체 공정에서 사용되는 가스와 관련된 필드이다."
+   ↓
+   b) 타입별 그룹 문서 생성
+      → rag_docs/groups/*.md (10개)
+      → gas.md, temperature.md, pressure.md 등
+      → "가스 관련 필드 보여줘" 같은 범주 질의에 강함
+```
+
+**RAG 문서 예시 (rag_docs/columns/MFCMon_DCS.md):**
+```markdown
+# MFCMon_DCS
+
+이 문서는 CSV 헤더(컬럼)의 의미를 설명하는 데이터 사전이다.
+이 컬럼은 반도체 장비 로그 CSV에 포함된 필드이다.
+이 컬럼은 반도체 공정에서 사용되는 가스와 관련된 필드이다.
+MFC(질량유량제어기) 계열의 유량/설정/입력 값일 가능성이 높다.
+
+## 설명
+MFCMon_DCS은 반도체 장비에서 사용되는 가스 유량 관련 필드입니다...
+
+## 메타데이터
+- type: gas (가스)
+- category: process
+- unit: SLM
+```
+
+#### Phase 4: RAG 인덱스 생성
+
+```
+5. RAG 인덱스 생성 (Vector DB용)
+   → python3 tools/export_rag_jsonl.py 실행
+   → column_meta/global_columns.yaml 읽기
+   → rag_index/column_meta.jsonl 생성 (207개 문서)
+   → 각 줄은 JSON 객체 하나 (JSONL 형식)
+   → Vector DB 인덱싱에 최적화
+```
+
+**JSONL 예시:**
+```json
+{"id": "column:MFCMon_DCS", "column": "MFCMon_DCS", "type": "gas", "text": "이 컬럼은 반도체 장비 로그 CSV에 포함된 필드이다. ..."}
+```
+
+#### Phase 5: 백엔드 실행 및 API 서비스
+
+```
+6. 백엔드 실행
+   → FastAPI startup 이벤트
+   → ensure_metadata() 실행 (metadata/datasets.json 확인)
+   → core/column_meta.py가 global_columns.yaml 로드
+   → build_meta_map() 함수 준비
+   → API 서비스 시작 (http://localhost:8000)
+```
+
+#### Phase 6: 프론트엔드 실행 및 데이터 로드
+
+```
+7. 프론트엔드 실행
+   → React 앱 시작 (http://localhost:5173)
+   ↓
+8. 데이터셋 목록 로드
+   → GET /api/datasets
+   → datasets.json 기반으로 목록 표시
+   ↓
+9. 데이터셋 선택 시 병렬 로드
+   → GET /api/datasets/{id}/columns (컬럼 메타데이터)
+   → GET /api/datasets/{id}/preview?offset=0&limit=500 (데이터 미리보기)
+   → build_meta_map()이 global_columns.yaml + patterns.yaml 병합
+   → 모든 컬럼에 메타데이터 반환 (auto_generated: false)
+   ↓
+10. 프론트엔드 렌더링
+    → AG Grid에 컬럼 표시
+    → 툴팁: 컬럼 헤더 hover 시 desc 표시
+    → 상세 패널: 컬럼 클릭 시 전체 메타데이터 표시
+    → 타입 필터: type 기반 컬럼 필터링 버튼
+    → 경고 메시지 없음 (모든 컬럼이 공식 메타데이터)
+```
+
+#### Phase 7: 사용자 인터랙션
+
+```
+11. 사용자 작업
+    → 컬럼 선택/해제
+    → 타입 필터 클릭 (예: "가스 (40)" 버튼)
+      → GET /api/datasets/{id}/fields?type=gas
+      → 해당 타입 컬럼만 자동 선택
+    → 행 범위 드래그 선택
+    → 통계 계산 버튼 클릭
+      → POST /api/datasets/{id}/stats
+      → 선택한 범위의 통계 반환
+```
+
+#### Phase 8: RAG 시스템 활용 (향후 확장)
+
+```
+12. 자연어 질의 (LLM 연동 시)
+    → 사용자: "가스 관련 필드 보여줘"
+    → LLM이 rag_docs/groups/gas.md 또는 rag_index/column_meta.jsonl 검색
+    → Vector DB에서 의미 기반 검색
+    → GET /api/datasets/{id}/fields?type=gas 호출
+    → 프론트엔드에 가스 관련 컬럼만 표시
+```
+
+**현재 방식의 특징:**
+- ✅ 완전 자동화: 207개 컬럼 전체 자동 생성
+- ✅ 완전한 메타데이터: 모든 컬럼에 기본 메타데이터 보유
+- ✅ RAG 시스템 완비: LLM이 모든 컬럼을 이해 가능
+- ✅ 사용자 경험: 경고 없이 안정적으로 표시
+- ✅ 확장성: 자연어 질의 지원 준비 완료
+
+---
+
+### 워크플로우 비교 요약
+
+| 단계 | 초기 방식 | 현재 방식 |
+|------|----------|----------|
+| **메타데이터 생성** | 수동 작성 (10~30개) | 자동 생성 (207개 전체) |
+| **생성 도구** | 직접 YAML 편집 | `generate_column_meta_seed.py` |
+| **RAG 문서** | 없음 | `rag_docs/columns/*.md` (207개) |
+| **RAG 그룹 문서** | 없음 | `rag_docs/groups/*.md` (10개) |
+| **RAG 인덱스** | 없음 | `rag_index/column_meta.jsonl` |
+| **프론트 표시** | 대부분 경고 표시 | 경고 없음 |
+| **LLM 지원** | 불가능 | 완전 지원 |
+| **자연어 질의** | 불가능 | 준비 완료 |
+
+---
+
+### 실행 순서 요약
+
+**최초 설정 (1회):**
+```bash
+# 1. CSV 파일 준비
+cp your_file.csv data/
+
+# 2. 메타데이터 스캔
+python3 tools/scan_and_export.py
+
+# 3. 메타데이터 시드 생성
+python3 tools/generate_column_meta_seed.py
+
+# 4. RAG 문서 생성
+python3 tools/export_column_meta_to_rag.py
+
+# 5. RAG 인덱스 생성
+python3 tools/export_rag_jsonl.py
+```
+
+**일반 사용:**
+```bash
+# 백엔드 실행
+./start_backend.sh
+
+# 프론트엔드 실행 (새 터미널)
+./start_frontend.sh
+
+# 브라우저 접속
+# http://localhost:5173
+```
+
+**메타데이터 업데이트 시:**
+```bash
+# 컬럼 추가/변경 후
+python3 tools/generate_column_meta_seed.py
+python3 tools/export_column_meta_to_rag.py
+python3 tools/export_rag_jsonl.py
+# 백엔드 재시작
 ```
 
 ---
@@ -301,13 +558,55 @@ python3 tools/scan_and_export.py
 
 ## 7. 컬럼 메타 시스템(core/column_meta.py + YAML)
 
-### 7.1 우선순위(확정)
+### 7.1 메타데이터 생성 방식의 진화
 
-1. patterns.yaml 기반 자동 생성
-2. global_columns.yaml 기반 수동 정의 merge
-3. datasets/{dataset_id}.yaml override(최우선, auto_generated=False)
+#### 초기: 하드코딩 방식 (global_columns.yaml)
 
-### 7.2 patterns.yaml 규칙(자동 생성)
+**초기 접근 방식:**
+- `global_columns.yaml`에 중요한 컬럼만 수동으로 정의
+- 예: `MFCMon_DCS`, `TempAct_U` 등 10~30개 정도의 주요 컬럼만 명시
+- 나머지 컬럼들은 패턴 매칭(`patterns.yaml`)으로 자동 생성
+
+**특징:**
+- 핵심 컬럼에 대해서만 정확한 메타데이터 제공
+- 대부분의 컬럼은 `auto_generated: true`로 표시
+- 프론트엔드에서 "⚠️ 자동 생성 메타데이터" 경고 표시
+
+**한계:**
+- 207개 전체 컬럼에 대한 메타데이터가 불완전
+- RAG 시스템 구축 시 충분한 시드 문서 부족
+- LLM이 모든 컬럼의 의미를 이해하기 어려움
+
+#### 현재: 자동 생성 + RAG 시스템
+
+**현재 접근 방식:**
+- `tools/generate_column_meta_seed.py`로 207개 전체 컬럼의 기본 메타데이터 자동 생성
+- `global_columns.generated.yaml` → `global_columns.yaml`로 복사하여 공식 메타데이터로 사용
+- 모든 컬럼에 `auto_generated: false` (공식 메타데이터로 취급)
+
+**특징:**
+- 207개 컬럼 전체에 기본 메타데이터 보유
+- 컬럼명 패턴 기반으로 `type`, `category`, `unit`, `desc` 자동 추론
+- 프론트엔드에서 경고 없이 안정적으로 표시
+- RAG 시스템 구축을 위한 충분한 시드 문서 확보
+
+**차이점 요약:**
+
+| 구분 | 초기 (하드코딩) | 현재 (자동 생성 + RAG) |
+|------|----------------|----------------------|
+| **메타데이터 범위** | 주요 컬럼 10~30개만 | 전체 207개 컬럼 |
+| **생성 방식** | 수동 작성 | 스크립트 자동 생성 |
+| **auto_generated** | 대부분 `true` | 모두 `false` (공식 메타) |
+| **프론트 표시** | 경고 메시지 표시 | 경고 없음 |
+| **RAG 지원** | 불충분 | 완전 지원 |
+
+### 7.2 메타데이터 우선순위 (merge 순서)
+
+1. **patterns.yaml** 기반 자동 생성 (fallback)
+2. **global_columns.yaml** 기반 공식 정의 (현재는 자동 생성된 것을 사용)
+3. **datasets/{dataset_id}.yaml** override (최우선, dataset별 커스터마이징)
+
+### 7.3 patterns.yaml 규칙 (자동 생성 fallback)
 
 - TempAct/TempSet/HeaterTC/CascadeTC: zone(U/CU/C/CL/L) 기반 설명 자동 생성
 - TempAct_HT.PR 같은 점(.) 포함 컬럼도 지원
@@ -316,12 +615,126 @@ python3 tools/scan_and_export.py
 - AUXMon_*: 보조 모니터 자동 설명
 - fallback: unknown + "global에 추가 가능"
 
-### 7.3 global_columns.yaml(도메인 정답 메타)
+### 7.4 global_columns.yaml (공식 메타데이터)
 
-중요 공정 컬럼에 대해:
-- title, name_ko/en, type/category, unit, importance(A/B/C), desc 제공
+**역할:**
+- 프론트엔드 UI에서 사용자에게 표시되는 메타데이터
+- 모든 207개 컬럼에 대한 기본 메타데이터 보유
+- `type`, `category`, `unit`, `desc` 등 포함
 
-프론트에서는 툴팁/상세패널에서 이 정보가 그대로 사용자에게 전달됩니다.
+**생성 과정:**
+1. `tools/generate_column_meta_seed.py` 실행
+2. `metadata/columns_union.json` 읽기
+3. 컬럼명 패턴 기반으로 메타데이터 추론
+4. `column_meta/global_columns.generated.yaml` 생성
+5. 공식 메타데이터로 사용 (`global_columns.yaml`)
+
+**프론트엔드 활용:**
+- 툴팁: 컬럼 헤더에 마우스 오버 시 `desc` 표시
+- 상세 패널: 컬럼 클릭 시 전체 메타데이터 표시
+- 타입 필터: `type` 기반 컬럼 필터링
+
+### 7.5 RAG 시스템 (rag_docs/, rag_index/)
+
+**목적:**
+- LLM이 컬럼 의미를 이해할 수 있도록 구조화된 문서 제공
+- "가스 관련 필드 보여줘" 같은 자연어 질의 지원
+- Vector DB 인덱싱을 통한 의미 기반 검색
+
+**구조:**
+
+#### 7.5.1 rag_docs/ (Markdown 문서)
+
+**컬럼별 문서 (`rag_docs/columns/*.md`):**
+- 각 컬럼마다 개별 Markdown 파일 (207개)
+- RAG 검색에 최적화된 문장 포함
+- 예: "이 컬럼은 반도체 공정에서 사용되는 가스와 관련된 필드이다."
+
+**타입별 그룹 문서 (`rag_docs/groups/*.md`):**
+- 동일 타입의 컬럼을 묶은 목록 (10개)
+- "가스 관련 필드" 같은 범주 질의에 강함
+- 예: `gas.md`, `temperature.md`, `pressure.md`
+
+**생성:**
+- `tools/export_column_meta_to_rag.py` 실행
+- `global_columns.yaml` → Markdown 변환
+
+#### 7.5.2 rag_index/ (JSONL 인덱스)
+
+**목적:**
+- Vector DB 인덱싱에 최적화된 형식
+- LLM/RAG 시스템에서 직접 사용 가능
+- 텍스트 embedding 검색에 적합
+
+**형식:**
+```json
+{
+  "id": "column:MFCMon_DCS",
+  "column": "MFCMon_DCS",
+  "type": "gas",
+  "category": "process",
+  "equipment_field": "MFCMon_DCS",
+  "text": "이 컬럼은 반도체 장비 로그 CSV에 포함된 필드이다. ..."
+}
+```
+
+**생성:**
+- `tools/export_rag_jsonl.py` 실행
+- `global_columns.yaml` → JSONL 변환
+
+### 7.6 global_columns.yaml vs RAG 시스템 비교
+
+**global_columns.yaml (프론트엔드용):**
+- **목적**: 사용자 UI에서 메타데이터 표시
+- **형식**: YAML (구조화된 데이터)
+- **사용처**: 백엔드 API → 프론트엔드 렌더링
+- **특징**: 빠른 조회, 구조화된 필드 (type, unit, desc 등)
+
+**rag_docs/ (사람용 문서):**
+- **목적**: RAG 검색을 위한 사람이 읽기 쉬운 문서
+- **형식**: Markdown
+- **사용처**: RAG 시스템의 검색 코퍼스
+- **특징**: 자연어 문장, 검색 힌트 문장 포함
+
+**rag_index/ (LLM/Vector DB용):**
+- **목적**: Vector DB 인덱싱 및 LLM 도구 호출
+- **형식**: JSONL (한 줄 = JSON 객체 하나)
+- **사용처**: Vector DB embedding, LLM function calling
+- **특징**: 구조화된 메타데이터 + 검색용 텍스트
+
+**사용 흐름:**
+
+```
+1. 사용자 UI 표시
+   → global_columns.yaml (백엔드 API) → 프론트엔드
+
+2. 자연어 질의 ("가스 관련 필드 보여줘")
+   → rag_docs/groups/gas.md 또는 rag_index/column_meta.jsonl
+   → Vector DB 검색 → LLM 응답
+```
+
+### 7.7 메타데이터 생성 워크플로우
+
+```
+1. CSV 스캔 (tools/scan_and_export.py)
+   → metadata/columns_union.json 생성
+
+2. 메타데이터 시드 생성 (tools/generate_column_meta_seed.py)
+   → column_meta/global_columns.generated.yaml 생성
+   → column_meta/global_columns.yaml로 복사 (공식 메타)
+
+3. RAG 문서 생성 (tools/export_column_meta_to_rag.py)
+   → rag_docs/columns/*.md (207개)
+   → rag_docs/groups/*.md (10개)
+
+4. RAG 인덱스 생성 (tools/export_rag_jsonl.py)
+   → rag_index/column_meta.jsonl
+
+5. 백엔드 실행
+   → core/column_meta.py가 global_columns.yaml 로드
+   → API 엔드포인트에서 메타데이터 반환
+   → 프론트엔드에서 UI 표시
+```
 
 ---
 
