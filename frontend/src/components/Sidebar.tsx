@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Dataset, ColumnMeta } from '../api';
 import { getFieldsByType } from '../api';
 import './Sidebar.css';
@@ -61,10 +62,45 @@ function Sidebar({
   isLoadingStats,
   onCalculateStats,
 }: SidebarProps) {
+  const [open, setOpen] = useState({
+    dataset: true,
+    viewRange: true,
+    statsRange: true,
+    columnSelect: true,
+  });
+
+  const Section = ({
+    id,
+    title,
+    right,
+    children,
+  }: {
+    id: keyof typeof open;
+    title: string;
+    right?: React.ReactNode;
+    children: React.ReactNode;
+  }) => {
+    const isOpen = open[id];
+    return (
+      <div className="sb-section">
+        <button
+          type="button"
+          className="sb-section-header"
+          onClick={() => setOpen((p) => ({ ...p, [id]: !p[id] }))}
+        >
+          <span className="sb-section-title">{title}</span>
+          <span className="sb-section-right">{right}</span>
+          <span className={`sb-section-chevron ${isOpen ? "open" : ""}`}>▾</span>
+        </button>
+
+        {isOpen && <div className="sb-section-body">{children}</div>}
+      </div>
+    );
+  };
+
   return (
     <div className="sidebar">
-      <div className="section">
-        <h2>데이터셋 선택</h2>
+      <Section id="dataset" title="데이터셋 선택">
         {datasets.length === 0 ? (
           <div style={{ 
             padding: "12px", 
@@ -89,10 +125,9 @@ function Sidebar({
             ))}
           </select>
         )}
-      </div>
+      </Section>
 
-      <div className="section compact-section">
-        <h2>화면 표시 범위</h2>
+      <Section id="viewRange" title="화면 표시 범위">
         <div className="compact-input-row">
           <div className="compact-input-group">
             <label>시작</label>
@@ -122,10 +157,21 @@ function Sidebar({
             처음
           </button>
         </div>
-      </div>
+      </Section>
 
-      <div className="section compact-section">
-        <h2>통계 계산 범위</h2>
+      <Section
+        id="statsRange"
+        title="통계 계산 범위"
+        right={
+          rowRange ? (
+            <span className="sb-pill">
+              {rowRange.start + 1}~{rowRange.end + 1}
+            </span>
+          ) : (
+            <span className="sb-pill muted">미선택</span>
+          )
+        }
+      >
         <div className="compact-input-row">
           <div className="compact-input-group">
             <label>시작</label>
@@ -233,13 +279,16 @@ function Sidebar({
             💡 왼쪽에서 컬럼을 선택하면 활성 컬럼만 계산할 수 있습니다
           </div>
         )}
-      </div>
+      </Section>
 
-      <div className="section">
-        <h2>컬럼 선택</h2>
+      <Section
+        id="columnSelect"
+        title="컬럼 선택"
+        right={<span className="sb-pill">{visibleColumns.length}/{allColumns.length}</span>}
+      >
         <div className="column-selector">
           <div className="column-selector-header">
-            <span>표시할 컬럼 선택 ({visibleColumns.length}/{allColumns.length})</span>
+            <span>표시할 컬럼 선택</span>
             <div className="column-selector-buttons">
               <button
                 onClick={() => onVisibleColumnsChange(allColumns)}
@@ -349,8 +398,9 @@ function Sidebar({
               }}
             />
           </div>
-          <div className="column-list">
-            {(() => {
+          <div className="column-list-wrap">
+            <div className="column-list">
+              {(() => {
               const filteredColumns = allColumns.filter((col) => {
                 // 검색 쿼리가 없으면 모두 표시
                 if (!columnSearchQuery.trim()) return true;
@@ -448,10 +498,11 @@ function Sidebar({
                   </label>
                 );
               });
-            })()}
+              })()}
+            </div>
           </div>
         </div>
-      </div>
+      </Section>
     </div>
   );
 }

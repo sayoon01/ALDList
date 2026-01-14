@@ -157,13 +157,20 @@
   background: #f0f0f0;
 }
 
+.column-list-wrap {
+  height: 420px; /* ✅ 여기 고정 높이 */
+  overflow: auto; /* ✅ 내부 스크롤 */
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 6px;
+}
+
+/* 스크롤 안에서 항목이 붙어 보이게 */
 .column-list {
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 0.5rem;
-  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .column-checkbox {
@@ -184,4 +191,76 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ===== Sidebar Accordion ===== */
+.sb-section {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.sb-section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px;
+  border: none;
+  background: #f9fafb;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sb-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.sb-section-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sb-section-chevron {
+  width: 22px;
+  height: 22px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #6b7280;
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.sb-section-chevron.open {
+  transform: rotate(0deg);
+}
+
+.sb-section-body {
+  padding: 12px;
+  background: #fff;
+}
+
+.sb-pill {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #111827;
+  font-weight: 700;
+}
+
+.sb-pill.muted {
+  color: #6b7280;
+  font-weight: 600;
 }

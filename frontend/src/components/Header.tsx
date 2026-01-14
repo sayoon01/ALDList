@@ -1,9 +1,15 @@
-import './Header.css';
+import "./Header.css";
 
 function Header() {
   return (
     <header className="app-header">
-      <h1>ALDList - CSV 데이터 분석</h1>
+      <div className="app-header-left">
+        <div className="app-badge">ALD</div>
+        <div className="app-title-wrap">
+          <div className="app-title">ALDList</div>
+          <div className="app-subtitle">CSV Explorer · DuckDB · FastAPI</div>
+        </div>
+      </div>
     </header>
   );
 }

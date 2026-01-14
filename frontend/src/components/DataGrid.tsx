@@ -12,7 +12,6 @@ interface DataGridProps {
   onCellMouseDown: (params: any) => void;
   onCellMouseOver: (params: any) => void;
   onColumnHeaderClicked: (params: any) => void;
-  getRowStyle: (params: any) => any;
 }
 
 function DataGrid({
@@ -24,7 +23,6 @@ function DataGrid({
   onCellMouseDown,
   onCellMouseOver,
   onColumnHeaderClicked,
-  getRowStyle,
 }: DataGridProps) {
   return (
     <div className="main-content">
@@ -51,7 +49,17 @@ function DataGrid({
             onCellMouseDown={onCellMouseDown}
             onCellMouseOver={onCellMouseOver}
             onColumnHeaderClicked={onColumnHeaderClicked}
-            getRowStyle={getRowStyle}
+            rowClassRules={{
+              "row-in-range": (p) =>
+                !!rowRange &&
+                p.node.rowIndex != null &&
+                p.node.rowIndex >= rowRange.start &&
+                p.node.rowIndex <= rowRange.end,
+              "row-in-range-start": (p) =>
+                !!rowRange && p.node.rowIndex != null && p.node.rowIndex === rowRange.start,
+              "row-in-range-end": (p) =>
+                !!rowRange && p.node.rowIndex != null && p.node.rowIndex === rowRange.end,
+            }}
             rowSelection="multiple"
             animateRows={true}
             suppressRowClickSelection={true}
