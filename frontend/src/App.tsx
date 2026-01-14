@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { getDatasets, getPreview, getStats, fetchDatasetColumns, getFieldsByType, Dataset, StatsResponse, ColumnMeta } from './api';
+import { getDatasets, getPreview, getStats, fetchDatasetColumns, Dataset, StatsResponse, ColumnMeta } from './api';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import DataGrid from './components/DataGrid';
+import StatsPanel from './components/StatsPanel';
 import './App.css';
 
 function App() {
@@ -74,14 +75,8 @@ function App() {
           const keys = data.columns || Object.keys(data.rows[0]);
           setAllColumns(keys);
           
-          // "No" 컬럼이 있는지 확인 ("No." 또는 "No" 둘 다 체크)
-          const noColumnName = keys.find(k => k === "No." || k === "No");
-          const hasNoColumn = !!noColumnName;
-          
           console.log('컬럼 로드:', { 
             totalColumns: keys.length, 
-            hasNoColumn, 
-            noColumnName,
             visibleColumnsCount: visibleColumns.length,
             prevDatasetId,
             selectedDatasetId
@@ -89,35 +84,29 @@ function App() {
           
           // 데이터셋이 변경되었거나 컬럼이 없을 때만 초기화
           if (prevDatasetId !== selectedDatasetId || visibleColumns.length === 0) {
-            // 새 데이터셋이거나 처음 로드 시: "No" 컬럼만 자동 선택
-            const initialColumns = hasNoColumn && noColumnName ? [noColumnName] : [];
+            // 새 데이터셋이거나 처음 로드 시: 첫 번째 컬럼 자동 선택
+            const initialColumns = keys.length > 0 ? [keys[0]] : [];
             console.log('초기 컬럼 선택:', initialColumns);
             setVisibleColumns(initialColumns);
             setPrevDatasetId(selectedDatasetId);
-            // ✅ 추가: activeColumn 초기값 (첫 컬럼, 표시는 안 되지만 상세 패널 확인용)
+            // activeColumn 초기값 (첫 컬럼)
             setActiveColumn(keys.length > 0 ? keys[0] : null);
           } else {
             // 같은 데이터셋이면 기존 선택 유지 (새로 추가된 컬럼만 추가)
             const newColumns = keys.filter(k => !visibleColumns.includes(k));
             const removedColumns = visibleColumns.filter(k => !keys.includes(k));
             
-            // "No" 컬럼이 없으면 자동으로 추가
-            let updatedColumns = [...visibleColumns.filter(k => keys.includes(k))];
-            if (hasNoColumn && noColumnName && !updatedColumns.includes(noColumnName)) {
-              updatedColumns = [noColumnName, ...updatedColumns];
-            }
+            // 유효한 컬럼만 유지
+            let updatedColumns = visibleColumns.filter(k => keys.includes(k));
             
             if (newColumns.length > 0 || removedColumns.length > 0) {
               // 유효한 컬럼만 유지하고 새 컬럼 추가
               setVisibleColumns([
                 ...updatedColumns,
-                ...newColumns.filter(k => k !== noColumnName) // "No"는 이미 추가했으므로 제외
+                ...newColumns
               ]);
-            } else if (hasNoColumn && noColumnName && !updatedColumns.includes(noColumnName)) {
-              // 변경사항은 없지만 "No" 컬럼이 없으면 추가
-              setVisibleColumns(updatedColumns);
             }
-            // ✅ 선택 컬럼이 사라졌으면 대체
+            // 선택 컬럼이 사라졌으면 대체
             setActiveColumn((prev) => {
               if (!prev) return keys.length > 0 ? keys[0] : null;
               if (keys.includes(prev)) return prev;
@@ -344,694 +333,73 @@ function App() {
     return undefined;
   };
 
+  const handleDatasetChange = (datasetId: string) => {
+    setSelectedDatasetId(datasetId);
+    setPrevDatasetId('');
+    setOffset(0);
+    setRowRange(null);
+    setManualRowStart(0);
+    setManualRowEnd(0);
+    setStats(null);
+    setColumnSearchQuery('');
+    setSelectedTypeFilter(null);
+  };
+
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>ALDList - CSV 데이터 분석</h1>
-      </header>
+      <Header />
 
       <div className="app-content">
-        {/* 왼쪽 사이드바 */}
-        <div className="sidebar">
-          <div className="section">
-            <h2>데이터셋 선택</h2>
-            {datasets.length === 0 ? (
-              <div style={{ 
-                padding: "12px", 
-                backgroundColor: "#fff3cd", 
-                borderRadius: "4px",
-                fontSize: "13px",
-                color: "#856404"
-              }}>
-                데이터셋을 불러오는 중...<br />
-                <small>백엔드 서버가 실행 중인지 확인하세요.</small>
-              </div>
-            ) : (
-              <select
-                value={selectedDatasetId}
-                onChange={(e) => {
-                  setSelectedDatasetId(e.target.value);
-                  setPrevDatasetId(''); // 데이터셋 변경 시 이전 ID 초기화
-                  setOffset(0);
-                  setRowRange(null);
-                  setManualRowStart(0);
-                  setManualRowEnd(0);
-                  setStats(null);
-                  setColumnSearchQuery(''); // 데이터셋 변경 시 검색 필터 초기화
-                  setSelectedTypeFilter(null); // 데이터셋 변경 시 타입 필터 초기화
-                  // 데이터셋 변경 시 컬럼은 자동으로 새 데이터셋의 모든 컬럼으로 설정됨
-                }}
-                className="select-input"
-              >
-                {datasets.map((ds) => (
-                  <option key={ds.dataset_id} value={ds.dataset_id}>
-                    {ds.filename} ({ds.columns.length} 컬럼)
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+        <Sidebar
+          datasets={datasets}
+          selectedDatasetId={selectedDatasetId}
+          onDatasetChange={handleDatasetChange}
+          offset={offset}
+          limit={limit}
+          onOffsetChange={setOffset}
+          onLimitChange={setLimit}
+          manualRowStart={manualRowStart}
+          manualRowEnd={manualRowEnd}
+          onManualRowStartChange={setManualRowStart}
+          onManualRowEndChange={setManualRowEnd}
+          rowRange={rowRange}
+          onRowRangeReset={() => {
+            setManualRowStart(0);
+            setManualRowEnd(0);
+          }}
+          statsComputeMode={statsComputeMode}
+          onStatsComputeModeChange={setStatsComputeMode}
+          visibleColumns={visibleColumns}
+          allColumns={allColumns}
+          columnMeta={columnMeta}
+          activeColumn={activeColumn}
+          onVisibleColumnsChange={setVisibleColumns}
+          onActiveColumnChange={setActiveColumn}
+          columnSearchQuery={columnSearchQuery}
+          onColumnSearchQueryChange={setColumnSearchQuery}
+          selectedTypeFilter={selectedTypeFilter}
+          onSelectedTypeFilterChange={setSelectedTypeFilter}
+          isLoadingStats={isLoadingStats}
+          onCalculateStats={handleCalculateStats}
+        />
 
-          <div className="section compact-section">
-            <h2>화면 표시 범위</h2>
-            <div className="compact-input-row">
-              <div className="compact-input-group">
-                <label>시작</label>
-                <input
-                  type="number"
-                  value={offset}
-                  onChange={(e) => setOffset(Number(e.target.value))}
-                  min="0"
-                  className="compact-input"
-                />
-              </div>
-              <div className="compact-input-group">
-                <label>개수</label>
-                <input
-                  type="number"
-                  value={limit}
-                  onChange={(e) => setLimit(Number(e.target.value))}
-                  min="1"
-                  max="10000"
-                  className="compact-input"
-                />
-              </div>
-              <button onClick={() => setOffset(0)} className="btn-compact">
-                처음
-              </button>
-            </div>
-          </div>
+        <DataGrid
+          isLoading={isLoading}
+          columnDefs={columnDefs}
+          rowData={rowData}
+          rowRange={rowRange}
+          onGridReady={setGridApi}
+          onCellMouseDown={onCellMouseDown}
+          onCellMouseOver={onCellMouseOver}
+          onColumnHeaderClicked={onColumnHeaderClicked}
+          getRowStyle={getRowStyle}
+        />
 
-          <div className="section compact-section">
-            <h2>통계 계산 범위</h2>
-            <div className="compact-input-row">
-              <div className="compact-input-group">
-                <label>시작</label>
-                <input
-                  type="number"
-                  value={manualRowStart === 0 && manualRowEnd === 0 ? '' : manualRowStart + 1}
-                  onChange={(e) => {
-                    const val = e.target.value === '' ? 0 : Number(e.target.value) - 1;
-                    setManualRowStart(Math.max(0, val));
-                  }}
-                  min="1"
-                  placeholder="1"
-                  className="compact-input"
-                />
-              </div>
-              <div className="compact-input-group">
-                <label>끝</label>
-                <input
-                  type="number"
-                  value={manualRowStart === 0 && manualRowEnd === 0 ? '' : manualRowEnd + 1}
-                  onChange={(e) => {
-                    const val = e.target.value === '' ? 0 : Number(e.target.value) - 1;
-                    setManualRowEnd(Math.max(0, val));
-                  }}
-                  min="1"
-                  placeholder="1"
-                  className="compact-input"
-                />
-              </div>
-              <button 
-                onClick={() => {
-                  setManualRowStart(0);
-                  setManualRowEnd(0);
-                }} 
-                className="btn-compact"
-              >
-                초기화
-              </button>
-            </div>
-            {rowRange && (
-              <div className="range-info-compact">
-                드래그: {rowRange.start + 1}~{rowRange.end + 1}행 ({rowRange.end - rowRange.start + 1}개)
-              </div>
-            )}
-            
-            {/* 통계 계산 대상 컬럼 선택 (확장 가능한 구조) */}
-            <div style={{ marginTop: 12, marginBottom: 12, padding: 8, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 4 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-                계산 대상 컬럼
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: 12 }}>
-                  <input
-                    type="radio"
-                    name="statsComputeMode"
-                    value="all"
-                    checked={statsComputeMode === 'all'}
-                    onChange={(e) => setStatsComputeMode(e.target.value as 'all' | 'active')}
-                    style={{ marginRight: 6 }}
-                  />
-                  <span>전체 표시 컬럼 ({visibleColumns.length}개)</span>
-                </label>
-                <label 
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    cursor: activeColumn ? 'pointer' : 'not-allowed',
-                    fontSize: 12,
-                    opacity: activeColumn ? 1 : 0.5
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="statsComputeMode"
-                    value="active"
-                    checked={statsComputeMode === 'active'}
-                    onChange={(e) => setStatsComputeMode(e.target.value as 'all' | 'active')}
-                    disabled={!activeColumn}
-                    style={{ marginRight: 6 }}
-                  />
-                  <span>
-                    활성 컬럼만 {activeColumn && `(${columnMeta[activeColumn]?.title ?? activeColumn})`}
-                    {!activeColumn && '(컬럼 선택 필요)'}
-                  </span>
-                </label>
-                {/* 확장 포인트: 'selected' 모드는 나중에 추가 가능 */}
-              </div>
-            </div>
-            
-            <button
-              onClick={handleCalculateStats}
-              disabled={
-                isLoadingStats || 
-                visibleColumns.length === 0 || 
-                ((manualRowStart === 0 && manualRowEnd === 0) && !rowRange) ||
-                (statsComputeMode === 'active' && !activeColumn)
-              }
-              className="btn-primary"
-            >
-              {isLoadingStats ? '계산 중...' : '통계 계산'}
-            </button>
-            {(manualRowStart === 0 && manualRowEnd === 0 && !rowRange) && (
-              <div className="hint-text">
-                💡 범위를 입력하거나 그리드에서 행을 드래그하여 범위를 선택하세요
-              </div>
-            )}
-            {statsComputeMode === 'active' && !activeColumn && (
-              <div className="hint-text" style={{ marginTop: 8 }}>
-                💡 왼쪽에서 컬럼을 선택하면 활성 컬럼만 계산할 수 있습니다
-              </div>
-            )}
-          </div>
-
-          <div className="section">
-            <h2>컬럼 선택</h2>
-            <div className="column-selector">
-              <div className="column-selector-header">
-                <span>표시할 컬럼 선택 ({visibleColumns.length}/{allColumns.length})</span>
-                <div className="column-selector-buttons">
-                  <button
-                    onClick={() => setVisibleColumns(allColumns)}
-                    className="btn-small"
-                  >
-                    전체 선택
-                  </button>
-                  <button
-                    onClick={() => setVisibleColumns([])}
-                    className="btn-small"
-                  >
-                    모두 해제
-                  </button>
-                </div>
-              </div>
-              {/* 타입 필터 버튼 */}
-              <div style={{ marginBottom: "8px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                <button
-                  onClick={() => {
-                    setSelectedTypeFilter(null);
-                    setVisibleColumns([]);
-                  }}
-                  style={{
-                    padding: "4px 8px",
-                    fontSize: "11px",
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    background: selectedTypeFilter === null ? "#3498db" : "white",
-                    color: selectedTypeFilter === null ? "white" : "#333",
-                    cursor: "pointer"
-                  }}
-                >
-                  전체
-                </button>
-                {(() => {
-                  // 메타데이터에서 사용 가능한 타입 추출
-                  const types = new Set<string>();
-                  allColumns.forEach(col => {
-                    const m = columnMeta[col];
-                    if (m?.type) {
-                      types.add(m.type);
-                    }
-                  });
-                  const typeLabels: Record<string, string> = {
-                    gas: "가스",
-                    temperature: "온도",
-                    pressure: "압력",
-                    apc: "APC",
-                    valve: "밸브",
-                    aux: "AUX",
-                    heater: "히터",
-                    timestamp: "시간",
-                    recipe: "레시피",
-                    index: "인덱스",
-                    unknown: "기타"
-                  };
-                  return Array.from(types).sort().map(type => {
-                    const count = allColumns.filter(col => columnMeta[col]?.type === type).length;
-                    return (
-                      <button
-                        key={type}
-                        onClick={async () => {
-                          setSelectedTypeFilter(type);
-                          try {
-                            const result = await getFieldsByType(selectedDatasetId, type);
-                            setVisibleColumns(result.columns);
-                          } catch (error) {
-                            console.error('타입 필터 적용 실패:', error);
-                            // 실패 시 클라이언트 측 필터링으로 대체
-                            const filtered = allColumns.filter(col => {
-                              const m = columnMeta[col];
-                              return m?.type === type;
-                            });
-                            setVisibleColumns(filtered);
-                          }
-                        }}
-                        style={{
-                          padding: "4px 8px",
-                          fontSize: "11px",
-                          border: "1px solid #ddd",
-                          borderRadius: "4px",
-                          background: selectedTypeFilter === type ? "#3498db" : "white",
-                          color: selectedTypeFilter === type ? "white" : "#333",
-                          cursor: "pointer"
-                        }}
-                      >
-                        {typeLabels[type] || type} ({count})
-                      </button>
-                    );
-                  });
-                })()}
-              </div>
-              {/* 컬럼 검색 필터 */}
-              <div style={{ marginBottom: "8px" }}>
-                <input
-                  type="text"
-                  placeholder="🔍 컬럼 검색..."
-                  value={columnSearchQuery}
-                  onChange={(e) => setColumnSearchQuery(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "6px 10px",
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    fontSize: "13px",
-                    boxSizing: "border-box"
-                  }}
-                />
-              </div>
-              <div className="column-list">
-                {(() => {
-                  const filteredColumns = allColumns.filter((col) => {
-                    // 검색 쿼리가 없으면 모두 표시
-                    if (!columnSearchQuery.trim()) return true;
-                    // 컬럼명 또는 메타데이터에서 검색
-                    const searchLower = columnSearchQuery.toLowerCase();
-                    const m = columnMeta[col];
-                    return (
-                      col.toLowerCase().includes(searchLower) ||
-                      m?.title?.toLowerCase().includes(searchLower) ||
-                      m?.desc?.toLowerCase().includes(searchLower) ||
-                      m?.name_ko?.toLowerCase().includes(searchLower) ||
-                      m?.name_en?.toLowerCase().includes(searchLower)
-                    );
-                  });
-
-                  // 검색 결과가 없을 때
-                  if (filteredColumns.length === 0 && columnSearchQuery.trim()) {
-                    return (
-                      <div style={{
-                        padding: "20px",
-                        textAlign: "center",
-                        color: "#999",
-                        fontSize: "13px"
-                      }}>
-                        검색 결과가 없습니다.
-                        <br />
-                        <span style={{ fontSize: "11px", opacity: 0.8 }}>
-                          다른 검색어를 시도해보세요.
-                        </span>
-                      </div>
-                    );
-                  }
-
-                  return filteredColumns.map((col) => {
-                    const m = columnMeta[col]; // 항상 있음을 전제(없어도 안전)
-                    const isChecked = visibleColumns.includes(col);
-                    const isActive = activeColumn === col;
-
-                    const tip = m?.desc
-                      ? `${m.desc}${m.unit ? ` (${m.unit})` : ""}${m.auto_generated ? " [auto]" : ""}`
-                      : col;
-
-                    // 컬럼 선택 리스트에는 원본 컬럼명만 표시 (global_columns.yaml의 title은 사용하지 않음)
-                    // global_columns.yaml의 정보는 툴팁(tip)과 컬럼 상세 패널에서만 사용
-                    const labelText = col;
-
-                    return (
-                      <label
-                        key={col}
-                        data-column={col}
-                        className="column-checkbox"
-                        title={tip} // ✅ hover tooltip
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          padding: "3px 6px",
-                          borderRadius: 6,
-                          background: isActive ? "rgba(0,0,0,0.06)" : "transparent",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => {
-                          // ✅ 체크박스와 별개로 "상세패널 선택"을 바꿈
-                          setActiveColumn(col);
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-
-                            if (checked) {
-                              // 중복 방지
-                              if (!visibleColumns.includes(col)) {
-                                setVisibleColumns([...visibleColumns, col]);
-                              }
-                              // ✅ 체크하면 상세도 같이 선택되게
-                              setActiveColumn(col);
-                            } else {
-                              const next = visibleColumns.filter((c) => c !== col);
-                              setVisibleColumns(next);
-
-                              // ✅ 지금 선택중인 컬럼을 끄면, 상세패널도 대체
-                              if (activeColumn === col) {
-                                setActiveColumn(next.length > 0 ? next[0] : null);
-                              }
-                            }
-                          }}
-                          onClick={(e) => {
-                            // label 클릭으로 중복 이벤트 발생 방지
-                            e.stopPropagation();
-                          }}
-                        />
-
-                        <span style={{ userSelect: "none" }}>
-                          {labelText}
-                          {m?.importance ? (
-                            <span style={{ marginLeft: 6, opacity: 0.6 }}>({m.importance})</span>
-                          ) : null}
-                        </span>
-                      </label>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 중앙 그리드 */}
-        <div className="main-content">
-          {isLoading ? (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <p>데이터를 불러오는 중...</p>
-            </div>
-          ) : (
-            <div className="ag-theme-alpine" style={{ height: '100%', width: '100%' }}>
-              {rowRange && (
-                <div className="range-indicator">
-                  선택된 범위: {rowRange.start + 1} ~ {rowRange.end + 1}행 ({rowRange.end - rowRange.start + 1}개 행)
-                </div>
-              )}
-              <AgGridReact
-                columnDefs={columnDefs}
-                rowData={rowData}
-                defaultColDef={{
-                  flex: 1,
-                  minWidth: 120,
-                }}
-                onGridReady={(params) => setGridApi(params.api)}
-                onCellMouseDown={onCellMouseDown}
-                onCellMouseOver={onCellMouseOver}
-                onColumnHeaderClicked={onColumnHeaderClicked}
-                getRowStyle={getRowStyle}
-                rowSelection="multiple"
-                animateRows={true}
-                suppressRowClickSelection={true}
-                // 헤더 툴팁 활성화
-                tooltipShowDelay={500}
-                tooltipHideDelay={1000}
-                enableBrowserTooltips={true}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* 오른쪽 통계 패널 */}
-        <div className="stats-panel">
-          <div className="section">
-            <h2>컬럼 상세</h2>
-
-            {!activeColumn ? (
-              <div style={{ 
-                opacity: 0.75, 
-                padding: "20px",
-                textAlign: "center",
-                fontSize: 14,
-                color: "#666"
-              }}>
-                💡 그리드 헤더를 클릭하거나<br />왼쪽에서 컬럼을 선택하면<br />상세 정보를 확인할 수 있습니다.
-              </div>
-            ) : (
-              (() => {
-                const m = columnMeta[activeColumn];
-                const title = m?.title ?? activeColumn;
-
-                // 상세 정보를 툴팁용 텍스트로 구성
-                const detailInfo: string[] = [];
-                if (m?.type) detailInfo.push(`유형: ${m.type}`);
-                if (m?.category) detailInfo.push(`구분: ${m.category}`);
-                if (m?.unit) detailInfo.push(`단위: ${m.unit}`);
-                if (m?.equipment_field) detailInfo.push(`장비 필드명: ${m.equipment_field}`);
-                const hasDetailInfo = detailInfo.length > 0;
-
-                return (
-                  <div style={{ display: "grid", gap: 16 }}>
-                    {/* 컬럼 기본 정보 및 설명 통합 */}
-                    <div 
-                      className={hasDetailInfo ? "column-detail-tooltip" : ""}
-                      style={{
-                        padding: "16px",
-                        backgroundColor: "#f8f9fa",
-                        borderRadius: "8px",
-                        border: "1px solid #e9ecef",
-                        position: "relative",
-                        cursor: hasDetailInfo ? "help" : "default"
-                      }}
-                    >
-                      {/* 커스텀 툴팁 */}
-                      {hasDetailInfo && (
-                        <div className="tooltip-content">
-                          <div style={{ fontWeight: 600, marginBottom: 6, borderBottom: "1px solid rgba(255,255,255,0.3)", paddingBottom: 4 }}>
-                            상세 정보
-                          </div>
-                          {detailInfo.map((info, idx) => (
-                            <div key={idx} style={{ marginBottom: idx < detailInfo.length - 1 ? 4 : 0 }}>
-                              {info}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {/* 컬럼명과 원본 컬럼명 나란히 배치 */}
-                      <div style={{ 
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        marginBottom: 12
-                      }}>
-                        <div style={{ 
-                          fontSize: 18, 
-                          fontWeight: 700,
-                          color: "#212529"
-                        }}>
-                          {title}
-                        </div>
-                        <div style={{
-                          fontSize: 12,
-                          color: "#6c757d",
-                          fontFamily: "monospace",
-                          padding: "4px 8px",
-                          backgroundColor: "#fff",
-                          borderRadius: "4px",
-                          display: "inline-block"
-                        }}>
-                          {activeColumn}
-                        </div>
-                      </div>
-
-                      {/* 설명 */}
-                      {m?.desc ? (
-                        <div style={{ 
-                          lineHeight: 1.6,
-                          fontSize: 14,
-                          color: "#212529",
-                          marginTop: 8,
-                          marginBottom: 12
-                        }}>
-                          {m.desc}
-                        </div>
-                      ) : (
-                        <div style={{ 
-                          fontSize: 13, 
-                          color: "#6c757d",
-                          marginTop: 8,
-                          marginBottom: 12,
-                          fontStyle: "italic"
-                        }}>
-                          설명이 없습니다.
-                          {m?.auto_generated && (
-                            <div style={{ marginTop: 8, fontSize: 11 }}>
-                              💡 <code>global_columns.yaml</code>에 추가하면 더 자세한 설명을 제공할 수 있습니다.
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* 구분선 */}
-                      {(m?.name_ko || m?.name_en || m?.importance) && (
-                        <div style={{
-                          marginTop: 12,
-                          marginBottom: 12,
-                          paddingTop: 12,
-                          borderTop: "1px solid #dee2e6"
-                        }}>
-                          {/* 한글/영문 이름 */}
-                          {(m?.name_ko || m?.name_en) && (
-                            <div style={{ 
-                              fontSize: 13,
-                              color: "#495057",
-                              marginBottom: 8
-                            }}>
-                              {m?.name_ko && <span>{m.name_ko}</span>}
-                              {m?.name_ko && m?.name_en && <span style={{ margin: "0 4px" }}>/</span>}
-                              {m?.name_en && <span style={{ fontStyle: "italic" }}>{m.name_en}</span>}
-                            </div>
-                          )}
-
-                          {/* 중요도 배지 */}
-                          {m?.importance && (
-                            <div>
-                              <span style={{
-                                display: "inline-block",
-                                padding: "2px 8px",
-                                borderRadius: "12px",
-                                fontSize: 11,
-                                fontWeight: 600,
-                                backgroundColor: m.importance === "A" ? "#fff3cd" : m.importance === "B" ? "#d1ecf1" : "#f8d7da",
-                                color: m.importance === "A" ? "#856404" : m.importance === "B" ? "#0c5460" : "#721c24"
-                              }}>
-                                중요도 {m.importance}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* 상세 정보 안내 (hover 시 툴팁으로 표시) */}
-                      {hasDetailInfo && (
-                        <div style={{
-                          marginTop: 8,
-                          fontSize: 11,
-                          color: "#6c757d",
-                          fontStyle: "italic"
-                        }}>
-                          💡 마우스를 올리면 상세 정보를 확인할 수 있습니다.
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 메타데이터 출처 안내 */}
-                    {m?.auto_generated && (
-                      <div style={{
-                        padding: "12px",
-                        backgroundColor: "#fff3cd",
-                        borderRadius: "6px",
-                        border: "1px solid #ffc107",
-                        fontSize: 12,
-                        color: "#856404"
-                      }}>
-                        <strong>⚠️ 자동 생성 메타데이터</strong><br />
-                        이 컬럼의 메타데이터는 패턴 매칭으로 자동 생성되었습니다. <code>global_columns.yaml</code>에 직접 추가하면 더 정확한 설명을 제공할 수 있습니다.
-                      </div>
-                    )}
-                  </div>
-                );
-              })()
-            )}
-          </div>
-
-          <h2>통계 결과</h2>
-          {stats ? (
-            <div className="stats-content">
-              {Object.entries(stats.metrics).map(([col, metric]) => (
-                <div key={col} className="metric-card">
-                  <h3>{col}</h3>
-                  {metric.error ? (
-                    <div className="error">오류: {metric.error}</div>
-                  ) : (
-                    <table className="metric-table">
-                      <tbody>
-                        <tr>
-                          <td>개수:</td>
-                          <td>{metric.count?.toLocaleString() ?? '—'}</td>
-                        </tr>
-                        <tr>
-                          <td>비어있지 않음:</td>
-                          <td>{metric.non_null_count?.toLocaleString() ?? '—'}</td>
-                        </tr>
-                        <tr>
-                          <td>최소값:</td>
-                          <td>{metric.min?.toLocaleString() ?? '—'}</td>
-                        </tr>
-                        <tr>
-                          <td>최대값:</td>
-                          <td>{metric.max?.toLocaleString() ?? '—'}</td>
-                        </tr>
-                        <tr>
-                          <td>평균:</td>
-                          <td>{metric.avg?.toFixed(2) ?? '—'}</td>
-                        </tr>
-                        <tr>
-                          <td>표준편차:</td>
-                          <td>{metric.stddev?.toFixed(2) ?? '—'}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              그리드에서 행을 드래그하여 범위를 선택한 후<br />
-              "통계 계산" 버튼을 클릭하세요.
-            </div>
-          )}
-        </div>
+        <StatsPanel
+          activeColumn={activeColumn}
+          columnMeta={columnMeta}
+          stats={stats}
+        />
       </div>
     </div>
   );
