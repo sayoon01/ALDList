@@ -98,9 +98,12 @@ function Sidebar({
             <label>시작</label>
             <input
               type="number"
-              value={offset}
-              onChange={(e) => onOffsetChange(Number(e.target.value))}
-              min="0"
+              value={offset + 1}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                onOffsetChange(Math.max(0, val - 1));
+              }}
+              min="1"
               className="compact-input"
             />
           </div>
