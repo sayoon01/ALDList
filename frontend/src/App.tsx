@@ -35,6 +35,7 @@ function App() {
   useEffect(() => {
     getDatasets()
       .then((res) => {
+        console.log('데이터셋 목록 로드 성공:', res);
         setDatasets(res.datasets);
         if (res.datasets.length > 0) {
           setSelectedDatasetId(res.datasets[0].dataset_id);
@@ -42,7 +43,13 @@ function App() {
       })
       .catch((error) => {
         console.error('데이터셋 목록 로드 실패:', error);
-        alert('데이터셋 목록을 불러오는 중 오류가 발생했습니다: ' + error.message);
+        console.error('에러 상세:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+        // alert 대신 콘솔에만 표시 (사용자 경험 개선)
+        // alert('데이터셋 목록을 불러오는 중 오류가 발생했습니다: ' + error.message);
       });
   }, []);
 
@@ -67,10 +74,25 @@ function App() {
           const keys = data.columns || Object.keys(data.rows[0]);
           setAllColumns(keys);
           
+          // "No" 컬럼이 있는지 확인 ("No." 또는 "No" 둘 다 체크)
+          const noColumnName = keys.find(k => k === "No." || k === "No");
+          const hasNoColumn = !!noColumnName;
+          
+          console.log('컬럼 로드:', { 
+            totalColumns: keys.length, 
+            hasNoColumn, 
+            noColumnName,
+            visibleColumnsCount: visibleColumns.length,
+            prevDatasetId,
+            selectedDatasetId
+          });
+          
           // 데이터셋이 변경되었거나 컬럼이 없을 때만 초기화
           if (prevDatasetId !== selectedDatasetId || visibleColumns.length === 0) {
-            // 새 데이터셋이거나 처음 로드 시: 기본값은 모두 선택 해제
-            setVisibleColumns([]);
+            // 새 데이터셋이거나 처음 로드 시: "No" 컬럼만 자동 선택
+            const initialColumns = hasNoColumn && noColumnName ? [noColumnName] : [];
+            console.log('초기 컬럼 선택:', initialColumns);
+            setVisibleColumns(initialColumns);
             setPrevDatasetId(selectedDatasetId);
             // ✅ 추가: activeColumn 초기값 (첫 컬럼, 표시는 안 되지만 상세 패널 확인용)
             setActiveColumn(keys.length > 0 ? keys[0] : null);
@@ -78,12 +100,22 @@ function App() {
             // 같은 데이터셋이면 기존 선택 유지 (새로 추가된 컬럼만 추가)
             const newColumns = keys.filter(k => !visibleColumns.includes(k));
             const removedColumns = visibleColumns.filter(k => !keys.includes(k));
+            
+            // "No" 컬럼이 없으면 자동으로 추가
+            let updatedColumns = [...visibleColumns.filter(k => keys.includes(k))];
+            if (hasNoColumn && noColumnName && !updatedColumns.includes(noColumnName)) {
+              updatedColumns = [noColumnName, ...updatedColumns];
+            }
+            
             if (newColumns.length > 0 || removedColumns.length > 0) {
               // 유효한 컬럼만 유지하고 새 컬럼 추가
               setVisibleColumns([
-                ...visibleColumns.filter(k => keys.includes(k)),
-                ...newColumns
+                ...updatedColumns,
+                ...newColumns.filter(k => k !== noColumnName) // "No"는 이미 추가했으므로 제외
               ]);
+            } else if (hasNoColumn && noColumnName && !updatedColumns.includes(noColumnName)) {
+              // 변경사항은 없지만 "No" 컬럼이 없으면 추가
+              setVisibleColumns(updatedColumns);
             }
             // ✅ 선택 컬럼이 사라졌으면 대체
             setActiveColumn((prev) => {
@@ -323,28 +355,41 @@ function App() {
         <div className="sidebar">
           <div className="section">
             <h2>데이터셋 선택</h2>
-            <select
-              value={selectedDatasetId}
-              onChange={(e) => {
-                setSelectedDatasetId(e.target.value);
-                setPrevDatasetId(''); // 데이터셋 변경 시 이전 ID 초기화
-                setOffset(0);
-                setRowRange(null);
-                setManualRowStart(0);
-                setManualRowEnd(0);
-                setStats(null);
-                setColumnSearchQuery(''); // 데이터셋 변경 시 검색 필터 초기화
-                setSelectedTypeFilter(null); // 데이터셋 변경 시 타입 필터 초기화
-                // 데이터셋 변경 시 컬럼은 자동으로 새 데이터셋의 모든 컬럼으로 설정됨
-              }}
-              className="select-input"
-            >
-              {datasets.map((ds) => (
-                <option key={ds.dataset_id} value={ds.dataset_id}>
-                  {ds.filename} ({ds.columns.length} 컬럼)
-                </option>
-              ))}
-            </select>
+            {datasets.length === 0 ? (
+              <div style={{ 
+                padding: "12px", 
+                backgroundColor: "#fff3cd", 
+                borderRadius: "4px",
+                fontSize: "13px",
+                color: "#856404"
+              }}>
+                데이터셋을 불러오는 중...<br />
+                <small>백엔드 서버가 실행 중인지 확인하세요.</small>
+              </div>
+            ) : (
+              <select
+                value={selectedDatasetId}
+                onChange={(e) => {
+                  setSelectedDatasetId(e.target.value);
+                  setPrevDatasetId(''); // 데이터셋 변경 시 이전 ID 초기화
+                  setOffset(0);
+                  setRowRange(null);
+                  setManualRowStart(0);
+                  setManualRowEnd(0);
+                  setStats(null);
+                  setColumnSearchQuery(''); // 데이터셋 변경 시 검색 필터 초기화
+                  setSelectedTypeFilter(null); // 데이터셋 변경 시 타입 필터 초기화
+                  // 데이터셋 변경 시 컬럼은 자동으로 새 데이터셋의 모든 컬럼으로 설정됨
+                }}
+                className="select-input"
+              >
+                {datasets.map((ds) => (
+                  <option key={ds.dataset_id} value={ds.dataset_id}>
+                    {ds.filename} ({ds.columns.length} 컬럼)
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="section compact-section">
@@ -776,105 +821,87 @@ function App() {
                 const m = columnMeta[activeColumn];
                 const title = m?.title ?? activeColumn;
 
+                // 상세 정보를 툴팁용 텍스트로 구성
+                const detailInfo: string[] = [];
+                if (m?.type) detailInfo.push(`유형: ${m.type}`);
+                if (m?.category) detailInfo.push(`구분: ${m.category}`);
+                if (m?.unit) detailInfo.push(`단위: ${m.unit}`);
+                if (m?.equipment_field) detailInfo.push(`장비 필드명: ${m.equipment_field}`);
+                const hasDetailInfo = detailInfo.length > 0;
+
                 return (
                   <div style={{ display: "grid", gap: 16 }}>
-                    {/* 컬럼 기본 정보 */}
-                    <div style={{
-                      padding: "16px",
-                      backgroundColor: "#f8f9fa",
-                      borderRadius: "8px",
-                      border: "1px solid #e9ecef"
-                    }}>
-                      <div style={{ 
-                        fontSize: 18, 
-                        fontWeight: 700,
-                        marginBottom: 8,
-                        color: "#212529"
-                      }}>
-                        {title}
-                      </div>
-                      
-                      {/* 원본 컬럼명 */}
-                      <div style={{
-                        fontSize: 12,
-                        color: "#6c757d",
-                        fontFamily: "monospace",
-                        marginBottom: 8,
-                        padding: "4px 8px",
-                        backgroundColor: "#fff",
-                        borderRadius: "4px",
-                        display: "inline-block"
-                      }}>
-                        {activeColumn}
-                      </div>
-
-                      {/* 한글/영문 이름 */}
-                      {(m?.name_ko || m?.name_en) && (
-                        <div style={{ 
-                          fontSize: 14,
-                          color: "#495057",
-                          marginTop: 8
-                        }}>
-                          {m?.name_ko && <span>{m.name_ko}</span>}
-                          {m?.name_ko && m?.name_en && <span style={{ margin: "0 4px" }}>/</span>}
-                          {m?.name_en && <span style={{ fontStyle: "italic" }}>{m.name_en}</span>}
-                        </div>
-                      )}
-
-                      {/* 중요도 배지 */}
-                      {m?.importance && (
-                        <div style={{ marginTop: 8 }}>
-                          <span style={{
-                            display: "inline-block",
-                            padding: "2px 8px",
-                            borderRadius: "12px",
-                            fontSize: 11,
-                            fontWeight: 600,
-                            backgroundColor: m.importance === "A" ? "#fff3cd" : m.importance === "B" ? "#d1ecf1" : "#f8d7da",
-                            color: m.importance === "A" ? "#856404" : m.importance === "B" ? "#0c5460" : "#721c24"
-                          }}>
-                            중요도 {m.importance}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 설명 */}
-                    {m?.desc ? (
-                      <div style={{
+                    {/* 컬럼 기본 정보 및 설명 통합 */}
+                    <div 
+                      className={hasDetailInfo ? "column-detail-tooltip" : ""}
+                      style={{
                         padding: "16px",
-                        backgroundColor: "#fff",
+                        backgroundColor: "#f8f9fa",
                         borderRadius: "8px",
-                        border: "1px solid #e9ecef"
+                        border: "1px solid #e9ecef",
+                        position: "relative",
+                        cursor: hasDetailInfo ? "help" : "default"
+                      }}
+                    >
+                      {/* 커스텀 툴팁 */}
+                      {hasDetailInfo && (
+                        <div className="tooltip-content">
+                          <div style={{ fontWeight: 600, marginBottom: 6, borderBottom: "1px solid rgba(255,255,255,0.3)", paddingBottom: 4 }}>
+                            상세 정보
+                          </div>
+                          {detailInfo.map((info, idx) => (
+                            <div key={idx} style={{ marginBottom: idx < detailInfo.length - 1 ? 4 : 0 }}>
+                              {info}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* 컬럼명과 원본 컬럼명 나란히 배치 */}
+                      <div style={{ 
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        marginBottom: 12
                       }}>
+                        <div style={{ 
+                          fontSize: 18, 
+                          fontWeight: 700,
+                          color: "#212529"
+                        }}>
+                          {title}
+                        </div>
                         <div style={{
                           fontSize: 12,
-                          fontWeight: 600,
                           color: "#6c757d",
-                          marginBottom: 8,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px"
+                          fontFamily: "monospace",
+                          padding: "4px 8px",
+                          backgroundColor: "#fff",
+                          borderRadius: "4px",
+                          display: "inline-block"
                         }}>
-                          설명
+                          {activeColumn}
                         </div>
+                      </div>
+
+                      {/* 설명 */}
+                      {m?.desc ? (
                         <div style={{ 
                           lineHeight: 1.6,
                           fontSize: 14,
-                          color: "#212529"
+                          color: "#212529",
+                          marginTop: 8,
+                          marginBottom: 12
                         }}>
                           {m.desc}
                         </div>
-                      </div>
-                    ) : (
-                      <div style={{
-                        padding: "16px",
-                        backgroundColor: "#fff",
-                        borderRadius: "8px",
-                        border: "1px solid #e9ecef",
-                        textAlign: "center",
-                        opacity: 0.6
-                      }}>
-                        <div style={{ fontSize: 13, color: "#6c757d" }}>
+                      ) : (
+                        <div style={{ 
+                          fontSize: 13, 
+                          color: "#6c757d",
+                          marginTop: 8,
+                          marginBottom: 12,
+                          fontStyle: "italic"
+                        }}>
                           설명이 없습니다.
                           {m?.auto_generated && (
                             <div style={{ marginTop: 8, fontSize: 11 }}>
@@ -882,55 +909,60 @@ function App() {
                             </div>
                           )}
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* 상세 정보 카드 */}
-                    {(m?.type || m?.category || m?.unit || m?.equipment_field) && (
-                      <div style={{
-                        padding: "16px",
-                        backgroundColor: "#fff",
-                        borderRadius: "8px",
-                        border: "1px solid #e9ecef"
-                      }}>
+                      {/* 구분선 */}
+                      {(m?.name_ko || m?.name_en || m?.importance) && (
                         <div style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#6c757d",
+                          marginTop: 12,
                           marginBottom: 12,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px"
+                          paddingTop: 12,
+                          borderTop: "1px solid #dee2e6"
                         }}>
-                          상세 정보
+                          {/* 한글/영문 이름 */}
+                          {(m?.name_ko || m?.name_en) && (
+                            <div style={{ 
+                              fontSize: 13,
+                              color: "#495057",
+                              marginBottom: 8
+                            }}>
+                              {m?.name_ko && <span>{m.name_ko}</span>}
+                              {m?.name_ko && m?.name_en && <span style={{ margin: "0 4px" }}>/</span>}
+                              {m?.name_en && <span style={{ fontStyle: "italic" }}>{m.name_en}</span>}
+                            </div>
+                          )}
+
+                          {/* 중요도 배지 */}
+                          {m?.importance && (
+                            <div>
+                              <span style={{
+                                display: "inline-block",
+                                padding: "2px 8px",
+                                borderRadius: "12px",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                backgroundColor: m.importance === "A" ? "#fff3cd" : m.importance === "B" ? "#d1ecf1" : "#f8d7da",
+                                color: m.importance === "A" ? "#856404" : m.importance === "B" ? "#0c5460" : "#721c24"
+                              }}>
+                                중요도 {m.importance}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <div style={{ display: "grid", gap: 10 }}>
-                          {m?.type && (
-                            <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 8, borderBottom: "1px solid #f1f3f5" }}>
-                              <span style={{ fontSize: 13, color: "#6c757d" }}>유형</span>
-                              <span style={{ fontSize: 13, fontWeight: 500, color: "#212529" }}>{m.type}</span>
-                            </div>
-                          )}
-                          {m?.category && (
-                            <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 8, borderBottom: "1px solid #f1f3f5" }}>
-                              <span style={{ fontSize: 13, color: "#6c757d" }}>구분</span>
-                              <span style={{ fontSize: 13, fontWeight: 500, color: "#212529" }}>{m.category}</span>
-                            </div>
-                          )}
-                          {m?.unit && (
-                            <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 8, borderBottom: "1px solid #f1f3f5" }}>
-                              <span style={{ fontSize: 13, color: "#6c757d" }}>단위</span>
-                              <span style={{ fontSize: 13, fontWeight: 500, color: "#212529", fontFamily: "monospace" }}>{m.unit}</span>
-                            </div>
-                          )}
-                          {m?.equipment_field && (
-                            <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 8 }}>
-                              <span style={{ fontSize: 13, color: "#6c757d" }}>장비 필드명</span>
-                              <span style={{ fontSize: 13, fontWeight: 500, color: "#212529", fontFamily: "monospace" }}>{m.equipment_field}</span>
-                            </div>
-                          )}
+                      )}
+                      
+                      {/* 상세 정보 안내 (hover 시 툴팁으로 표시) */}
+                      {hasDetailInfo && (
+                        <div style={{
+                          marginTop: 8,
+                          fontSize: 11,
+                          color: "#6c757d",
+                          fontStyle: "italic"
+                        }}>
+                          💡 마우스를 올리면 상세 정보를 확인할 수 있습니다.
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     {/* 메타데이터 출처 안내 */}
                     {m?.auto_generated && (

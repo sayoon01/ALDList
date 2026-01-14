@@ -57,11 +57,19 @@ export interface DatasetColumnsResponse {
 
 async function fetchAPI<T>(endpoint: string): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.statusText}`);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText);
+      throw new Error(`API Error (${response.status}): ${errorText}`);
+    }
+    return response.json();
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Load failed') {
+      throw new Error(`네트워크 오류: 백엔드 서버에 연결할 수 없습니다. 백엔드가 http://localhost:8000에서 실행 중인지 확인하세요.`);
+    }
+    throw error;
   }
-  return response.json();
 }
 
 async function postAPI<T>(endpoint: string, body: any): Promise<T> {
