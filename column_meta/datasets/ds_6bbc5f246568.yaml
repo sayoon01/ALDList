@@ -1,0 +1,26 @@
+# 데이터셋별 컬럼 메타데이터 오버라이드
+# 이 파일은 global_columns.yaml보다 우선순위가 높습니다.
+# 
+# 사용 예시:
+# - 특정 데이터셋에서만 다른 설명이 필요한 경우
+# - 특정 데이터셋에서 컬럼 타입을 다르게 설정해야 하는 경우
+# - 특정 데이터셋에서만 사용되는 컬럼의 메타데이터 정의
+#
+# 형식:
+# 컬럼명:
+#   title: 표시할 제목
+#   type: 컬럼 타입 (gas, temperature, pressure, apc, valve, aux, heater, timestamp, recipe, index, unknown)
+#   category: 구분 (control, monitor, support 등)
+#   unit: 단위
+#   desc: 설명
+#   name_ko: 한국어 이름
+#   name_en: 영어 이름
+#   importance: 중요도 (A, B, C)
+#   equipment_field: 장비 필드명
+
+# 예시: 특정 컬럼의 설명을 이 데이터셋에 맞게 오버라이드
+# "No.":
+#   title: "행 번호"
+#   desc: "이 데이터셋에서 사용되는 행 번호입니다."
+#   type: index
+#   importance: C
