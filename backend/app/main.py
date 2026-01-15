@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.datasets import router as datasets_router
 from .api.stats import router as stats_router
-from .core.auto_scan import ensure_metadata
+from .api.admin import router as admin_router
+from .core.metadata_pipeline import refresh_registry_if_needed
 
 app = FastAPI(
     title="ALDList API",
@@ -16,7 +17,10 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     """서버 시작 시 메타데이터 자동 확인"""
-    ensure_metadata()
+    r = refresh_registry_if_needed(force=False)
+    if not r.ok:
+        print("❌ Registry refresh failed on startup")
+        print(r.stderr)
 
 # CORS 설정
 app.add_middleware(
@@ -30,6 +34,7 @@ app.add_middleware(
 # 라우터 등록
 app.include_router(datasets_router)
 app.include_router(stats_router)
+app.include_router(admin_router)
 
 
 @app.get("/")

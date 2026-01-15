@@ -5,23 +5,66 @@ from typing import Optional, Dict, Any
 from ..core.registry import load_registry, get_dataset
 from ..core.settings import PREVIEW_LIMIT_DEFAULT, PREVIEW_LIMIT_MAX
 from ..engine.duckdb_engine import preview_rows
+from ..models.schemas import (
+    DatasetListResponse,
+    DatasetMetaResponse,
+    PreviewResponse,
+    DatasetColumnsResponse,
+    FieldsByTypeResponse,
+)
 
 router = APIRouter(prefix="/api/datasets", tags=["datasets"])
 
 
-@router.get("")
-def list_datasets():
-    """데이터셋 목록 조회"""
-    # ensure_metadata()는 startup 이벤트에서만 실행 (중복 호출 방지)
-    return {"datasets": [{
-        "dataset_id": m.dataset_id,
-        "filename": m.filename,
-        "size_bytes": m.size_bytes,
-        "columns": m.columns,
-    } for m in load_registry()]}
+@router.get("", response_model=DatasetListResponse)
+def list_datasets(
+    limit: int = Query(100, ge=1, le=1000, description="반환할 최대 개수"),
+    offset: int = Query(0, ge=0, description="시작 위치 (페이지네이션)"),
+    filename: Optional[str] = Query(None, description="파일명 필터 (부분 일치)"),
+    min_size: Optional[int] = Query(None, ge=0, description="최소 파일 크기 (bytes)"),
+    max_size: Optional[int] = Query(None, ge=0, description="최대 파일 크기 (bytes)"),
+):
+    """
+    데이터셋 목록 조회
+    
+    파라미터:
+    - limit: 반환할 최대 개수 (기본값: 100, 최대: 1000)
+    - offset: 시작 위치 (기본값: 0)
+    - filename: 파일명 필터 (부분 일치, 대소문자 구분 없음)
+    - min_size: 최소 파일 크기 (bytes)
+    - max_size: 최대 파일 크기 (bytes)
+    """
+    all_datasets = load_registry()
+    
+    # 필터링
+    filtered = []
+    for m in all_datasets:
+        # filename 필터
+        if filename:
+            if filename.lower() not in m.filename.lower():
+                continue
+        
+        # size 필터
+        if min_size is not None and m.size_bytes < min_size:
+            continue
+        if max_size is not None and m.size_bytes > max_size:
+            continue
+        
+        filtered.append({
+            "dataset_id": m.dataset_id,
+            "filename": m.filename,
+            "size_bytes": m.size_bytes,
+            "columns": m.columns,
+        })
+    
+    # 페이지네이션
+    total = len(filtered)
+    paginated = filtered[offset:offset + limit]
+    
+    return {"datasets": paginated}
 
 
-@router.get("/{dataset_id}")
+@router.get("/{dataset_id}", response_model=DatasetMetaResponse)
 def get_dataset_meta(dataset_id: str):
     """데이터셋 메타데이터 조회"""
     meta = get_dataset(dataset_id)
@@ -36,7 +79,7 @@ def get_dataset_meta(dataset_id: str):
     }
 
 
-@router.get("/{dataset_id}/preview")
+@router.get("/{dataset_id}/preview", response_model=PreviewResponse)
 def preview(
     dataset_id: str,
     offset: int = Query(0, ge=0),
@@ -67,8 +110,8 @@ def preview(
     }
 
 
-@router.get("/{dataset_id}/columns")
-def get_dataset_columns(dataset_id: str) -> Dict[str, Any]:
+@router.get("/{dataset_id}/columns", response_model=DatasetColumnsResponse)
+def get_dataset_columns(dataset_id: str):
     """
     데이터셋 컬럼 메타데이터 조회
     
@@ -100,7 +143,7 @@ def get_dataset_columns(dataset_id: str) -> Dict[str, Any]:
     }
 
 
-@router.get("/{dataset_id}/fields")
+@router.get("/{dataset_id}/fields", response_model=FieldsByTypeResponse)
 def get_fields_by_type(
     dataset_id: str,
     type: str = Query(..., description="필터할 컬럼 type (gas/temperature/pressure/...)")

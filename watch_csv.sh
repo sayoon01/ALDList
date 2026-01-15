@@ -1,39 +1,66 @@
-#!/bin/bash
-# CSV 파일 변경 감지 및 자동 메타데이터 재생성
+#!/usr/bin/env bash
+set -euo pipefail
 
-cd "$(dirname "$0")"
+DATA_DIR="${DATA_DIR:-./data}"
+API_BASE="${API_BASE:-http://localhost:8000}"
 
-echo "CSV 파일 변경 감지 모드 시작..."
-echo "data/ 디렉토리를 감시합니다. (Ctrl+C로 종료)"
-echo ""
+echo "[watch_csv] watching: $DATA_DIR"
+echo "[watch_csv] api: $API_BASE"
 
-# inotifywait가 설치되어 있는지 확인
-if ! command -v inotifywait &> /dev/null; then
-    echo "⚠️  inotifywait가 설치되어 있지 않습니다."
-    echo "설치: sudo apt-get install inotify-tools"
-    echo ""
-    echo "대신 수동으로 메타데이터를 생성하려면:"
-    echo "  ./scan_metadata.sh"
-    exit 1
-fi
+# linux: sudo apt-get install inotify-tools
+command -v inotifywait >/dev/null 2>&1 || {
+  echo "inotifywait not found. install: sudo apt-get install inotify-tools"
+  exit 1
+}
 
-# CSV 파일 변경 감지
-inotifywait -m -r -e create,delete,moved_to,moved_from --format '%w%f %e' data/ 2>/dev/null | \
-while read file event; do
-    if [[ "$file" == *.csv ]]; then
-        echo ""
-        echo "📁 CSV 파일 변경 감지: $file ($event)"
-        echo "🔄 메타데이터 재생성 중..."
-        python3 tools/scan_and_export.py
-        echo "✅ 완료!"
-        echo ""
+# (선택) jq 있으면 응답 파싱 편함
+HAS_JQ=0
+command -v jq >/dev/null 2>&1 && HAS_JQ=1
+
+while true; do
+  # create/modify/move/delete 감지
+  CHANGED=$(inotifywait -r -e create -e modify -e moved_to -e delete --format '%w%f' "$DATA_DIR" | head -n 1 || true)
+  [[ -z "${CHANGED}" ]] && continue
+
+  # csv만 처리
+  if [[ "${CHANGED}" != *.csv ]]; then
+    echo "[watch_csv] ignore: $CHANGED"
+    continue
+  fi
+
+  echo "[watch_csv] changed: $CHANGED"
+
+  # 1) registry refresh
+  echo "[watch_csv] calling refresh..."
+  curl -s -X POST "${API_BASE}/api/admin/refresh?force=false" >/dev/null || true
+
+  # 2) datasets 다시 받아서 dataset_id 찾기 (filename 기반이니까 안정)
+  echo "[watch_csv] fetching datasets..."
+  DS_JSON=$(curl -s "${API_BASE}/api/datasets")
+
+  if [[ $HAS_JQ -eq 1 ]]; then
+    FILENAME=$(basename "$CHANGED")
+    DATASET_ID=$(echo "$DS_JSON" | jq -r --arg fn "$FILENAME" '.datasets[] | select(.filename==$fn) | .dataset_id' | head -n 1)
+  else
+    # jq 없으면: 그냥 전체 build로 우회(운영에선 jq 쓰는 게 좋음)
+    DATASET_ID=""
+  fi
+
+  if [[ -n "${DATASET_ID}" ]]; then
+    echo "[watch_csv] build profile: ${DATASET_ID}"
+    curl -s -X POST "${API_BASE}/api/admin/profile/${DATASET_ID}/build?force=true&sample_rows=5000&top_k=5" >/dev/null || true
+  else
+    echo "[watch_csv] dataset_id not resolved (no jq). building all profiles..."
+    # jq 없으면 전체를 돌리는 fallback(비효율이지만 "동작"은 함)
+    if [[ $HAS_JQ -eq 1 ]]; then
+      echo "$DS_JSON" | jq -r '.datasets[].dataset_id' | while read -r id; do
+        curl -s -X POST "${API_BASE}/api/admin/profile/${id}/build?force=false&sample_rows=5000&top_k=5" >/dev/null || true
+      done
+    else
+      # jq 없을 때 python3로 전체 dataset_id 추출
+      echo "$DS_JSON" | python3 -c "import json, sys; [print(d['dataset_id']) for d in json.load(sys.stdin).get('datasets', [])]" | while read -r id; do
+        curl -s -X POST "${API_BASE}/api/admin/profile/${id}/build?force=false&sample_rows=5000&top_k=5" >/dev/null || true
+      done
     fi
+  fi
 done
-
-
-
-
-
-
-
-

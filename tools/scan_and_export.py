@@ -1,6 +1,23 @@
 #!/usr/bin/env python3
 """
-CSV 파일 스캔 및 메타데이터 생성
+[Scan 단계]
+- CSV 파일을 관찰해서 '파일 단위 사실 정보'만 생성한다.
+
+✅ 생성하는 것
+- dataset_id (filename 기반)
+- filename, path(DATA_DIR 상대), size_bytes, mtime
+- columns (헤더 문자열 리스트)
+- columns_union / intersection / by_file
+
+❌ 절대 하지 않는 것
+- 컬럼 의미 해석(type/category 등)
+- 통계 계산
+- semantic_type 추정
+- 설명/문서 생성
+
+출력:
+- metadata/datasets.json (Registry 입력)
+- metadata/columns_*.json (보조 산출물)
 """
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """API 스키마 정의"""
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 
 
@@ -28,4 +28,90 @@ class StatsRequest(BaseModel):
 class StatsResponse(BaseModel):
     metrics: dict[str, Metric]
 
+
+# --- 응답 모델 ---
+
+class Dataset(BaseModel):
+    dataset_id: str
+    filename: str
+    size_bytes: int
+    columns: List[str]
+
+
+class DatasetSummary(BaseModel):
+    dataset_id: str = Field(example="ds_6bbc5f246568")
+    filename: str = Field(example="standard_trace_001.csv")
+    size_bytes: int = Field(example=43688716)
+    columns: List[str] = Field(example=["No.", "Recipe(Table) Name", "Step ID", "Date", "Time"])
+
+
+class DatasetListResponse(BaseModel):
+    datasets: List[DatasetSummary]
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "datasets": [
+                    {
+                        "dataset_id": "ds_6bbc5f246568",
+                        "filename": "standard_trace_001.csv",
+                        "size_bytes": 43688716,
+                        "columns": ["No.", "Recipe(Table) Name", "Step ID", "Date", "Time"]
+                    }
+                ]
+            }
+        }
+
+
+class DatasetMetaResponse(BaseModel):
+    dataset_id: str = Field(example="ds_6bbc5f246568")
+    filename: str = Field(example="standard_trace_001.csv")
+    path: str = Field(example="standard_trace_001.csv")
+    size_bytes: int = Field(example=43688716)
+    columns: List[str] = Field(example=["No.", "Recipe(Table) Name", "Step ID", "Date", "Time"])
+
+
+class PreviewResponse(BaseModel):
+    dataset_id: str
+    offset: int
+    limit: int
+    columns: List[str]
+    rows: List[Dict[str, Any]]
+    row_count: int
+
+
+class DatasetColumnsResponse(BaseModel):
+    dataset_id: str
+    columns: List[str]
+    meta: Dict[str, Dict[str, Any]]
+
+
+class FieldsByTypeResponse(BaseModel):
+    dataset_id: str
+    type: str
+    count: int
+    columns: List[str]
+
+
+class AdminRefreshResponse(BaseModel):
+    ok: bool
+    changed: bool
+    reason: str
+    registry_path: str
+    stdout: Optional[str] = None
+
+
+class RefreshResponse(BaseModel):
+    ran_scan: bool
+    reason: str
+    registry_path: str
+    dataset_count: int
+
+
+class ProfileBuildResponse(BaseModel):
+    dataset_id: str
+    profile_path: str
+    generated_at: str
+    sample_rows_used: int
+    column_count: int
 

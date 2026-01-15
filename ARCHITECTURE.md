@@ -53,33 +53,97 @@ aldList/
 │   │   │   └── useAldController.ts  # 상태 관리 및 비즈니스 로직 훅
 │   │   ├── App.tsx        # 메인 앱 컴포넌트 (얇은 프레젠터)
 │   │   ├── App.css        # 전역 스타일 및 CSS 변수
-│   │   └── api.ts         # API 클라이언트
-│   └── package.json
+│   │   ├── api.ts         # API 클라이언트
+│   │   ├── main.tsx       # React 앱 진입점
+│   │   ├── index.css      # 전역 CSS 리셋
+│   │   └── vite-env.d.ts  # Vite 타입 정의
+│   ├── package.json
+│   └── vite.config.ts     # Vite 설정
 │
 ├── backend/               # FastAPI 백엔드
 │   ├── app/
+│   │   ├── __init__.py
 │   │   ├── main.py        # FastAPI 앱 진입점
 │   │   ├── api/           # API 라우터
+│   │   │   ├── __init__.py
 │   │   │   ├── datasets.py    # 데이터셋 관련 API
-│   │   │   └── stats.py       # 통계 계산 API
+│   │   │   ├── stats.py       # 통계 계산 API
+│   │   │   └── admin.py       # 관리/자동화 API
 │   │   ├── core/          # 핵심 로직
-│   │   │   ├── registry.py       # 데이터셋 레지스트리 관리
-│   │   │   ├── column_meta.py    # 컬럼 메타데이터 로더
-│   │   │   ├── auto_scan.py      # 자동 메타데이터 스캔
-│   │   │   └── settings.py       # 설정 관리
+│   │   │   ├── __init__.py
+│   │   │   ├── registry.py          # 데이터셋 레지스트리 관리
+│   │   │   ├── column_meta.py       # 컬럼 메타데이터 로더
+│   │   │   ├── auto_scan.py         # 자동 메타데이터 스캔 (판단 로직)
+│   │   │   ├── metadata_pipeline.py # 메타데이터 파이프라인 단일 진입점
+│   │   │   └── settings.py          # 설정 관리
 │   │   ├── engine/        # 데이터 처리 엔진
+│   │   │   ├── __init__.py
 │   │   │   ├── duckdb_engine.py  # DuckDB 쿼리 실행
-│   │   │   └── duckdb_cache.py    # DuckDB 뷰 캐싱
+│   │   │   └── duckdb_cache.py   # DuckDB 뷰 캐싱
 │   │   └── models/        # 데이터 모델
-│   │       └── schemas.py      # Pydantic 스키마
-│   └── requirements.txt
+│   │       ├── __init__.py
+│   │       └── schemas.py      # Pydantic 스키마 (요청/응답 모델)
+│   ├── requirements.txt
+│   ├── start.sh           # 백엔드 시작 스크립트
+│   └── Procfile           # 배포용 프로세스 파일
+│
+├── tools/                 # 유틸리티 스크립트
+│   ├── scan_and_export.py           # CSV 스캔 및 메타데이터 생성
+│   ├── generate_column_meta_seed.py # 컬럼 메타데이터 시드 생성
+│   ├── export_column_meta_to_rag.py # RAG 문서 생성
+│   └── export_rag_jsonl.py         # RAG JSONL 인덱스 생성
 │
 ├── data/                  # CSV 데이터 파일들
+│   └── *.csv
+│
+├── metadata/              # 데이터셋 메타데이터 (레지스트리)
+│   ├── datasets.json          # 데이터셋 목록
+│   ├── columns_by_file.json   # 파일별 컬럼 목록
+│   ├── columns_union.json     # 전체 컬럼 통합 목록
+│   ├── columns_union.txt      # 전체 컬럼 목록 (텍스트)
+│   ├── profiles/              # 데이터셋 프로파일 (향후 확장)
+│   └── docs/                  # 데이터셋 문서 (향후 확장)
+│
 ├── column_meta/           # 컬럼 메타데이터
-│   ├── global_columns.yaml    # 전역 컬럼 메타데이터
-│   ├── patterns.yaml          # 패턴 기반 자동 생성 규칙
-│   └── datasets/              # 데이터셋별 오버라이드
-└── metadata/              # 데이터셋 메타데이터 (레지스트리)
+│   ├── global_columns.yaml        # 전역 컬럼 메타데이터 (공식)
+│   ├── global_columns.generated.yaml  # 자동 생성된 메타데이터
+│   ├── global_columns.legacy.yaml     # 레거시 메타데이터
+│   ├── patterns.yaml                 # 패턴 기반 자동 생성 규칙
+│   └── datasets/                    # 데이터셋별 오버라이드
+│       ├── .gitkeep
+│       └── {dataset_id}.yaml        # 데이터셋별 커스텀 메타데이터
+│
+├── rag_docs/              # RAG 시스템 문서 (Markdown)
+│   ├── columns/            # 컬럼별 문서 (207개)
+│   │   └── *.md
+│   └── groups/             # 타입별 그룹 문서 (10개)
+│       ├── gas.md
+│       ├── temperature.md
+│       ├── pressure.md
+│       ├── valve.md
+│       ├── aux.md
+│       ├── heater.md
+│       ├── recipe.md
+│       ├── timestamp.md
+│       ├── index.md
+│       └── unknown.md
+│
+├── rag_index/              # RAG 시스템 인덱스 (JSONL)
+│   └── column_meta.jsonl   # Vector DB용 인덱스 파일
+│
+├── start_backend.sh        # 백엔드 시작 스크립트
+├── start_frontend.sh       # 프론트엔드 시작 스크립트
+├── scan_metadata.sh        # 메타데이터 스캔 스크립트
+├── watch_csv.sh            # CSV 변경 감지 스크립트
+│
+├── README.md               # 프로젝트 README
+├── ARCHITECTURE.md         # 아키텍처 문서 (현재 파일)
+├── DEPLOYMENT.md           # 배포 가이드
+├── EXTENSIBILITY.md        # 확장성 가이드
+├── METADATA_STRATEGIES.md  # 메타데이터 전략 문서
+├── PERFORMANCE.md          # 성능 최적화 문서
+├── COLUMN_META_WORKFLOW.md # 컬럼 메타데이터 워크플로우
+└── VERCEL_DEPLOY.md       # Vercel 배포 가이드
 ```
 
 ## 🔄 구동 원리
@@ -89,14 +153,22 @@ aldList/
 1. **서버 시작** (`backend/app/main.py`)
    - FastAPI 앱 초기화
    - CORS 미들웨어 설정
-   - Startup 이벤트에서 `ensure_metadata()` 실행
+   - Startup 이벤트에서 `metadata_pipeline.refresh_registry_if_needed()` 실행
 
-2. **메타데이터 자동 스캔** (`backend/app/core/auto_scan.py`)
-   - `data/` 디렉토리의 CSV 파일들을 스캔
-   - 각 파일의 메타데이터(파일명, 크기, 컬럼 목록 등) 추출
-   - `metadata/` 디렉토리에 JSON 파일로 저장 (레지스트리)
+2. **메타데이터 파이프라인** (`backend/app/core/metadata_pipeline.py`)
+   - **단일 진입점**: 모든 메타데이터 갱신은 이 모듈을 통해 실행
+   - **패시브 자동화**: startup 이벤트에서 자동으로 필요 시 갱신
+   - **액티브 자동화**: `/api/admin/refresh` API로 수동 갱신 가능
+   - `tools/scan_and_export.py` 실행하여 레지스트리 갱신
+   - `RefreshResult`로 실행 결과 반환
 
-3. **레지스트리 로드** (`backend/app/core/registry.py`)
+3. **메타데이터 자동 스캔 판단** (`backend/app/core/auto_scan.py`)
+   - `should_regenerate_metadata()`: CSV 파일 변경 여부 판단
+   - 레지스트리 파일 존재 여부 확인
+   - CSV 파일 수정 시간과 레지스트리 수정 시간 비교
+   - **역할**: 판단 로직만 담당 (실행은 metadata_pipeline에서)
+
+4. **레지스트리 로드** (`backend/app/core/registry.py`)
    - `metadata/` 디렉토리에서 데이터셋 목록 로드
    - 메모리에 캐시하여 빠른 조회 가능
 
@@ -176,7 +248,26 @@ UI 리렌더링 (React)
    WHERE row_number BETWEEN {start} AND {end}
    ```
 
-### 5. 컬럼 메타데이터 시스템 (`backend/app/core/column_meta.py`)
+### 5. 메타데이터 파이프라인 (`backend/app/core/metadata_pipeline.py`)
+
+**단일 진입점 원칙:**
+- 모든 메타데이터 갱신은 `metadata_pipeline.refresh_registry_if_needed()`를 통해 실행
+- `auto_scan.py`는 판단 로직만 담당 (실행은 파이프라인에서)
+
+**동작 방식:**
+1. **패시브 자동화**: Startup 이벤트에서 자동으로 필요 시 갱신
+   - `should_regenerate_metadata()`로 판단
+   - CSV 파일 변경 감지 시 자동 갱신
+2. **액티브 자동화**: `/api/admin/refresh` API로 수동 갱신
+   - `force=false`: 자동 판단에 따라 실행
+   - `force=true`: 무조건 갱신 실행
+3. **실행 결과**: `RefreshResult`로 성공/실패, 변경 여부, 이유 반환
+
+**원칙:**
+- Scan은 '파일 사실 정보'만 생성 (filename/size/mtime/columns/path/dataset_id)
+- Column Meta / 통계 / 문서 생성은 별도 파이프라인에서 처리
+
+### 6. 컬럼 메타데이터 시스템 (`backend/app/core/column_meta.py`)
 
 1. **3단계 우선순위**
    - **1순위**: 데이터셋별 오버라이드 (`column_meta/datasets/{dataset_id}.yaml`)
@@ -191,6 +282,26 @@ UI 리렌더링 (React)
    - 컬럼 툴팁에 설명 표시
    - 컬럼 상세 패널에 메타데이터 표시
    - 타입 필터링 기능
+
+### 7. API 응답 스키마 (`backend/app/models/schemas.py`)
+
+**요청 스키마:**
+- `StatsRequest`: 통계 계산 요청
+- `RowRange`: 행 범위 지정
+
+**응답 스키마:**
+- `DatasetListResponse`: 데이터셋 목록
+- `DatasetMetaResponse`: 데이터셋 메타데이터
+- `PreviewResponse`: 데이터 미리보기
+- `DatasetColumnsResponse`: 컬럼 메타데이터
+- `FieldsByTypeResponse`: 타입별 필드 목록
+- `StatsResponse`: 통계 계산 결과
+- `AdminRefreshResponse`: 레지스트리 갱신 결과
+
+**장점:**
+- OpenAPI/Swagger 문서에 정확한 응답 구조 표시
+- API 계약 명확화
+- 타입 안정성 향상
 
 ## 🎨 프론트엔드 컴포넌트 구조
 
@@ -308,14 +419,14 @@ UI 리렌더링 (React)
 ## 🔌 API 엔드포인트
 
 ### 데이터셋 관련
-- `GET /api/datasets` - 데이터셋 목록 조회
-- `GET /api/datasets/{dataset_id}` - 데이터셋 메타데이터 조회
-- `GET /api/datasets/{dataset_id}/preview?offset=0&limit=500` - 데이터 미리보기
-- `GET /api/datasets/{dataset_id}/columns` - 컬럼 메타데이터 조회
-- `GET /api/datasets/{dataset_id}/fields?type={type}` - 타입별 필드 조회
+- `GET /api/datasets` - 데이터셋 목록 조회 (`DatasetListResponse`)
+- `GET /api/datasets/{dataset_id}` - 데이터셋 메타데이터 조회 (`DatasetMetaResponse`)
+- `GET /api/datasets/{dataset_id}/preview?offset=0&limit=500` - 데이터 미리보기 (`PreviewResponse`)
+- `GET /api/datasets/{dataset_id}/columns` - 컬럼 메타데이터 조회 (`DatasetColumnsResponse`)
+- `GET /api/datasets/{dataset_id}/fields?type={type}` - 타입별 필드 조회 (`FieldsByTypeResponse`)
 
 ### 통계 관련
-- `POST /api/datasets/{dataset_id}/stats` - 통계 계산
+- `POST /api/datasets/{dataset_id}/stats` - 통계 계산 (`StatsResponse`)
   ```json
   {
     "columns": ["column1", "column2"],
@@ -323,6 +434,11 @@ UI 리렌더링 (React)
     "compute_columns": ["column1"]  // 선택적: 특정 컬럼만 계산
   }
   ```
+
+### 관리/자동화 API
+- `POST /api/admin/refresh?force=false` - 레지스트리 갱신 (`AdminRefreshResponse`)
+  - `force=false`: 자동 판단에 따라 필요 시에만 갱신
+  - `force=true`: 무조건 갱신 실행
 
 ## 🚀 성능 최적화
 
@@ -416,3 +532,9 @@ npm run dev
 3. **컴포넌트별 CSS 파일**: 스타일 격리 및 관리 용이성
 4. **선언적 스타일링**: `rowClassRules`로 행 스타일 관리
 5. **비차단형 알림**: ToastBanner로 사용자 경험 개선
+6. **메타데이터 파이프라인 단일 진입점**: `metadata_pipeline.py`로 모든 갱신 경로 통합
+   - 패시브 자동화 (startup)와 액티브 자동화 (API) 통합 관리
+   - 판단 로직(`auto_scan`)과 실행 로직(`metadata_pipeline`) 분리
+7. **API 응답 스키마 명시**: 모든 엔드포인트에 `response_model` 지정
+   - OpenAPI 문서 정확성 향상
+   - API 계약 명확화 및 타입 안정성 확보
