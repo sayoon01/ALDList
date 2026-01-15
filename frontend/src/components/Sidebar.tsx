@@ -98,6 +98,8 @@ export default function Sidebar(props: SidebarProps) {
     columnSelect: true,
   });
 
+  const [typeBarCollapsed, setTypeBarCollapsed] = useState(false);
+
   const Section = ({
     id,
     title,
@@ -383,39 +385,50 @@ export default function Sidebar(props: SidebarProps) {
             </button>
           </div>
 
-          {/* 타입 필터 */}
-          <div className="sb-typebar">
+          {/* 타입 필터 - 접을 수 있게 */}
+          <div className="sb-typebar-wrapper">
             <button
-              className={`sb-typebtn ${selectedTypeFilter === null ? "active" : ""}`}
-              onClick={() => {
-                onSelectedTypeFilterChange(null);
-                onVisibleColumnsChange([]);
-              }}
+              className="sb-typebar-toggle"
+              onClick={() => setTypeBarCollapsed(!typeBarCollapsed)}
             >
-              전체
+              <span>타입 필터</span>
+              <span className={`sb-typebar-chevron ${typeBarCollapsed ? "collapsed" : ""}`}>▾</span>
             </button>
-
-            {availableTypes.map((type) => {
-              const count = allColumns.filter((c) => columnMeta[c]?.type === type).length;
-              return (
+            {!typeBarCollapsed && (
+              <div className="sb-typebar">
                 <button
-                  key={type}
-                  className={`sb-typebtn ${selectedTypeFilter === type ? "active" : ""}`}
-                  onClick={async () => {
-                    onSelectedTypeFilterChange(type);
-                    try {
-                      const result = await getFieldsByType(selectedDatasetId, type);
-                      onVisibleColumnsChange(result.columns);
-                    } catch {
-                      const filtered = allColumns.filter((c) => columnMeta[c]?.type === type);
-                      onVisibleColumnsChange(filtered);
-                    }
+                  className={`sb-typebtn ${selectedTypeFilter === null ? "active" : ""}`}
+                  onClick={() => {
+                    onSelectedTypeFilterChange(null);
+                    onVisibleColumnsChange([]);
                   }}
                 >
-                  {typeLabels[type] || type} ({count})
+                  전체
                 </button>
-              );
-            })}
+
+                {availableTypes.map((type) => {
+                  const count = allColumns.filter((c) => columnMeta[c]?.type === type).length;
+                  return (
+                    <button
+                      key={type}
+                      className={`sb-typebtn ${selectedTypeFilter === type ? "active" : ""}`}
+                      onClick={async () => {
+                        onSelectedTypeFilterChange(type);
+                        try {
+                          const result = await getFieldsByType(selectedDatasetId, type);
+                          onVisibleColumnsChange(result.columns);
+                        } catch {
+                          const filtered = allColumns.filter((c) => columnMeta[c]?.type === type);
+                          onVisibleColumnsChange(filtered);
+                        }
+                      }}
+                    >
+                      {typeLabels[type] || type} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* 검색 */}

@@ -12,6 +12,7 @@ export default function App() {
   
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [toastType, setToastType] = useState<ToastType>("info");
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
   const showError = (msg: string) => {
     setToastType("error");
@@ -31,7 +32,10 @@ export default function App() {
         <Sidebar
           datasets={c.datasets}
           selectedDatasetId={c.selectedDatasetId}
-          onDatasetChange={c.handleDatasetChange}
+          onDatasetChange={(id) => {
+            setShowSelectedOnly(false);
+            c.handleDatasetChange(id);
+          }}
           offset={c.offset}
           limit={c.limit}
           onOffsetChange={c.setOffset}
@@ -64,8 +68,8 @@ export default function App() {
               showError(e.message || "통계 계산 중 오류가 발생했습니다.");
             });
           }}
-          showSelectedOnly={c.showSelectedOnly}
-          onShowSelectedOnlyChange={c.setShowSelectedOnly}
+          showSelectedOnly={showSelectedOnly}
+          onShowSelectedOnlyChange={setShowSelectedOnly}
         />
 
         {/* ✅ STEP1에서 추가한 래핑 유지 */}

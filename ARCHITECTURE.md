@@ -16,6 +16,7 @@ ALDList는 CSV 데이터를 분석하고 시각화하는 웹 애플리케이션�
 │  - Sidebar      │                                │  - DuckDB Engine│
 │  - DataGrid     │                                │  - Metadata     │
 │  - StatsPanel   │                                │  - Registry     │
+│  - ToastBanner  │                                │                 │
 └─────────────────┘                                └─────────────────┘
                                                            │
                                                            ▼
@@ -38,11 +39,20 @@ aldList/
 ├── frontend/              # React 프론트엔드
 │   ├── src/
 │   │   ├── components/    # UI 컴포넌트
-│   │   │   ├── Header.tsx      # 헤더 컴포넌트
-│   │   │   ├── Sidebar.tsx     # 왼쪽 사이드바 (데이터셋 선택, 컬럼 선택)
-│   │   │   ├── DataGrid.tsx    # 가운데 그리드 (AG Grid)
-│   │   │   └── StatsPanel.tsx  # 오른쪽 통계 패널
-│   │   ├── App.tsx        # 메인 앱 컴포넌트 (상태 관리)
+│   │   │   ├── Header.tsx         # 헤더 컴포넌트
+│   │   │   ├── Header.css
+│   │   │   ├── Sidebar.tsx        # 왼쪽 사이드바 (데이터셋 선택, 컬럼 선택)
+│   │   │   ├── Sidebar.css
+│   │   │   ├── DataGrid.tsx       # 가운데 그리드 (AG Grid)
+│   │   │   ├── DataGrid.css
+│   │   │   ├── StatsPanel.tsx     # 오른쪽 통계 패널
+│   │   │   ├── StatsPanel.css
+│   │   │   ├── ToastBanner.tsx    # 토스트 알림 배너
+│   │   │   └── ToastBanner.css
+│   │   ├── hooks/         # 커스텀 훅
+│   │   │   └── useAldController.ts  # 상태 관리 및 비즈니스 로직 훅
+│   │   ├── App.tsx        # 메인 앱 컴포넌트 (얇은 프레젠터)
+│   │   ├── App.css        # 전역 스타일 및 CSS 변수
 │   │   └── api.ts         # API 클라이언트
 │   └── package.json
 │
@@ -94,16 +104,20 @@ aldList/
 
 1. **앱 초기화** (`frontend/src/App.tsx`)
    - React 컴포넌트 마운트
-   - `useEffect`로 데이터셋 목록 API 호출 (`/api/datasets`)
+   - `useAldController` 훅 호출하여 상태 관리 및 로직 분리
+   - 데이터셋 목록 API 호출 (`/api/datasets`)
 
 2. **데이터셋 선택**
    - 사용자가 데이터셋 선택 시 `selectedDatasetId` 상태 변경
-   - `useEffect`가 감지하여 미리보기 데이터 로드 (`/api/datasets/{id}/preview`)
+   - `useAldController` 내부의 `useEffect`가 감지하여 미리보기 데이터 로드 (`/api/datasets/{id}/preview`)
    - 컬럼 메타데이터 로드 (`/api/datasets/{id}/columns`)
+   - 첫 번째 컬럼 자동 선택
 
 3. **컬럼 선택 및 표시**
-   - 첫 번째 컬럼 자동 선택
    - 사용자가 체크박스로 표시할 컬럼 선택
+   - "선택한 컬럼만 보기" 토글 기능으로 필터링
+   - 타입 필터로 특정 타입의 컬럼만 선택 가능
+   - 검색 기능으로 컬럼명/메타데이터 검색
    - 선택된 컬럼만 AG Grid에 표시
 
 ### 3. 데이터 로딩 흐름
@@ -112,7 +126,10 @@ aldList/
 사용자 액션
     │
     ▼
-Frontend: API 호출 요청
+Frontend: useAldController 훅에서 상태 변경
+    │
+    ▼
+Frontend: API 호출 요청 (api.ts)
     │
     ▼
 Backend: API 라우터 수신
@@ -128,10 +145,10 @@ Backend: DuckDB 엔진 사용
 Backend: 결과 반환 (JSON)
     │
     ▼
-Frontend: 상태 업데이트
+Frontend: useAldController에서 상태 업데이트
     │
     ▼
-UI 리렌더링
+UI 리렌더링 (React)
 ```
 
 ### 4. DuckDB 엔진 동작 (`backend/app/engine/duckdb_engine.py`)
@@ -177,34 +194,116 @@ UI 리렌더링
 
 ## 🎨 프론트엔드 컴포넌트 구조
 
-### App.tsx (상태 관리 중앙화)
-- 모든 상태를 관리하는 컨테이너 컴포넌트
-- API 호출 및 데이터 처리 로직
-- 하위 컴포넌트에 props로 데이터와 콜백 전달
+### 아키텍처 패턴: Presenter-Controller 분리
+
+프론트엔드는 **Presenter-Controller 패턴**을 사용하여 관심사를 분리합니다:
+
+- **Presenter**: `App.tsx` - UI 렌더링만 담당하는 얇은 컴포넌트
+- **Controller**: `useAldController.ts` - 모든 상태 관리와 비즈니스 로직을 담당하는 커스텀 훅
+
+이 패턴의 장점:
+- UI와 로직의 명확한 분리
+- 테스트 용이성 향상
+- 재사용 가능한 로직
+
+### App.tsx (Presenter)
+- UI 렌더링만 담당하는 얇은 컴포넌트
+- `useAldController` 훅에서 상태와 핸들러를 가져옴
+- 하위 컴포넌트에 props로 전달
+- ToastBanner를 통한 에러 표시 관리
+
+### useAldController.ts (Controller)
+- 모든 상태 관리 (`useState`)
+- API 호출 및 데이터 처리 로직 (`useEffect`)
+- 이벤트 핸들러 (드래그 선택, 통계 계산 등)
+- 상태 변경에 따른 사이드 이펙트 처리
 
 ### Header 컴포넌트
-- 단순한 헤더 표시
-- "ALDList - CSV 데이터 분석" 제목
+- 애플리케이션 헤더 표시
+- "ALD" 배지, "ALDList" 제목, 부제목 표시
+- 라이트 테마 스타일 적용
 
 ### Sidebar 컴포넌트
-- **데이터셋 선택**: 드롭다운으로 데이터셋 선택
-- **화면 표시 범위**: 시작 행, 개수 설정 (1-based UI, 0-based 내부 처리)
-- **통계 계산 범위**: 행 범위 선택 (드래그 또는 수동 입력)
-- **컬럼 선택**: 체크박스로 표시할 컬럼 선택
-  - 타입 필터링 (가스, 온도, 압력 등)
+- **Sticky Top Bar**: 현재 선택된 데이터셋 정보 표시
+- **아코디언 섹션**: 각 기능 영역을 접을 수 있게 구성
+  - 데이터셋 선택
+  - 화면 표시 범위 (시작 행, 개수 설정)
+  - 통계 계산 범위 (행 범위 선택)
+  - 컬럼 선택
+- **컬럼 선택 기능**:
+  - 타입 필터 (접을 수 있음)
   - 검색 기능
-  - 전체 선택/해제
+  - "선택한 컬럼만 보기" 토글
+  - 전체 선택/해제 버튼
+  - 고정 높이 스크롤 리스트
+- **UI 개선사항**:
+  - 1-based UI, 0-based 내부 처리 (시작 행)
+  - 드래그 선택 또는 수동 입력 지원
+  - 활성 컬럼 하이라이트
 
 ### DataGrid 컴포넌트
 - AG Grid를 사용한 데이터 테이블
-- 행 드래그 선택 기능
-- 컬럼 헤더 클릭 시 상세 패널로 이동
-- 선택된 행 범위 하이라이트
+- **행 드래그 선택**: 마우스로 행 범위 선택
+- **컬럼 헤더 클릭**: 클릭 시 해당 컬럼을 활성화하고 Sidebar로 스크롤
+- **행 하이라이트**: `rowClassRules`를 사용한 선언적 스타일링
+  - 선택된 범위: `row-in-range`
+  - 시작/끝 행: `row-in-range-start`, `row-in-range-end`
+- 라이트 테마 스타일 적용
 
 ### StatsPanel 컴포넌트
 - **컬럼 상세**: 선택된 컬럼의 메타데이터 표시
+  - 컬럼명, 설명, 타입, 단위 등
+  - 중요도 배지
+  - 자동 생성 메타데이터 경고
 - **통계 결과**: 선택된 범위의 통계값 표시
-  - 개수, 최소값, 최대값, 평균, 표준편차
+  - 요약 카드 (계산된 컬럼 수, 활성 컬럼, 활성 컬럼 count)
+  - 각 컬럼별 상세 통계
+    - 개수, 비어있지 않음, 최소값, 최대값, 평균, 표준편차
+  - 활성 컬럼 하이라이트
+- 숫자 포맷팅 함수 (`fmtNum`, `fmtFloat`)
+
+### ToastBanner 컴포넌트
+- 비차단형 알림 배너
+- 화면 상단에 고정 표시
+- 에러/정보 타입 지원
+- 자동 닫기 기능
+
+## 🎨 스타일링 시스템
+
+### CSS 변수 기반 디자인 시스템 (`App.css`)
+
+```css
+:root {
+  --bg: #f3f4f6;           /* 전체 배경 */
+  --panel: #ffffff;        /* 카드/패널 배경 */
+  --border: #e5e7eb;       /* 테두리 */
+  --text: #111827;         /* 본문 글씨 */
+  --muted: #374151;        /* 섹션 타이틀 */
+  --muted2: #6b7280;       /* 힌트/보조 */
+  --accent: #2563eb;       /* 포인트 블루 */
+  --radius: 16px;          /* 둥근 모서리 */
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --mono: ui-monospace, ...;
+  --sans: ui-sans-serif, ...;
+}
+```
+
+### 클래스 네이밍 컨벤션
+
+- **Sidebar**: `sb-*` 접두사 (예: `sb-section`, `sb-sticky-top`)
+- **StatsPanel**: `sp-*` 접두사 (예: `sp-card`, `sp-title`)
+- **공통**: `btn-*`, `column-*` 등
+
+### 반응형 레이아웃
+
+```css
+.app-content {
+  grid-template-columns: 
+    minmax(280px, 340px)    /* Sidebar */
+    minmax(680px, 1.9fr)    /* DataGrid */
+    minmax(320px, 420px);   /* StatsPanel */
+}
+```
 
 ## 🔌 API 엔드포인트
 
@@ -236,12 +335,16 @@ UI 리렌더링
    - 메타데이터는 나중에 로드 (툴팁/상세 패널)
 
 3. **초기 로딩 크기 제한**
-   - 기본 limit: 500행 (2000에서 감소)
+   - 기본 limit: 500행
    - 사용자가 필요시 더 로드 가능
 
 4. **컬럼 선택 최적화**
    - 표시할 컬럼만 AG Grid에 전달
    - 불필요한 렌더링 방지
+
+5. **React 최적화**
+   - `useMemo`로 필터링된 컬럼 리스트 메모이제이션
+   - 상태 관리 중앙화로 불필요한 리렌더링 방지
 
 ## 📝 주요 기능
 
@@ -258,10 +361,19 @@ UI 리렌더링
    - 행 드래그 선택
    - 컬럼 헤더 클릭으로 상세 정보 확인
    - 타입별 필터링
+   - 검색 기능
+   - "선택한 컬럼만 보기" 토글
 
 4. **통계 계산**
    - 선택한 범위의 통계값 계산
    - 전체 컬럼 또는 활성 컬럼만 선택 가능
+   - 요약 카드로 주요 정보 한눈에 확인
+
+5. **사용자 경험 개선**
+   - 아코디언으로 공간 효율성 향상
+   - Sticky top bar로 현재 데이터셋 정보 항상 표시
+   - ToastBanner로 비차단형 알림
+   - 라이트 테마로 가독성 향상
 
 ## 🔧 개발 환경 설정
 
@@ -284,7 +396,23 @@ npm run dev
 
 ## 📚 기술 스택
 
-- **Frontend**: React, TypeScript, AG Grid, Vite
-- **Backend**: FastAPI, Python, DuckDB
+- **Frontend**: 
+  - React 18
+  - TypeScript
+  - AG Grid (데이터 그리드)
+  - Vite (빌드 도구)
+  - CSS Variables (디자인 시스템)
+- **Backend**: 
+  - FastAPI
+  - Python
+  - DuckDB (인메모리 데이터베이스)
 - **Metadata**: YAML 파일 기반
 - **Data**: CSV 파일
+
+## 🎯 주요 설계 결정
+
+1. **Presenter-Controller 패턴**: UI와 로직 분리로 유지보수성 향상
+2. **CSS 변수 기반 디자인 시스템**: 테마 변경 용이성
+3. **컴포넌트별 CSS 파일**: 스타일 격리 및 관리 용이성
+4. **선언적 스타일링**: `rowClassRules`로 행 스타일 관리
+5. **비차단형 알림**: ToastBanner로 사용자 경험 개선
