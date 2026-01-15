@@ -29,7 +29,7 @@ export default function StatsPanel({ activeColumn, columnMeta, stats }: StatsPan
   return (
     <div className="stats-panel">
       {/* ===== 컬럼 상세 ===== */}
-      <div className="section">
+      <div className="sp-section">
         <div className="sp-title">컬럼 상세</div>
 
         {!activeColumn ? (
@@ -105,7 +105,7 @@ export default function StatsPanel({ activeColumn, columnMeta, stats }: StatsPan
       </div>
 
       {/* ===== 통계 결과 ===== */}
-      <div className="section">
+      <div className="sp-section">
         <div className="sp-title">통계 결과</div>
 
         {!stats ? (

@@ -64,6 +64,8 @@ export default function App() {
               showError(e.message || "통계 계산 중 오류가 발생했습니다.");
             });
           }}
+          showSelectedOnly={c.showSelectedOnly}
+          onShowSelectedOnlyChange={c.setShowSelectedOnly}
         />
 
         {/* ✅ STEP1에서 추가한 래핑 유지 */}

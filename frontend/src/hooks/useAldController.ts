@@ -42,6 +42,9 @@ export function useAldController() {
   const [columnSearchQuery, setColumnSearchQuery] = useState<string>("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string | null>(null);
 
+  // 선택한 컬럼만 보기 토글
+  const [showSelectedOnly, setShowSelectedOnly] = useState<boolean>(false);
+
   // 1) 데이터셋 목록 로드
   useEffect(() => {
     getDatasets()
@@ -290,6 +293,7 @@ export function useAldController() {
     statsComputeMode,
     columnSearchQuery,
     selectedTypeFilter,
+    showSelectedOnly,
 
     // setters
     setOffset,
@@ -302,6 +306,7 @@ export function useAldController() {
     setStatsComputeMode,
     setColumnSearchQuery,
     setSelectedTypeFilter,
+    setShowSelectedOnly,
 
     // handlers
     handleDatasetChange,

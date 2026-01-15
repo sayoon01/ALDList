@@ -6,12 +6,12 @@
   overflow-y: auto;
 }
 
-.section {
+.sp-section {
   padding: 14px;
   border-bottom: 1px solid var(--border);
 }
 
-.section:last-child {
+.sp-section:last-child {
   border-bottom: none;
 }
 
