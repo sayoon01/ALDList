@@ -139,18 +139,69 @@ export interface AdminTextResponse {
 }
 
 export async function buildProfile(datasetId: string): Promise<any> {
-  return fetchAPI(`/api/admin/profile/${datasetId}/build`);
+  const url = `${API_BASE}/api/admin/profile/${datasetId}/build`;
+  const res = await fetch(url, { method: "POST" });
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => res.statusText);
+    throw new Error(`API Error (${res.status}): ${errorText}`);
+  }
+  return res.json();
 }
 
-export async function buildDoc(datasetId: string): Promise<any> {
-  return fetchAPI(`/api/admin/doc/${datasetId}/build`);
+export async function readProfile(datasetId: string): Promise<any> {
+  const url = `${API_BASE}/api/admin/profile/${datasetId}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => res.statusText);
+    throw new Error(`API Error (${res.status}): ${errorText}`);
+  }
+  return res.json();
 }
 
+export async function buildDoc(
+  datasetId: string,
+  groupTopN?: number,
+  highlightTopN?: number
+): Promise<any> {
+  const params = new URLSearchParams();
+  if (groupTopN !== undefined) params.append("group_top_n", String(groupTopN));
+  if (highlightTopN !== undefined) params.append("highlight_top_n", String(highlightTopN));
+  
+  const url = `${API_BASE}/api/admin/doc/${datasetId}/build${params.toString() ? `?${params.toString()}` : ""}`;
+  const res = await fetch(url, { method: "POST" });
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => res.statusText);
+    throw new Error(`API Error (${res.status}): ${errorText}`);
+  }
+  return res.json();
+}
+
+export async function readDoc(datasetId: string): Promise<string> {
+  const url = `${API_BASE}/api/admin/doc/${datasetId}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => res.statusText);
+    throw new Error(`API Error (${res.status}): ${errorText}`);
+  }
+  return res.text();
+}
+
+// 기존 함수들 (하위 호환성 유지)
 export async function getProfileText(datasetId: string): Promise<AdminTextResponse> {
-  return fetchAPI(`/api/admin/profile/${datasetId}`);
+  const profile = await readProfile(datasetId);
+  return {
+    dataset_id: profile.dataset_id || datasetId,
+    path: profile.path || "",
+    profile: JSON.stringify(profile),
+  };
 }
 
 export async function getDocText(datasetId: string): Promise<AdminTextResponse> {
-  return fetchAPI(`/api/admin/doc/${datasetId}`);
+  const doc = await readDoc(datasetId);
+  return {
+    dataset_id: datasetId,
+    path: "",
+    doc: doc,
+  };
 }
 

@@ -8,8 +8,10 @@
 """
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 from typing import Dict, Any
 from pathlib import Path
+import json
 
 from ..core.metadata_pipeline import refresh_registry_if_needed
 from ..core.registry import get_dataset, load_registry
@@ -100,23 +102,36 @@ def build_profile(
 
 
 @router.post("/doc/{dataset_id}/build")
-def build_doc(dataset_id: str):
+def build_doc(
+    dataset_id: str,
+    group_top_n: int = Query(12, ge=1, le=50, description="그룹별 표시할 컬럼 개수"),
+    highlight_top_n: int = Query(12, ge=1, le=50, description="프로필 하이라이트 표시 개수"),
+):
     """
     Doc v1 빌드 + 파일 저장
     결과: metadata/docs/{dataset_id}.md 생성
     
     profile과 column_meta를 결합하여 사람이 읽을 수 있는 문서 생성
+    
+    파라미터:
+    - group_top_n: 그룹별 표시할 컬럼 개수 (1~50)
+    - highlight_top_n: 프로필 하이라이트 표시 개수 (1~50)
     """
     ds = get_dataset(dataset_id)
     if ds is None:
         raise HTTPException(status_code=404, detail="Dataset not found")
 
     try:
-        path = build_doc_v1(dataset_id)
+        path = build_doc_v1(
+            dataset_id,
+            group_top_n=group_top_n,
+            highlight_top_n=highlight_top_n,
+        )
         return {
-            "ok": True,
             "dataset_id": dataset_id,
             "doc_path": path,
+            "group_top_n": group_top_n,
+            "highlight_top_n": highlight_top_n,
         }
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=f"Profile not found. Build profile first: {str(e)}")
@@ -157,32 +172,27 @@ def get_profile(dataset_id: str):
     """
     Profile v1 읽기 API
     
-    metadata/profiles/{dataset_id}.json 파일을 읽어서 반환합니다.
+    metadata/profiles/{dataset_id}.json 파일을 읽어서 JSON 객체로 반환합니다.
     파일이 없으면 404를 반환합니다.
     """
     p = PROFILES_DIR / f"{dataset_id}.json"
     if not p.exists():
         raise HTTPException(status_code=404, detail="Profile not built yet")
-    return {
-        "dataset_id": dataset_id,
-        "path": str(p),
-        "profile": p.read_text(encoding="utf-8")
-    }
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse profile JSON: {str(e)}")
 
 
-@router.get("/doc/{dataset_id}")
+@router.get("/doc/{dataset_id}", response_class=PlainTextResponse)
 def get_doc(dataset_id: str):
     """
     Doc v1 읽기 API
     
-    metadata/docs/{dataset_id}.md 파일을 읽어서 반환합니다.
+    metadata/docs/{dataset_id}.md 파일을 읽어서 Markdown 텍스트로 반환합니다.
     파일이 없으면 404를 반환합니다.
     """
     p = DOCS_DIR / f"{dataset_id}.md"
     if not p.exists():
         raise HTTPException(status_code=404, detail="Doc not built yet")
-    return {
-        "dataset_id": dataset_id,
-        "path": str(p),
-        "doc": p.read_text(encoding="utf-8")
-    }
+    return p.read_text(encoding="utf-8")

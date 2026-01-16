@@ -107,6 +107,11 @@ export default function App() {
           stats={c.stats}
           profileText={c.profileText}
           docText={c.docText}
+          selectedDatasetId={c.selectedDatasetId}
+          onToast={(msg, type) => {
+            setToastType((type || "info") as ToastType);
+            setToastMsg(msg);
+          }}
         />
       </div>
     </div>
