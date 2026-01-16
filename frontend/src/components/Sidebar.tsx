@@ -44,6 +44,13 @@ interface SidebarProps {
   /* ✅ 선택 컬럼만 보기 토글 */
   showSelectedOnly: boolean;
   onShowSelectedOnlyChange: (v: boolean) => void;
+
+  /* Profile/Doc 빌드 */
+  profileText: string | null;
+  docText: string | null;
+  adminBusy: boolean;
+  onBuildProfile: () => void;
+  onBuildDoc: () => void;
 }
 
 export default function Sidebar(props: SidebarProps) {
@@ -87,6 +94,12 @@ export default function Sidebar(props: SidebarProps) {
 
     showSelectedOnly,
     onShowSelectedOnlyChange,
+
+    profileText,
+    docText,
+    adminBusy,
+    onBuildProfile,
+    onBuildDoc,
   } = props;
 
   const selectedDs = datasets.find((d) => d.dataset_id === selectedDatasetId) || null;
@@ -183,6 +196,32 @@ export default function Sidebar(props: SidebarProps) {
       </div>
 
       <div className="sb-scroll">
+        {/* 프로파일 / 문서 빌드 */}
+        <div className="sb-section">
+          <div className="sb-section-title">프로파일 / 문서</div>
+          <div className="sb-section-body">
+            <div className="sb-row" style={{ display: "flex", gap: 8 }}>
+              <button
+                className="btn-small"
+                disabled={adminBusy || !selectedDatasetId}
+                onClick={onBuildProfile}
+              >
+                Profile 빌드
+              </button>
+              <button
+                className="btn-small"
+                disabled={adminBusy || !selectedDatasetId}
+                onClick={onBuildDoc}
+              >
+                Doc 빌드
+              </button>
+            </div>
+            <div className="sb-hint" style={{ marginTop: 8 }}>
+              Profile: {profileText ? "있음" : "없음"} / Doc: {docText ? "있음" : "없음"}
+            </div>
+          </div>
+        </div>
+
         {/* 데이터셋 선택 */}
         <Section id="dataset" title="데이터셋 선택">
           {datasets.length === 0 ? (

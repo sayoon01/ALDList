@@ -130,4 +130,27 @@ export async function getFieldsByType(datasetId: string, type: string): Promise<
 }
 
 
+// Admin API
+export interface AdminTextResponse {
+  dataset_id: string;
+  path: string;
+  profile?: string;
+  doc?: string;
+}
+
+export async function buildProfile(datasetId: string): Promise<any> {
+  return fetchAPI(`/api/admin/profile/${datasetId}/build`);
+}
+
+export async function buildDoc(datasetId: string): Promise<any> {
+  return fetchAPI(`/api/admin/doc/${datasetId}/build`);
+}
+
+export async function getProfileText(datasetId: string): Promise<AdminTextResponse> {
+  return fetchAPI(`/api/admin/profile/${datasetId}`);
+}
+
+export async function getDocText(datasetId: string): Promise<AdminTextResponse> {
+  return fetchAPI(`/api/admin/doc/${datasetId}`);
+}
 

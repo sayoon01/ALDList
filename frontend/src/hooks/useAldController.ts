@@ -4,6 +4,10 @@ import {
   getPreview,
   getStats,
   fetchDatasetColumns,
+  buildProfile,
+  buildDoc,
+  getProfileText,
+  getDocText,
   Dataset,
   StatsResponse,
   ColumnMeta,
@@ -44,6 +48,11 @@ export function useAldController() {
 
   // 선택한 컬럼만 보기 토글
   const [showSelectedOnly, setShowSelectedOnly] = useState<boolean>(false);
+
+  // Profile/Doc 상태
+  const [profileText, setProfileText] = useState<string | null>(null);
+  const [docText, setDocText] = useState<string | null>(null);
+  const [adminBusy, setAdminBusy] = useState(false);
 
   // 1) 데이터셋 목록 로드
   useEffect(() => {
@@ -176,6 +185,28 @@ export function useAldController() {
     }
   }, [activeColumn, statsComputeMode]);
 
+  // 6) dataset 선택될 때, profile/doc "있으면 자동 로드"
+  useEffect(() => {
+    if (!selectedDatasetId) return;
+
+    // profile/doc는 "없을 수도 있음" -> 실패해도 조용히 무시
+    (async () => {
+      try {
+        const p = await getProfileText(selectedDatasetId);
+        setProfileText(p.profile ?? null);
+      } catch {
+        setProfileText(null);
+      }
+
+      try {
+        const d = await getDocText(selectedDatasetId);
+        setDocText(d.doc ?? null);
+      } catch {
+        setDocText(null);
+      }
+    })();
+  }, [selectedDatasetId]);
+
   // 통계 계산
   const handleCalculateStats = async () => {
     if (!selectedDatasetId) return;
@@ -273,6 +304,31 @@ export function useAldController() {
     setSelectedTypeFilter(null);
   };
 
+  // Profile/Doc 빌드 핸들러
+  const handleBuildProfile = async () => {
+    if (!selectedDatasetId) return;
+    try {
+      setAdminBusy(true);
+      await buildProfile(selectedDatasetId);
+      const p = await getProfileText(selectedDatasetId);
+      setProfileText(p.profile ?? null);
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const handleBuildDoc = async () => {
+    if (!selectedDatasetId) return;
+    try {
+      setAdminBusy(true);
+      await buildDoc(selectedDatasetId);
+      const d = await getDocText(selectedDatasetId);
+      setDocText(d.doc ?? null);
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
   return {
     datasets,
     selectedDatasetId,
@@ -294,6 +350,9 @@ export function useAldController() {
     columnSearchQuery,
     selectedTypeFilter,
     showSelectedOnly,
+    profileText,
+    docText,
+    adminBusy,
 
     // setters
     setOffset,
@@ -311,6 +370,8 @@ export function useAldController() {
     // handlers
     handleDatasetChange,
     handleCalculateStats,
+    handleBuildProfile,
+    handleBuildDoc,
     onCellMouseDown,
     onCellMouseOver,
     onColumnHeaderClicked,

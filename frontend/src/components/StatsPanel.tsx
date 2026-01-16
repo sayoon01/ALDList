@@ -5,6 +5,8 @@ interface StatsPanelProps {
   activeColumn: string | null;
   columnMeta: Record<string, ColumnMeta>;
   stats: StatsResponse | null;
+  profileText: string | null;
+  docText: string | null;
 }
 
 function fmtNum(v: any) {
@@ -21,10 +23,24 @@ function fmtFloat(v: any, digits = 2) {
   return n.toFixed(digits);
 }
 
-export default function StatsPanel({ activeColumn, columnMeta, stats }: StatsPanelProps) {
+export default function StatsPanel({ activeColumn, columnMeta, stats, profileText, docText }: StatsPanelProps) {
   const activeMetric = stats && activeColumn ? stats.metrics?.[activeColumn] : null;
 
   const totalMetricCount = stats ? Object.keys(stats.metrics || {}).length : 0;
+
+  // semantic_type 추출
+  let activeSemanticType: string | null = null;
+  try {
+    if (profileText && activeColumn) {
+      const prof = JSON.parse(profileText);
+      const columns = prof.columns || {};
+      const col = columns[activeColumn];
+      // semantic_type은 객체 형태: { type: "numeric", confidence: 1.0, ... }
+      activeSemanticType = col?.semantic_type?.type ?? null;
+    }
+  } catch {
+    activeSemanticType = null;
+  }
 
   return (
     <div className="stats-panel">
@@ -74,6 +90,14 @@ export default function StatsPanel({ activeColumn, columnMeta, stats }: StatsPan
                         {t}
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {activeSemanticType && (
+                  <div className="sp-kv">
+                    <div className="sp-kv-item">
+                      semantic_type(관찰): <strong>{activeSemanticType}</strong>
+                    </div>
                   </div>
                 )}
 
@@ -178,6 +202,33 @@ export default function StatsPanel({ activeColumn, columnMeta, stats }: StatsPan
           </>
         )}
       </div>
+
+      {/* Doc Preview */}
+      {docText && (
+        <div className="sp-section">
+          <div className="sp-title">Doc Preview</div>
+          <div className="sp-card">
+            <pre
+              style={{
+                whiteSpace: "pre-wrap",
+                fontFamily: "var(--mono)",
+                fontSize: 11,
+                lineHeight: 1.5,
+                maxHeight: 300,
+                overflow: "auto",
+                background: "#f9fafb",
+                padding: 12,
+                borderRadius: 10,
+                border: "1px solid var(--border)",
+                margin: 0,
+                color: "#374151",
+              }}
+            >
+              {docText}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

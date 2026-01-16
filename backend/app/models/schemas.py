@@ -114,4 +114,3 @@ class ProfileBuildResponse(BaseModel):
     generated_at: str
     sample_rows_used: int
     column_count: int
-

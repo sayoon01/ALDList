@@ -9,11 +9,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, Any
+from pathlib import Path
 
 from ..core.metadata_pipeline import refresh_registry_if_needed
 from ..core.registry import get_dataset, load_registry
 from ..core.profile_v1 import build_profile_v1
 from ..core.doc_v1 import build_doc_v1
+from ..core.settings import PROFILES_DIR, DOCS_DIR
 from ..models.schemas import AdminRefreshResponse, RefreshResponse, ProfileBuildResponse
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -147,4 +149,40 @@ def build_all_docs():
         "success": success_count,
         "failed": len(results) - success_count,
         "results": results,
+    }
+
+
+@router.get("/profile/{dataset_id}")
+def get_profile(dataset_id: str):
+    """
+    Profile v1 읽기 API
+    
+    metadata/profiles/{dataset_id}.json 파일을 읽어서 반환합니다.
+    파일이 없으면 404를 반환합니다.
+    """
+    p = PROFILES_DIR / f"{dataset_id}.json"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Profile not built yet")
+    return {
+        "dataset_id": dataset_id,
+        "path": str(p),
+        "profile": p.read_text(encoding="utf-8")
+    }
+
+
+@router.get("/doc/{dataset_id}")
+def get_doc(dataset_id: str):
+    """
+    Doc v1 읽기 API
+    
+    metadata/docs/{dataset_id}.md 파일을 읽어서 반환합니다.
+    파일이 없으면 404를 반환합니다.
+    """
+    p = DOCS_DIR / f"{dataset_id}.md"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Doc not built yet")
+    return {
+        "dataset_id": dataset_id,
+        "path": str(p),
+        "doc": p.read_text(encoding="utf-8")
     }

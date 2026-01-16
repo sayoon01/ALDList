@@ -373,3 +373,9 @@
   font-size: 11px;
   color: #9ca3af;
 }
+
+.sb-hint {
+  font-size: 11px;
+  color: var(--muted2);
+  font-weight: 700;
+}

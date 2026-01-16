@@ -70,6 +70,21 @@ export default function App() {
           }}
           showSelectedOnly={showSelectedOnly}
           onShowSelectedOnlyChange={setShowSelectedOnly}
+          profileText={c.profileText}
+          docText={c.docText}
+          adminBusy={c.adminBusy}
+          onBuildProfile={() => {
+            c.handleBuildProfile().catch((e) => {
+              console.error(e);
+              showError(e.message || "Profile 빌드 중 오류가 발생했습니다.");
+            });
+          }}
+          onBuildDoc={() => {
+            c.handleBuildDoc().catch((e) => {
+              console.error(e);
+              showError(e.message || "Doc 빌드 중 오류가 발생했습니다.");
+            });
+          }}
         />
 
         {/* ✅ STEP1에서 추가한 래핑 유지 */}
@@ -86,7 +101,13 @@ export default function App() {
           />
         </div>
 
-        <StatsPanel activeColumn={c.activeColumn} columnMeta={c.columnMeta} stats={c.stats} />
+        <StatsPanel
+          activeColumn={c.activeColumn}
+          columnMeta={c.columnMeta}
+          stats={c.stats}
+          profileText={c.profileText}
+          docText={c.docText}
+        />
       </div>
     </div>
   );
