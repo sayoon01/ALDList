@@ -106,6 +106,9 @@ class RefreshResponse(BaseModel):
     reason: str
     registry_path: str
     dataset_count: int
+    created: List[str] = Field(default_factory=list, description="새로 생성된 dataset_id 리스트")
+    changed: List[str] = Field(default_factory=list, description="변경된 dataset_id 리스트")
+    deleted: List[str] = Field(default_factory=list, description="삭제된 dataset_id 리스트")
 
 
 class ProfileBuildResponse(BaseModel):

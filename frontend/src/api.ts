@@ -138,23 +138,32 @@ export interface AdminTextResponse {
   doc?: string;
 }
 
-export async function buildProfile(datasetId: string): Promise<any> {
-  const url = `${API_BASE}/api/admin/profile/${datasetId}/build`;
-  const res = await fetch(url, { method: "POST" });
+async function checkResponse(res: Response) {
   if (!res.ok) {
     const errorText = await res.text().catch(() => res.statusText);
     throw new Error(`API Error (${res.status}): ${errorText}`);
   }
+  return res;
+}
+
+export async function adminRefresh(force: boolean = false): Promise<any> {
+  const url = `${API_BASE}/api/admin/refresh?force=${force}`;
+  const res = await fetch(url, { method: "POST" });
+  await checkResponse(res);
+  return res.json();
+}
+
+export async function buildProfile(datasetId: string): Promise<any> {
+  const url = `${API_BASE}/api/admin/profile/${datasetId}/build`;
+  const res = await fetch(url, { method: "POST" });
+  await checkResponse(res);
   return res.json();
 }
 
 export async function readProfile(datasetId: string): Promise<any> {
   const url = `${API_BASE}/api/admin/profile/${datasetId}`;
   const res = await fetch(url);
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => res.statusText);
-    throw new Error(`API Error (${res.status}): ${errorText}`);
-  }
+  await checkResponse(res);
   return res.json();
 }
 
@@ -169,20 +178,14 @@ export async function buildDoc(
   
   const url = `${API_BASE}/api/admin/doc/${datasetId}/build${params.toString() ? `?${params.toString()}` : ""}`;
   const res = await fetch(url, { method: "POST" });
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => res.statusText);
-    throw new Error(`API Error (${res.status}): ${errorText}`);
-  }
+  await checkResponse(res);
   return res.json();
 }
 
 export async function readDoc(datasetId: string): Promise<string> {
   const url = `${API_BASE}/api/admin/doc/${datasetId}`;
   const res = await fetch(url);
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => res.statusText);
-    throw new Error(`API Error (${res.status}): ${errorText}`);
-  }
+  await checkResponse(res);
   return res.text();
 }
 

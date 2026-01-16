@@ -45,12 +45,12 @@ interface SidebarProps {
   showSelectedOnly: boolean;
   onShowSelectedOnlyChange: (v: boolean) => void;
 
-  /* Profile/Doc 빌드 */
-  profileText: string | null;
-  docText: string | null;
-  adminBusy: boolean;
-  onBuildProfile: () => void;
-  onBuildDoc: () => void;
+  /* Profile/Doc 빌드 (하위 호환성 유지 - 선택적) */
+  profileText?: string | null;
+  docText?: string | null;
+  adminBusy?: boolean;
+  onBuildProfile?: () => void;
+  onBuildDoc?: () => void;
 }
 
 export default function Sidebar(props: SidebarProps) {

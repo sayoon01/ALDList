@@ -59,6 +59,9 @@ def refresh(force: bool = Query(False, description="true면 무조건 scan 실�
         "reason": r.reason,
         "registry_path": r.registry_path,
         "dataset_count": dataset_count,
+        "created": r.created,
+        "changed": r.changed_ids,
+        "deleted": r.deleted,
     }
 
 

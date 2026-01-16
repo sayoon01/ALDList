@@ -1,14 +1,16 @@
-import { useState, useEffect } from "react";
-import { ColumnMeta, StatsResponse, buildProfile, readProfile, buildDoc, readDoc } from "../api";
+import { ColumnMeta, StatsResponse } from "../api";
 import "./StatsPanel.css";
 
 interface StatsPanelProps {
   activeColumn: string | null;
   columnMeta: Record<string, ColumnMeta>;
   stats: StatsResponse | null;
-  profileText: string | null;
-  docText: string | null;
+  profile: any | null;
+  docMd: string;
   selectedDatasetId: string | null;
+  adminBusy: boolean;
+  onBuildProfile: (datasetId: string) => Promise<void>;
+  onBuildDoc: (datasetId: string) => Promise<void>;
   onToast: (msg: string, type?: "info" | "error") => void;
 }
 
@@ -30,35 +32,14 @@ export default function StatsPanel({
   activeColumn,
   columnMeta,
   stats,
-  profileText,
-  docText,
+  profile,
+  docMd,
   selectedDatasetId,
+  adminBusy,
+  onBuildProfile,
+  onBuildDoc,
   onToast,
 }: StatsPanelProps) {
-  const [profileJson, setProfileJson] = useState<any>(null);
-  const [docMd, setDocMd] = useState<string>("");
-  const [isBuildingProfile, setIsBuildingProfile] = useState(false);
-  const [isBuildingDoc, setIsBuildingDoc] = useState(false);
-
-  // profileText가 변경되면 파싱해서 저장
-  useEffect(() => {
-    if (profileText) {
-      try {
-        const prof = typeof profileText === "string" ? JSON.parse(profileText) : profileText;
-        setProfileJson(prof);
-      } catch {
-        setProfileJson(null);
-      }
-    } else {
-      setProfileJson(null);
-    }
-  }, [profileText]);
-
-  // docText가 변경되면 저장
-  useEffect(() => {
-    setDocMd(docText || "");
-  }, [docText]);
-
   const activeMetric = stats && activeColumn ? stats.metrics?.[activeColumn] : null;
 
   const totalMetricCount = stats ? Object.keys(stats.metrics || {}).length : 0;
@@ -66,8 +47,8 @@ export default function StatsPanel({
   // semantic_type 추출
   let activeSemanticType: string | null = null;
   try {
-    if (profileJson && activeColumn) {
-      const columns = profileJson.columns || {};
+    if (profile && activeColumn) {
+      const columns = profile.columns || {};
       const col = columns[activeColumn];
       // semantic_type은 객체 형태: { type: "numeric", confidence: 1.0, ... }
       activeSemanticType = col?.semantic_type?.type ?? null;
@@ -79,30 +60,20 @@ export default function StatsPanel({
   const handleBuildProfile = async () => {
     if (!selectedDatasetId) return;
     try {
-      setIsBuildingProfile(true);
-      await buildProfile(selectedDatasetId);
+      await onBuildProfile(selectedDatasetId);
       onToast("Profile 빌드 완료");
-      const p = await readProfile(selectedDatasetId);
-      setProfileJson(p);
     } catch (error: any) {
       onToast(error.message || "Profile 빌드 실패", "error");
-    } finally {
-      setIsBuildingProfile(false);
     }
   };
 
   const handleBuildDoc = async () => {
     if (!selectedDatasetId) return;
     try {
-      setIsBuildingDoc(true);
-      await buildDoc(selectedDatasetId);
+      await onBuildDoc(selectedDatasetId);
       onToast("Doc 빌드 완료");
-      const md = await readDoc(selectedDatasetId);
-      setDocMd(md);
     } catch (error: any) {
       onToast(error.message || "Doc 빌드 실패", "error");
-    } finally {
-      setIsBuildingDoc(false);
     }
   };
 
@@ -274,87 +245,61 @@ export default function StatsPanel({
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <button
               className="btn-small"
-              disabled={!selectedDatasetId || isBuildingProfile}
+              disabled={!selectedDatasetId || adminBusy}
               onClick={handleBuildProfile}
             >
-              {isBuildingProfile ? "빌드 중..." : "Profile 빌드"}
+              {adminBusy ? "빌드 중..." : "Profile 빌드"}
             </button>
             <button
               className="btn-small"
-              disabled={!selectedDatasetId || isBuildingDoc}
+              disabled={!selectedDatasetId || adminBusy}
               onClick={handleBuildDoc}
             >
-              {isBuildingDoc ? "빌드 중..." : "Doc 빌드"}
+              {adminBusy ? "빌드 중..." : "Doc 빌드"}
             </button>
           </div>
 
-          {profileJson && (
+          {/* Profile 요약 */}
+          {!profile ? (
+            <div className="sp-empty" style={{ fontSize: 12, padding: 8 }}>
+              Profile not built yet
+            </div>
+          ) : (
             <div style={{ marginBottom: 12, fontSize: 12 }}>
               <div style={{ marginBottom: 4 }}>
-                <strong>sample_rows_used</strong>: {profileJson.sample?.rows || profileJson.sample_rows_used || "—"}
+                <strong>row_count_estimate</strong>:{" "}
+                {profile.row_count_estimate != null
+                  ? profile.row_count_estimate.toLocaleString()
+                  : "N/A"}
               </div>
               <div style={{ marginBottom: 4 }}>
-                <strong>row_count_estimate</strong>:{" "}
-                {profileJson.row_count_estimate != null
-                  ? profileJson.row_count_estimate.toLocaleString()
-                  : "—"}
+                <strong>row_count_exact</strong>:{" "}
+                {profile.row_count_exact != null
+                  ? profile.row_count_exact.toLocaleString()
+                  : "N/A"}
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                <strong>sample_rows_used</strong>:{" "}
+                {profile.sample?.rows || profile.sample_rows_used || "N/A"}
               </div>
               <div style={{ marginBottom: 4 }}>
                 <strong>columns</strong>:{" "}
-                {profileJson.column_count ||
-                  (profileJson.columns ? Object.keys(profileJson.columns).length : "—")}
+                {profile.column_count ||
+                  (profile.columns ? Object.keys(profile.columns).length : "N/A")}
               </div>
             </div>
           )}
 
-          {docMd && (
-            <div
-              style={{
-                whiteSpace: "pre-wrap",
-                fontSize: 11,
-                lineHeight: 1.5,
-                maxHeight: 320,
-                overflow: "auto",
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-                padding: 12,
-                background: "#f9fafb",
-                color: "#374151",
-                fontFamily: "var(--mono)",
-              }}
-            >
-              {docMd}
+          {/* Doc 표시 */}
+          {!docMd ? (
+            <div className="sp-empty" style={{ fontSize: 12, padding: 8 }}>
+              Doc not built yet
             </div>
+          ) : (
+            <pre className="sp-doc-preview">{docMd}</pre>
           )}
         </div>
       </div>
-
-      {/* Doc Preview (기존 docText가 있으면 표시) */}
-      {docText && !docMd && (
-        <div className="sp-section">
-          <div className="sp-title">Doc Preview</div>
-          <div className="sp-card">
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                fontFamily: "var(--mono)",
-                fontSize: 11,
-                lineHeight: 1.5,
-                maxHeight: 300,
-                overflow: "auto",
-                background: "#f9fafb",
-                padding: 12,
-                borderRadius: 10,
-                border: "1px solid var(--border)",
-                margin: 0,
-                color: "#374151",
-              }}
-            >
-              {docText}
-            </pre>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

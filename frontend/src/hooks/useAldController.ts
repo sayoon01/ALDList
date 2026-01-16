@@ -6,8 +6,8 @@ import {
   fetchDatasetColumns,
   buildProfile,
   buildDoc,
-  getProfileText,
-  getDocText,
+  readProfile,
+  readDoc,
   Dataset,
   StatsResponse,
   ColumnMeta,
@@ -49,9 +49,9 @@ export function useAldController() {
   // 선택한 컬럼만 보기 토글
   const [showSelectedOnly, setShowSelectedOnly] = useState<boolean>(false);
 
-  // Profile/Doc 상태
-  const [profileText, setProfileText] = useState<string | null>(null);
-  const [docText, setDocText] = useState<string | null>(null);
+  // Profile/Doc 상태 (중앙 관리)
+  const [profile, setProfile] = useState<any | null>(null);
+  const [docMd, setDocMd] = useState<string>("");
   const [adminBusy, setAdminBusy] = useState(false);
 
   // 1) 데이터셋 목록 로드
@@ -187,22 +187,26 @@ export function useAldController() {
 
   // 6) dataset 선택될 때, profile/doc "있으면 자동 로드"
   useEffect(() => {
-    if (!selectedDatasetId) return;
+    if (!selectedDatasetId) {
+      setProfile(null);
+      setDocMd("");
+      return;
+    }
 
     // profile/doc는 "없을 수도 있음" -> 실패해도 조용히 무시
     (async () => {
       try {
-        const p = await getProfileText(selectedDatasetId);
-        setProfileText(p.profile ?? null);
+        const p = await readProfile(selectedDatasetId);
+        setProfile(p);
       } catch {
-        setProfileText(null);
+        setProfile(null);
       }
 
       try {
-        const d = await getDocText(selectedDatasetId);
-        setDocText(d.doc ?? null);
+        const md = await readDoc(selectedDatasetId);
+        setDocMd(md);
       } catch {
-        setDocText(null);
+        setDocMd("");
       }
     })();
   }, [selectedDatasetId]);
@@ -302,16 +306,30 @@ export function useAldController() {
     setStats(null);
     setColumnSearchQuery("");
     setSelectedTypeFilter(null);
+    // Profile/Doc은 useEffect에서 자동 로드됨
   };
 
-  // Profile/Doc 빌드 핸들러
+  // Profile/Doc 빌드 및 로드 핸들러
+  const buildAndLoadProfile = async (datasetId: string) => {
+    await buildProfile(datasetId);
+    const p = await readProfile(datasetId);
+    setProfile(p);
+    return p;
+  };
+
+  const buildAndLoadDoc = async (datasetId: string) => {
+    await buildDoc(datasetId);
+    const md = await readDoc(datasetId);
+    setDocMd(md);
+    return md;
+  };
+
+  // Profile/Doc 빌드 핸들러 (기존 호환성 유지)
   const handleBuildProfile = async () => {
     if (!selectedDatasetId) return;
     try {
       setAdminBusy(true);
-      await buildProfile(selectedDatasetId);
-      const p = await getProfileText(selectedDatasetId);
-      setProfileText(p.profile ?? null);
+      await buildAndLoadProfile(selectedDatasetId);
     } finally {
       setAdminBusy(false);
     }
@@ -321,9 +339,7 @@ export function useAldController() {
     if (!selectedDatasetId) return;
     try {
       setAdminBusy(true);
-      await buildDoc(selectedDatasetId);
-      const d = await getDocText(selectedDatasetId);
-      setDocText(d.doc ?? null);
+      await buildAndLoadDoc(selectedDatasetId);
     } finally {
       setAdminBusy(false);
     }
@@ -350,8 +366,8 @@ export function useAldController() {
     columnSearchQuery,
     selectedTypeFilter,
     showSelectedOnly,
-    profileText,
-    docText,
+    profile,
+    docMd,
     adminBusy,
 
     // setters
@@ -372,6 +388,8 @@ export function useAldController() {
     handleCalculateStats,
     handleBuildProfile,
     handleBuildDoc,
+    buildAndLoadProfile,
+    buildAndLoadDoc,
     onCellMouseDown,
     onCellMouseOver,
     onColumnHeaderClicked,

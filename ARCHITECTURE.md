@@ -16,7 +16,7 @@ ALDList는 CSV 데이터를 분석하고 시각화하는 웹 애플리케이션�
 │  - Sidebar      │                                │  - DuckDB Engine│
 │  - DataGrid     │                                │  - Metadata     │
 │  - StatsPanel   │                                │  - Registry     │
-│  - ToastBanner  │                                │                 │
+│  - ToastBanner  │                                │  - Profile/Doc  │
 └─────────────────┘                                └─────────────────┘
                                                            │
                                                            ▼
@@ -41,11 +41,11 @@ aldList/
 │   │   ├── components/    # UI 컴포넌트
 │   │   │   ├── Header.tsx         # 헤더 컴포넌트
 │   │   │   ├── Header.css
-│   │   │   ├── Sidebar.tsx        # 왼쪽 사이드바 (데이터셋 선택, 컬럼 선택)
+│   │   │   ├── Sidebar.tsx        # 왼쪽 사이드바 (데이터셋 선택, 컬럼 선택, Profile/Doc 빌드)
 │   │   │   ├── Sidebar.css
 │   │   │   ├── DataGrid.tsx       # 가운데 그리드 (AG Grid)
 │   │   │   ├── DataGrid.css
-│   │   │   ├── StatsPanel.tsx     # 오른쪽 통계 패널
+│   │   │   ├── StatsPanel.tsx     # 오른쪽 통계 패널 (Profile/Doc 빌드 버튼 포함)
 │   │   │   ├── StatsPanel.css
 │   │   │   ├── ToastBanner.tsx    # 토스트 알림 배너
 │   │   │   └── ToastBanner.css
@@ -68,13 +68,15 @@ aldList/
 │   │   │   ├── __init__.py
 │   │   │   ├── datasets.py    # 데이터셋 관련 API
 │   │   │   ├── stats.py       # 통계 계산 API
-│   │   │   └── admin.py       # 관리/자동화 API
+│   │   │   └── admin.py       # 관리/자동화 API (refresh, profile/doc 빌드)
 │   │   ├── core/          # 핵심 로직
 │   │   │   ├── __init__.py
 │   │   │   ├── registry.py          # 데이터셋 레지스트리 관리
 │   │   │   ├── column_meta.py       # 컬럼 메타데이터 로더
 │   │   │   ├── auto_scan.py         # 자동 메타데이터 스캔 (판단 로직)
 │   │   │   ├── metadata_pipeline.py # 메타데이터 파이프라인 단일 진입점
+│   │   │   ├── profile_v1.py        # 프로파일 빌더 (데이터셋 통계 분석)
+│   │   │   ├── doc_v1.py            # 문서 빌더 (간결한 데이터셋 문서)
 │   │   │   └── settings.py          # 설정 관리
 │   │   ├── engine/        # 데이터 처리 엔진
 │   │   │   ├── __init__.py
@@ -101,8 +103,10 @@ aldList/
 │   ├── columns_by_file.json   # 파일별 컬럼 목록
 │   ├── columns_union.json     # 전체 컬럼 통합 목록
 │   ├── columns_union.txt      # 전체 컬럼 목록 (텍스트)
-│   ├── profiles/              # 데이터셋 프로파일 (향후 확장)
-│   └── docs/                  # 데이터셋 문서 (향후 확장)
+│   ├── profiles/              # 데이터셋 프로파일 (JSON)
+│   │   └── ds_*.json          # 각 데이터셋별 프로파일
+│   └── docs/                  # 데이터셋 문서 (Markdown)
+│       └── ds_*.md            # 각 데이터셋별 문서
 │
 ├── column_meta/           # 컬럼 메타데이터
 │   ├── global_columns.yaml        # 전역 컬럼 메타데이터 (공식)
@@ -134,14 +138,12 @@ aldList/
 ├── start_backend.sh        # 백엔드 시작 스크립트
 ├── start_frontend.sh       # 프론트엔드 시작 스크립트
 ├── scan_metadata.sh        # 메타데이터 스캔 스크립트
-├── watch_csv.sh            # CSV 변경 감지 스크립트
+├── watch_csv.sh            # CSV 변경 감지 및 자동 빌드 스크립트
 │
 ├── README.md               # 프로젝트 README
 ├── ARCHITECTURE.md         # 아키텍처 문서 (현재 파일)
-├── DEPLOYMENT.md           # 배포 가이드
-├── EXTENSIBILITY.md        # 확장성 가이드
+├── PROJECT_DOCUMENTATION.md # 프로젝트 전체 문서
 ├── METADATA_STRATEGIES.md  # 메타데이터 전략 문서
-├── PERFORMANCE.md          # 성능 최적화 문서
 ├── COLUMN_META_WORKFLOW.md # 컬럼 메타데이터 워크플로우
 └── VERCEL_DEPLOY.md       # Vercel 배포 가이드
 ```
@@ -183,6 +185,7 @@ aldList/
    - 사용자가 데이터셋 선택 시 `selectedDatasetId` 상태 변경
    - `useAldController` 내부의 `useEffect`가 감지하여 미리보기 데이터 로드 (`/api/datasets/{id}/preview`)
    - 컬럼 메타데이터 로드 (`/api/datasets/{id}/columns`)
+   - Profile/Doc 자동 로드 시도 (있으면 표시)
    - 첫 번째 컬럼 자동 선택
 
 3. **컬럼 선택 및 표시**
@@ -265,9 +268,51 @@ UI 리렌더링 (React)
 
 **원칙:**
 - Scan은 '파일 사실 정보'만 생성 (filename/size/mtime/columns/path/dataset_id)
-- Column Meta / 통계 / 문서 생성은 별도 파이프라인에서 처리
+- Column Meta / Profile / Doc 생성은 별도 파이프라인에서 처리
 
-### 6. 컬럼 메타데이터 시스템 (`backend/app/core/column_meta.py`)
+### 6. 프로파일 시스템 (`backend/app/core/profile_v1.py`)
+
+**목적:**
+- 데이터셋의 상세 통계 정보 생성
+- 컬럼별 null ratio, semantic type, distinct count, top-k values 분석
+
+**주요 기능:**
+1. **Row Count 추정**: 파일 기반 빠른 추정
+2. **샘플링 기반 분석**: 대용량 CSV도 효율적으로 처리
+   - 기본 샘플링: 5,000행 (설정 가능)
+   - 최대 샘플링: 50,000행
+3. **컬럼별 통계**:
+   - null ratio (null 비율)
+   - semantic type 추론 (numeric, datetime, boolean, text, categorical)
+   - approximate distinct count
+   - top-k values (빈도 높은 값)
+4. **결과 저장**: `metadata/profiles/{dataset_id}.json`
+
+**API:**
+- `POST /api/admin/profile/{dataset_id}/build`: 프로파일 빌드
+- `GET /api/admin/profile/{dataset_id}`: 프로파일 읽기 (JSON 객체)
+
+### 7. 문서 생성 시스템 (`backend/app/core/doc_v1.py`)
+
+**목적:**
+- 사람이 읽을 수 있는 간결한 데이터셋 문서 생성
+- 핵심 정보만 표시 (전체 상세는 UI에서 확인)
+
+**주요 기능:**
+1. **데이터셋 요약**: 파일 크기, 컬럼 수, 행 수 등
+2. **의미 그룹별 컬럼**: 타입별로 그룹화하여 대표 컬럼 Top N만 표시
+   - 기본값: 그룹당 12개
+3. **프로파일 하이라이트**: 관찰 기반 핵심 정보만 표시
+   - null ratio 높은 컬럼 Top N
+   - categorical 후보 Top N
+   - datetime 후보 Top N
+4. **결과 저장**: `metadata/docs/{dataset_id}.md`
+
+**API:**
+- `POST /api/admin/doc/{dataset_id}/build`: 문서 빌드 (파라미터: group_top_n, highlight_top_n)
+- `GET /api/admin/doc/{dataset_id}`: 문서 읽기 (PlainTextResponse)
+
+### 8. 컬럼 메타데이터 시스템 (`backend/app/core/column_meta.py`)
 
 1. **3단계 우선순위**
    - **1순위**: 데이터셋별 오버라이드 (`column_meta/datasets/{dataset_id}.yaml`)
@@ -282,8 +327,9 @@ UI 리렌더링 (React)
    - 컬럼 툴팁에 설명 표시
    - 컬럼 상세 패널에 메타데이터 표시
    - 타입 필터링 기능
+   - semantic_type 표시 (Profile에서 추출)
 
-### 7. API 응답 스키마 (`backend/app/models/schemas.py`)
+### 9. API 응답 스키마 (`backend/app/models/schemas.py`)
 
 **요청 스키마:**
 - `StatsRequest`: 통계 계산 요청
@@ -296,7 +342,8 @@ UI 리렌더링 (React)
 - `DatasetColumnsResponse`: 컬럼 메타데이터
 - `FieldsByTypeResponse`: 타입별 필드 목록
 - `StatsResponse`: 통계 계산 결과
-- `AdminRefreshResponse`: 레지스트리 갱신 결과
+- `RefreshResponse`: 레지스트리 갱신 결과
+- `ProfileBuildResponse`: 프로파일 빌드 결과
 
 **장점:**
 - OpenAPI/Swagger 문서에 정확한 응답 구조 표시
@@ -328,6 +375,7 @@ UI 리렌더링 (React)
 - API 호출 및 데이터 처리 로직 (`useEffect`)
 - 이벤트 핸들러 (드래그 선택, 통계 계산 등)
 - 상태 변경에 따른 사이드 이펙트 처리
+- Profile/Doc 상태 관리 및 빌드 핸들러
 
 ### Header 컴포넌트
 - 애플리케이션 헤더 표시
@@ -336,6 +384,7 @@ UI 리렌더링 (React)
 
 ### Sidebar 컴포넌트
 - **Sticky Top Bar**: 현재 선택된 데이터셋 정보 표시
+- **프로파일/문서 섹션**: Profile/Doc 빌드 버튼 및 상태 표시
 - **아코디언 섹션**: 각 기능 영역을 접을 수 있게 구성
   - 데이터셋 선택
   - 화면 표시 범위 (시작 행, 개수 설정)
@@ -365,12 +414,17 @@ UI 리렌더링 (React)
 - **컬럼 상세**: 선택된 컬럼의 메타데이터 표시
   - 컬럼명, 설명, 타입, 단위 등
   - 중요도 배지
+  - semantic_type 표시 (Profile에서 추출)
   - 자동 생성 메타데이터 경고
 - **통계 결과**: 선택된 범위의 통계값 표시
   - 요약 카드 (계산된 컬럼 수, 활성 컬럼, 활성 컬럼 count)
   - 각 컬럼별 상세 통계
     - 개수, 비어있지 않음, 최소값, 최대값, 평균, 표준편차
   - 활성 컬럼 하이라이트
+- **Profile/Doc 빌드**: 빌드 버튼 및 결과 미리보기
+  - Profile 빌드 버튼: 프로파일 생성 및 정보 표시
+  - Doc 빌드 버튼: 문서 생성 및 Markdown 미리보기
+  - 빌드 상태 표시 (빌드 중/완료)
 - 숫자 포맷팅 함수 (`fmtNum`, `fmtFloat`)
 
 ### ToastBanner 컴포넌트
@@ -420,6 +474,7 @@ UI 리렌더링 (React)
 
 ### 데이터셋 관련
 - `GET /api/datasets` - 데이터셋 목록 조회 (`DatasetListResponse`)
+  - 쿼리 파라미터: `limit`, `offset`, `filename`, `min_size`, `max_size`
 - `GET /api/datasets/{dataset_id}` - 데이터셋 메타데이터 조회 (`DatasetMetaResponse`)
 - `GET /api/datasets/{dataset_id}/preview?offset=0&limit=500` - 데이터 미리보기 (`PreviewResponse`)
 - `GET /api/datasets/{dataset_id}/columns` - 컬럼 메타데이터 조회 (`DatasetColumnsResponse`)
@@ -435,10 +490,17 @@ UI 리렌더링 (React)
   }
   ```
 
-### 관리/자동화 API
-- `POST /api/admin/refresh?force=false` - 레지스트리 갱신 (`AdminRefreshResponse`)
+### 관리/자동화 API (`/api/admin`)
+- `POST /api/admin/refresh?force=false` - 레지스트리 갱신 (`RefreshResponse`)
   - `force=false`: 자동 판단에 따라 필요 시에만 갱신
   - `force=true`: 무조건 갱신 실행
+- `POST /api/admin/profile/{dataset_id}/build` - 프로파일 빌드 (`ProfileBuildResponse`)
+  - 쿼리 파라미터: `force`, `sample_rows`, `top_k`
+- `GET /api/admin/profile/{dataset_id}` - 프로파일 읽기 (JSON 객체)
+- `POST /api/admin/doc/{dataset_id}/build` - 문서 빌드
+  - 쿼리 파라미터: `group_top_n`, `highlight_top_n`
+- `GET /api/admin/doc/{dataset_id}` - 문서 읽기 (PlainTextResponse)
+- `POST /api/admin/doc/build_all` - 모든 데이터셋의 문서 빌드
 
 ## 🚀 성능 최적화
 
@@ -461,6 +523,10 @@ UI 리렌더링 (React)
 5. **React 최적화**
    - `useMemo`로 필터링된 컬럼 리스트 메모이제이션
    - 상태 관리 중앙화로 불필요한 리렌더링 방지
+
+6. **프로파일 샘플링**
+   - 대용량 CSV도 샘플링으로 효율적 분석
+   - 기본 5,000행 샘플링으로 빠른 처리
 
 ## 📝 주요 기능
 
@@ -485,7 +551,13 @@ UI 리렌더링 (React)
    - 전체 컬럼 또는 활성 컬럼만 선택 가능
    - 요약 카드로 주요 정보 한눈에 확인
 
-5. **사용자 경험 개선**
+5. **프로파일 및 문서 생성**
+   - 데이터셋 프로파일 생성 (통계 분석)
+   - 간결한 데이터셋 문서 생성
+   - UI에서 빌드 버튼으로 생성 가능
+   - 자동화 스크립트로 자동 빌드 지원
+
+6. **사용자 경험 개선**
    - 아코디언으로 공간 효율성 향상
    - Sticky top bar로 현재 데이터셋 정보 항상 표시
    - ToastBanner로 비차단형 알림
@@ -509,6 +581,28 @@ npm run dev
 
 ### 환경 변수
 - `VITE_API_BASE`: 프론트엔드에서 사용할 백엔드 API 베이스 URL (프로덕션용)
+- `DATA_DIR`: CSV 파일 디렉토리 경로 (기본값: `./data`)
+- `META_DIR`: 메타데이터 디렉토리 경로 (기본값: `./metadata`)
+
+## 🔄 자동화
+
+### 파일 변경 감지 (`watch_csv.sh`)
+
+**기능:**
+- `data/` 디렉토리의 CSV 파일 변경 감지
+- 파일 해시 기반 변경 감지 (2초마다 체크)
+- macOS/Linux 호환
+
+**동작:**
+1. CSV 파일 변경 감지
+2. Registry refresh (`POST /api/admin/refresh`)
+3. 모든 dataset에 대해 Profile/Doc 빌드
+
+**사용법:**
+```bash
+chmod +x watch_csv.sh
+./watch_csv.sh
+```
 
 ## 📚 기술 스택
 
@@ -524,6 +618,7 @@ npm run dev
   - DuckDB (인메모리 데이터베이스)
 - **Metadata**: YAML 파일 기반
 - **Data**: CSV 파일
+- **Profiling**: DuckDB 기반 샘플링 및 통계 분석
 
 ## 🎯 주요 설계 결정
 
@@ -538,3 +633,35 @@ npm run dev
 7. **API 응답 스키마 명시**: 모든 엔드포인트에 `response_model` 지정
    - OpenAPI 문서 정확성 향상
    - API 계약 명확화 및 타입 안정성 확보
+8. **프로파일 및 문서 시스템**: 데이터셋 분석 및 문서화 자동화
+   - 샘플링 기반 효율적 분석
+   - 간결한 문서 생성 (핵심 정보만)
+9. **4단계 파이프라인**: Scan → Column Meta → Profile → Doc
+   - 각 단계별 명확한 책임 분리
+   - 단계별 독립적 실행 가능
+
+## 📊 4단계 파이프라인
+
+프로젝트는 4단계 파이프라인으로 구성됩니다:
+
+1. **Scan 단계** (`tools/scan_and_export.py`)
+   - CSV 파일 스캔 및 기본 메타데이터 생성
+   - `metadata/datasets.json` 생성
+   - 파일 사실 정보만 추출 (filename, size, mtime, columns, path)
+
+2. **Column Meta 단계** (`backend/app/core/column_meta.py`)
+   - 컬럼 메타데이터 로드 및 병합
+   - 3단계 우선순위: Dataset Override → Global Meta → Patterns
+   - API에서 실시간으로 제공
+
+3. **Profile 단계** (`backend/app/core/profile_v1.py`)
+   - 데이터셋 프로파일 생성 (통계 분석)
+   - 샘플링 기반 효율적 분석
+   - `metadata/profiles/{dataset_id}.json` 저장
+
+4. **Doc 단계** (`backend/app/core/doc_v1.py`)
+   - 간결한 데이터셋 문서 생성
+   - Profile과 Column Meta를 결합
+   - `metadata/docs/{dataset_id}.md` 저장
+
+각 단계는 독립적으로 실행 가능하며, 필요에 따라 선택적으로 실행할 수 있습니다.
