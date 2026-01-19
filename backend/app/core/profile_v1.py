@@ -180,13 +180,13 @@ def build_profile_v1(
             pass
 
     cache = get_cache()
-    view_query = cache.get_view_query(dataset_id, ds.path)
-    conn = cache._get_or_create_connection(dataset_id)
+    relation = cache.get_relation(dataset_id, ds.path)
+    conn = cache.connection()
 
     row_count_estimate = _file_row_count_estimate(ds.path)
 
     # ✅ 샘플링 서브쿼리 만들기
-    sample_subq, _ = _build_sample_from_view(view_query, sample_rows)
+    sample_subq, _ = _build_sample_from_view(relation, sample_rows)
 
     # ✅ 1쿼리로 "모든 컬럼" null_count / non_null / numeric_like / datetime_like / bool_like / approx_distinct
     # 엄청 중요한 포인트: 컬럼이 200개여도 1번만 스캔하게 만드는 게 핵심
@@ -251,7 +251,7 @@ def build_profile_v1(
             raise RuntimeError("Profile query returned no result")
     except Exception:
         # USING SAMPLE이 환경/버전에 따라 실패할 수 있으니 LIMIT fallback
-        sample_subq = f"(SELECT * FROM {view_query} LIMIT {sample_rows})"
+        sample_subq = f"(SELECT * FROM {relation} LIMIT {sample_rows})"
         query = f"""
         SELECT
           COUNT(*) AS sample_n,

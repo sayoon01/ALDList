@@ -150,38 +150,40 @@ def get_fields_by_type(
 ):
     """
     타입별 컬럼 필터링
-    
     예: /api/datasets/{dataset_id}/fields?type=gas
-    → 가스 관련 필드만 반환
+    → 가스 관련 필드만 반환 + meta 포함(프론트 타입 일치)
     """
     from ..core.column_meta import build_meta_map
     
-    # (선택) type 값 검증
-    ALLOWED_TYPES = {"gas", "temperature", "pressure", "apc", "valve", "aux", "heater", "timestamp", "recipe", "index", "unknown"}
+    ALLOWED_TYPES = {
+        "gas", "temperature", "pressure", "apc", "valve", "aux", "heater",
+        "timestamp", "recipe", "index", "unknown"
+    }
     if type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=400, detail=f"Invalid type: {type}. Allowed types: {', '.join(sorted(ALLOWED_TYPES))}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid type: {type}. Allowed types: {', '.join(sorted(ALLOWED_TYPES))}"
+        )
     
     ds = get_dataset(dataset_id)
     if ds is None:
         raise HTTPException(status_code=404, detail="Dataset not found")
     
-    # ds가 dict 또는 object 둘 다 대응
-    if isinstance(ds, dict):
-        columns = ds.get("columns")
-    else:
-        columns = getattr(ds, "columns", None)
-    
+    columns = ds.columns if not isinstance(ds, dict) else ds.get("columns")
     if not columns:
         raise HTTPException(status_code=500, detail="Dataset columns not found in registry")
     
-    meta = build_meta_map(dataset_id, list(columns))
+    meta_map = build_meta_map(dataset_id, list(columns))
     
-    # ✅ type으로 필터
-    filtered = [c for c in columns if meta.get(c, {}).get("type") == type]
+    filtered_cols = [c for c in columns if meta_map.get(c, {}).get("type") == type]
+    
+    # ✅ 프론트 타입이 meta를 요구하므로, 필터된 컬럼 meta만 내려주기
+    filtered_meta = {c: meta_map.get(c, {}) for c in filtered_cols}
     
     return {
         "dataset_id": dataset_id,
         "type": type,
-        "count": len(filtered),
-        "columns": filtered,
+        "count": len(filtered_cols),
+        "columns": filtered_cols,
+        "meta": filtered_meta,
     }

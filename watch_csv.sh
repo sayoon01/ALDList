@@ -18,7 +18,7 @@ hash_dir() {
     # Linux
     find ./data -maxdepth 1 -name "*.csv" -print0 | sort -z | xargs -0 stat -c "%n %Y" 2>/dev/null || true
   else
-    # macOS
+    # macOS fallback
     find ./data -maxdepth 1 -name "*.csv" -print0 | sort -z | xargs -0 stat -f "%N %m" 2>/dev/null || true
   fi
 }

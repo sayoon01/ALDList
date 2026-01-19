@@ -18,6 +18,7 @@ from ..core.registry import get_dataset, load_registry
 from ..core.profile_v1 import build_profile_v1
 from ..core.doc_v1 import build_doc_v1
 from ..core.settings import PROFILES_DIR, DOCS_DIR
+from ..engine.duckdb_cache import get_cache
 from ..models.schemas import AdminRefreshResponse, RefreshResponse, ProfileBuildResponse
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -53,6 +54,10 @@ def refresh(force: bool = Query(False, description="true면 무조건 scan 실�
         dataset_count = len(datasets)
     except Exception:
         dataset_count = 0
+
+    # ✅ scan 이후 캐시 정리 (메모리/뷰 누적 방지)
+    # 다음 preview/stats에서 새 fingerprint로 view 재생성
+    get_cache().clear_all()
 
     return {
         "ran_scan": r.changed,

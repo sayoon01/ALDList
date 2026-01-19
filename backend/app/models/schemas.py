@@ -91,6 +91,7 @@ class FieldsByTypeResponse(BaseModel):
     type: str
     count: int
     columns: List[str]
+    meta: Dict[str, Dict[str, Any]] = Field(default_factory=dict, description="필터된 컬럼의 메타데이터")
 
 
 class AdminRefreshResponse(BaseModel):

@@ -29,16 +29,74 @@ aldList/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py
-│   │   ├── api/ (datasets.py, stats.py)
-│   │   ├── core/ (auto_scan.py, registry.py, column_meta.py, settings.py)
-│   │   └── engine/ (duckdb_engine.py)
+│   │   ├── api/
+│   │   │   ├── admin.py          # 관리 API (refresh, profile/doc 빌드)
+│   │   │   ├── datasets.py        # 데이터셋 목록/상세 API
+│   │   │   └── stats.py           # 통계 계산 API
+│   │   ├── core/
+│   │   │   ├── auto_scan.py       # 자동 스캔 판단 로직
+│   │   │   ├── column_meta.py     # 컬럼 메타데이터 빌드
+│   │   │   ├── doc_v1.py          # 문서 생성 (Markdown)
+│   │   │   ├── metadata_pipeline.py  # 메타데이터 파이프라인 (refresh)
+│   │   │   ├── profile_v1.py      # 프로파일 생성 (JSON)
+│   │   │   ├── registry.py        # 데이터셋 레지스트리 관리 (메모리 캐시)
+│   │   │   └── settings.py        # 설정 및 경로 관리
+│   │   ├── engine/
+│   │   │   ├── duckdb_cache.py    # DuckDB 캐시 관리 (단일 connection + fingerprint)
+│   │   │   └── duckdb_engine.py   # DuckDB 엔진 래퍼
+│   │   └── models/
+│   │       └── schemas.py         # Pydantic 스키마 정의
+│   ├── tests/
+│   │   ├── conftest.py            # pytest 설정
+│   │   └── test_api_system.py     # 시스템 테스트
 │   ├── requirements.txt
+│   ├── pytest.ini                 # pytest 설정 파일
+│   ├── run_tests.sh               # 테스트 실행 스크립트
+│   ├── start.sh                   # 백엔드 시작 스크립트
 │   └── Procfile
 ├── frontend/
-│   └── src/ (App.tsx, api.ts)
-├── data/              # CSV 파일들 (배포 시 Git 포함)
-├── metadata/          # tools/scan_and_export.py 결과물
-└── column_meta/       # global_columns.yaml, patterns.yaml, datasets/*.yaml
+│   ├── src/
+│   │   ├── App.tsx                # 메인 앱 컴포넌트
+│   │   ├── api.ts                 # API 클라이언트
+│   │   ├── components/
+│   │   │   ├── DataGrid.tsx       # 데이터 그리드 컴포넌트
+│   │   │   ├── Header.tsx         # 헤더 컴포넌트
+│   │   │   ├── Sidebar.tsx        # 사이드바 (데이터셋 목록)
+│   │   │   ├── StatsPanel.tsx     # 통계 패널 (컬럼 상세)
+│   │   │   └── ToastBanner.tsx    # 토스트 알림
+│   │   └── hooks/
+│   │       └── useAldController.ts # 중앙 상태 관리 훅
+│   └── start.sh                   # 프론트엔드 시작 스크립트
+├── tools/
+│   ├── scan_and_export.py         # CSV 스캔 및 레지스트리 생성
+│   ├── export_column_meta_to_rag.py
+│   ├── export_rag_jsonl.py
+│   └── generate_column_meta_seed.py
+├── data/                          # CSV 파일들 (배포 시 Git 포함)
+├── metadata/
+│   ├── datasets.json              # 데이터셋 레지스트리
+│   ├── columns_union.json         # 컬럼 통합 정보
+│   ├── profiles/                  # 프로파일 JSON 파일들
+│   └── docs/                      # 문서 Markdown 파일들
+├── column_meta/
+│   ├── global_columns.yaml        # 전역 컬럼 메타데이터
+│   ├── global_columns.generated.yaml
+│   ├── global_columns.legacy.yaml
+│   ├── patterns.yaml              # 패턴 정의
+│   └── datasets/                  # 데이터셋별 메타데이터
+├── rag_docs/                      # RAG 문서 (컬럼/그룹 설명)
+├── rag_index/                     # RAG 인덱스 파일
+├── watch_csv.sh                   # CSV 변경 감지 및 자동 빌드 스크립트
+├── scan_metadata.sh               # 메타데이터 스캔 스크립트
+├── build_all_profiles.py          # 전체 프로파일 빌드 스크립트
+├── build_all_docs.py              # 전체 문서 빌드 스크립트
+├── start_backend.sh               # 백엔드 시작 스크립트 (프로젝트 루트)
+├── start_frontend.sh              # 프론트엔드 시작 스크립트 (프로젝트 루트)
+├── ARCHITECTURE.md                # 아키텍처 문서
+├── PROJECT_DOCUMENTATION.md       # 프로젝트 문서
+├── COLUMN_META_WORKFLOW.md        # 컬럼 메타데이터 워크플로우
+├── METADATA_STRATEGIES.md         # 메타데이터 전략 문서
+└── VERCEL_DEPLOY.md               # Vercel 배포 가이드
 ```
 
 ## 🚀 빠른 시작

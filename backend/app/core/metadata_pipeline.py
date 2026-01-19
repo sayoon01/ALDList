@@ -61,7 +61,7 @@ def refresh_registry_if_needed(*, force: bool = False) -> RefreshResult:
         RefreshResult with created/changed_ids/deleted lists
     """
     from .auto_scan import should_regenerate_metadata
-    from .registry import load_registry, DatasetMeta
+    from .registry import load_registry, DatasetMeta, get_store
 
     # refresh 전 registry 로드 (비교용)
     old_registry: List[DatasetMeta] = []
@@ -108,10 +108,12 @@ def refresh_registry_if_needed(*, force: bool = False) -> RefreshResult:
                 stderr=r.stderr or "",
             )
 
-    # refresh 후 registry 로드
+    # refresh 후 registry 로드 (캐시 강제 갱신)
     new_registry: List[DatasetMeta] = []
     if REGISTRY_PATH.exists():
         try:
+            # RegistryStore 캐시 강제 갱신
+            get_store().refresh()
             new_registry = load_registry()
         except Exception:
             new_registry = []
