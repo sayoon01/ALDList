@@ -37,6 +37,7 @@ interface SidebarProps {
 
   selectedTypeFilter: string | null;
   onSelectedTypeFilterChange: (filter: string | null) => void;
+  allowedTypes: string[];
 
   isLoadingStats: boolean;
   onCalculateStats: () => void;
@@ -88,6 +89,7 @@ export default function Sidebar(props: SidebarProps) {
 
     selectedTypeFilter,
     onSelectedTypeFilterChange,
+    allowedTypes,
 
     isLoadingStats,
     onCalculateStats,
@@ -174,15 +176,22 @@ export default function Sidebar(props: SidebarProps) {
     });
   }, [baseColumns, columnSearchQuery, columnMeta]);
 
-  // 타입 목록
+  // 타입 목록: 서버에서 받은 allowedTypes와 현재 데이터셋에 실제 존재하는 타입의 교집합
   const availableTypes = useMemo(() => {
-    const types = new Set<string>();
+    const typesInDataset = new Set<string>();
     allColumns.forEach((col) => {
       const m = columnMeta[col];
-      if (m?.type) types.add(m.type);
+      if (m?.type) typesInDataset.add(m.type);
     });
-    return Array.from(types).sort();
-  }, [allColumns, columnMeta]);
+    
+    // 서버에서 받은 allowedTypes와 교집합 (서버 타입이 없으면 기존 방식 유지)
+    if (allowedTypes.length > 0) {
+      return allowedTypes.filter(type => typesInDataset.has(type)).sort();
+    }
+    
+    // fallback: 서버 타입이 없으면 기존 방식
+    return Array.from(typesInDataset).sort();
+  }, [allColumns, columnMeta, allowedTypes]);
 
   return (
     <div className="sidebar">
@@ -456,7 +465,9 @@ export default function Sidebar(props: SidebarProps) {
                         try {
                           const result = await getFieldsByType(selectedDatasetId, type);
                           onVisibleColumnsChange(result.columns);
-                        } catch {
+                        } catch (error: any) {
+                          // 에러 발생 시 fallback: 로컬 메타데이터로 필터링
+                          console.warn("타입 필터 API 호출 실패, 로컬 필터링 사용:", error);
                           const filtered = allColumns.filter((c) => columnMeta[c]?.type === type);
                           onVisibleColumnsChange(filtered);
                         }

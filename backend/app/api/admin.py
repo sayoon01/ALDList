@@ -48,16 +48,20 @@ def refresh(force: bool = Query(False, description="true면 무조건 scan 실�
             },
         )
 
-    # dataset_count 계산
     try:
         datasets = load_registry()
         dataset_count = len(datasets)
     except Exception:
         dataset_count = 0
 
-    # ✅ scan 이후 캐시 정리 (메모리/뷰 누적 방지)
-    # 다음 preview/stats에서 새 fingerprint로 view 재생성
-    get_cache().clear_all()
+    # ✅ 변경된 것만 invalidate (clear_all()보다 안전+빠름)
+    cache = get_cache()
+    for ds_id in (r.created or []):
+        cache.invalidate(ds_id)
+    for ds_id in (r.changed_ids or []):
+        cache.invalidate(ds_id)
+    for ds_id in (r.deleted or []):
+        cache.invalidate(ds_id)
 
     return {
         "ran_scan": r.changed,

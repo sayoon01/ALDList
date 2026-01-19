@@ -124,3 +124,46 @@ def test_fields_response_contains_meta(monkeypatch, tmp_path: Path):
     assert "meta" in data
     assert data["columns"] == ["col1"]
     assert "col1" in data["meta"]
+
+
+def test_meta_types_endpoint():
+    """
+    /api/meta/types 엔드포인트 테스트
+    기대 결과:
+    - status_code 200
+    - json에 types 키 존재
+    - types는 리스트
+    """
+    r = client.get("/api/meta/types")
+    assert r.status_code == 200
+    data = r.json()
+    assert "types" in data
+    assert isinstance(data["types"], list)
+    assert len(data["types"]) > 0
+    # unknown은 항상 포함되어야 함
+    assert "unknown" in data["types"]
+
+
+def test_fields_invalid_type_returns_400(monkeypatch):
+    """
+    /fields 엔드포인트에서 존재하지 않는 type 요청 시 400 에러 반환 테스트
+    기대 결과:
+    - status_code 400
+    - detail에 allowed_types 포함
+    """
+    from app.api import datasets as datasets_api
+    from app.core import column_meta
+
+    class Dummy:
+        columns = ["col1", "col2"]
+
+    monkeypatch.setattr(datasets_api, "get_dataset", lambda dataset_id: Dummy())
+
+    # get_allowed_types가 실제 타입 목록을 반환하도록 설정
+    monkeypatch.setattr(column_meta, "get_allowed_types", lambda: ["gas", "temperature", "pressure", "unknown"])
+
+    r = client.get("/api/datasets/any/fields?type=invalidtype")
+    assert r.status_code == 400
+    # detail이 문자열인지 dict인지 확인 (현재 구현은 문자열)
+    detail = r.json().get("detail", "")
+    assert "Invalid type" in str(detail) or "invalidtype" in str(detail)

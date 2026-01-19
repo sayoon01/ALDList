@@ -61,6 +61,7 @@ export default function App() {
           onColumnSearchQueryChange={c.setColumnSearchQuery}
           selectedTypeFilter={c.selectedTypeFilter}
           onSelectedTypeFilterChange={c.setSelectedTypeFilter}
+          allowedTypes={c.allowedTypes}
           isLoadingStats={c.isLoadingStats}
           onCalculateStats={() => {
             c.handleCalculateStats().catch((e) => {

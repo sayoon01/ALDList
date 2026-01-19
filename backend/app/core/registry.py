@@ -27,10 +27,7 @@ class DatasetMeta:
 
 
 def _normalize_path(path_str: str, filename: str) -> str:
-    """
-    경로를 DATA_DIR 기준으로 정규화 - 항상 filename 기반
-    (배포/서버 환경에서 절대경로 저장돼도 안전)
-    """
+    """경로를 DATA_DIR 기준으로 정규화"""
     normalized = DATA_DIR / filename
     return str(normalized.resolve())
 
@@ -50,11 +47,7 @@ def _read_registry_file(registry_path: Path) -> List[DatasetMeta]:
 
 
 class RegistryStore:
-    """
-    확장 가능한 레지스트리 스토어:
-    - mtime 기반 자동 reload
-    - 필요하면 TTL, 수동 refresh, 이벤트 훅 등을 추가 가능
-    """
+    """레지스트리 스토어 (mtime 기반 자동 reload)"""
 
     def __init__(self, registry_path: Path = REGISTRY_PATH) -> None:
         self.registry_path = registry_path
@@ -79,7 +72,13 @@ class RegistryStore:
             if (not force) and (cur_mtime == self._loaded_mtime):
                 return
 
-            metas = _read_registry_file(self.registry_path)
+            try:
+                metas = _read_registry_file(self.registry_path)
+            except Exception as e:
+                # 파일 깨짐/읽기 실패해도 서버가 죽으면 안 됨
+                print(f"⚠️ registry load failed: {e}")
+                metas = []
+
             self._by_id = {m.dataset_id: m for m in metas}
             self._list_cache = metas
             self._loaded_mtime = cur_mtime

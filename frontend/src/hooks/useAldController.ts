@@ -8,6 +8,9 @@ import {
   buildDoc,
   readProfile,
   readDoc,
+  getAllowedTypes,
+  getMetaTypes,
+  adminRefresh,
   Dataset,
   StatsResponse,
   ColumnMeta,
@@ -45,6 +48,8 @@ export function useAldController() {
   // 컬럼 검색/타입 필터
   const [columnSearchQuery, setColumnSearchQuery] = useState<string>("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string | null>(null);
+  const [allowedTypes, setAllowedTypes] = useState<string[]>([]);
+  const [metaTypes, setMetaTypes] = useState<string[]>([]);
 
   // 선택한 컬럼만 보기 토글
   const [showSelectedOnly, setShowSelectedOnly] = useState<boolean>(false);
@@ -65,6 +70,31 @@ export function useAldController() {
       })
       .catch((error) => {
         console.error("데이터셋 목록 로드 실패:", error);
+      });
+  }, []);
+
+  // 1-1) 허용된 타입 목록 로드 (서버에서 동적으로 가져오기)
+  useEffect(() => {
+    getAllowedTypes()
+      .then((res) => {
+        setAllowedTypes(res.types);
+      })
+      .catch((error) => {
+        console.error("타입 목록 로드 실패:", error);
+        // 실패 시 빈 배열로 설정 (기존 동작 유지)
+        setAllowedTypes([]);
+      });
+  }, []);
+
+  // 1-2) 메타 타입 목록 로드 (count 포함, UI 자동화 준비)
+  useEffect(() => {
+    getMetaTypes()
+      .then((res) => {
+        setMetaTypes(res.types);
+      })
+      .catch((error) => {
+        console.error("meta types 로드 실패:", error);
+        setMetaTypes([]); // fallback
       });
   }, []);
 
@@ -345,6 +375,54 @@ export function useAldController() {
     }
   };
 
+  // Refresh 후 UI 상태 리셋
+  const handleRefresh = async (force: boolean = false) => {
+    try {
+      setAdminBusy(true);
+      
+      // 1) 백엔드 refresh 실행
+      await adminRefresh(force);
+      
+      // 2) 데이터셋 목록 재조회
+      const res = await getDatasets();
+      const prevSelectedId = selectedDatasetId;
+      
+      // 3) 선택된 데이터셋이 삭제되었는지 확인
+      const stillExists = res.datasets.some(ds => ds.dataset_id === prevSelectedId);
+      
+      setDatasets(res.datasets);
+      
+      // 4) 삭제되었거나 목록이 비어있으면 첫 번째로 변경
+      if (!stillExists || res.datasets.length === 0) {
+        if (res.datasets.length > 0) {
+          setSelectedDatasetId(res.datasets[0].dataset_id);
+        } else {
+          setSelectedDatasetId("");
+        }
+      }
+      
+      // 5) 타입 목록도 다시 로드 (patterns.yaml이 바뀔 수 있으므로)
+      try {
+        const typesRes = await getAllowedTypes();
+        setAllowedTypes(typesRes.types);
+      } catch (error) {
+        console.warn("타입 목록 재로드 실패:", error);
+      }
+      
+      // 6) 메타 타입 목록도 다시 로드
+      try {
+        const metaTypesRes = await getMetaTypes();
+        setMetaTypes(metaTypesRes.types);
+      } catch (error) {
+        console.warn("메타 타입 목록 재로드 실패:", error);
+      }
+      
+      return res;
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
   return {
     datasets,
     selectedDatasetId,
@@ -365,6 +443,8 @@ export function useAldController() {
     statsComputeMode,
     columnSearchQuery,
     selectedTypeFilter,
+    allowedTypes,
+    metaTypes,
     showSelectedOnly,
     profile,
     docMd,
@@ -388,6 +468,7 @@ export function useAldController() {
     handleCalculateStats,
     handleBuildProfile,
     handleBuildDoc,
+    handleRefresh,
     buildAndLoadProfile,
     buildAndLoadDoc,
     onCellMouseDown,

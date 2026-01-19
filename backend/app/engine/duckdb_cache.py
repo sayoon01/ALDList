@@ -1,7 +1,8 @@
 """
 DuckDB Relation 캐시 (단일 connection + fingerprint 기반 자동 무효화)
+
 - dataset_id별로 VIEW를 만들고 재사용
-- CSV 파일이 변경되면(size/mtime) 자동으로 VIEW 재생성
+- CSV 파일이 변경되면(size/mtime_ns) 자동으로 VIEW 재생성
 - 자동화(파일 변경 감지/watch_csv/refresh)와 잘 맞음
 """
 
@@ -24,19 +25,19 @@ class ViewEntry:
 
 def compute_fingerprint(csv_path: str) -> str:
     """
-    빠르고 실용적인 fingerprint: absolute path + size + mtime
-    (원하면 sha256(file bytes)로 강화 가능)
+    빠르고 실용적인 fingerprint: absolute path + size + mtime_ns
+    - mtime을 int초로 자르면 같은 초에 여러 번 바뀌는 경우를 못 잡아서 mtime_ns 사용
     """
     p = Path(csv_path).resolve()
     st = p.stat()
-    return f"{p.as_posix()}|{st.st_size}|{int(st.st_mtime)}"
+    mtime_ns = getattr(st, "st_mtime_ns", int(st.st_mtime * 1_000_000_000))
+    return f"{p.as_posix()}|{st.st_size}|{mtime_ns}"
 
 
 class DuckDBCache:
     """
     - 단일 DuckDB connection 보유
     - dataset_id -> ViewEntry 관리
-    - get_relation()만 쓰면 됨
     """
 
     def __init__(self) -> None:
@@ -56,13 +57,11 @@ class DuckDBCache:
     def _create_or_replace_view(self, view_name: str, csv_path: str) -> None:
         """VIEW 생성 또는 교체"""
         p = Path(csv_path).resolve()
-        # all_varchar=true로 빠르게 읽고,
-        # stats는 TRY_CAST로 처리하는 구조와 잘 맞음.
-        create_sql = f"""
+        sql = f"""
         CREATE OR REPLACE VIEW {view_name} AS
         SELECT * FROM read_csv('{p.as_posix()}', all_varchar=true, header=true);
         """
-        self._conn.execute(create_sql)
+        self._conn.execute(sql)
 
     def get_relation(self, dataset_id: str, csv_path: str) -> str:
         """
@@ -77,7 +76,6 @@ class DuckDBCache:
             if entry and entry.view_name == view_name and entry.fingerprint == fp:
                 return view_name
 
-            # (재)생성
             self._create_or_replace_view(view_name, csv_path)
             self._entries[dataset_id] = ViewEntry(
                 view_name=view_name, fingerprint=fp, csv_path=str(Path(csv_path).resolve())
@@ -97,8 +95,8 @@ class DuckDBCache:
     def clear_all(self) -> None:
         """모든 view 제거"""
         with self._lock:
-            for dataset_id in list(self._entries.keys()):
-                self.invalidate(dataset_id)
+            for ds_id in list(self._entries.keys()):
+                self.invalidate(ds_id)
 
     def close(self) -> None:
         """connection 닫기"""
@@ -111,16 +109,12 @@ class DuckDBCache:
                 except Exception:
                     pass
 
-    # 하위호환 메서드들
+    # 하위호환
     def get_view_query(self, dataset_id: str, csv_path: str) -> str:
-        """
-        View 이름 반환 (하위호환)
-        Returns: view_name 또는 fallback 쿼리
-        """
+        """View 이름 반환 (하위호환)"""
         try:
             return self.get_relation(dataset_id, csv_path)
         except Exception:
-            # View 생성 실패 시 원본 경로 사용 (fallback)
             csv_path_normalized = str(Path(csv_path).resolve())
             return f"read_csv('{csv_path_normalized}', all_varchar=true, header=true)"
 

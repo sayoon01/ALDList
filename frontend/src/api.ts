@@ -60,8 +60,29 @@ async function fetchAPI<T>(endpoint: string): Promise<T> {
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      const errorText = await response.text().catch(() => response.statusText);
-      throw new Error(`API Error (${response.status}): ${errorText}`);
+      const text = await response.text().catch(() => response.statusText);
+
+      // ✅ JSON 에러(detail dict)면 파싱해서 message를 더 보기 좋게
+      try {
+        const j = JSON.parse(text);
+        const detail = j?.detail;
+
+        // detail이 객체면 message + allowed_types를 붙여줌
+        if (detail && typeof detail === "object") {
+          const msg = detail.message || `API Error (${response.status})`;
+          const allowed = Array.isArray(detail.allowed_types) ? detail.allowed_types.join(", ") : null;
+          throw new Error(allowed ? `${msg}\nAllowed: ${allowed}` : msg);
+        }
+
+        // detail이 문자열이면 그대로
+        if (typeof detail === "string") {
+          throw new Error(detail);
+        }
+
+        throw new Error(text);
+      } catch {
+        throw new Error(`API Error (${response.status}): ${text}`);
+      }
     }
     return response.json();
   } catch (error: any) {
@@ -127,6 +148,23 @@ export interface FieldsByTypeResponse {
 
 export async function getFieldsByType(datasetId: string, type: string): Promise<FieldsByTypeResponse> {
   return fetchAPI(`/api/datasets/${datasetId}/fields?type=${encodeURIComponent(type)}`);
+}
+
+export interface AllowedTypesResponse {
+  types: string[];
+}
+
+export async function getAllowedTypes(): Promise<AllowedTypesResponse> {
+  return fetchAPI("/api/meta/types");
+}
+
+export type MetaTypesResponse = {
+  types: string[];
+  count: number;
+};
+
+export async function getMetaTypes(): Promise<MetaTypesResponse> {
+  return fetchAPI("/api/meta/types");
 }
 
 

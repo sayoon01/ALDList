@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .api.datasets import router as datasets_router
 from .api.stats import router as stats_router
 from .api.admin import router as admin_router
+from .api.meta import router as meta_router
 from .core.metadata_pipeline import refresh_registry_if_needed
 
 app = FastAPI(
@@ -35,6 +36,7 @@ app.add_middleware(
 app.include_router(datasets_router)
 app.include_router(stats_router)
 app.include_router(admin_router)
+app.include_router(meta_router)
 
 
 @app.get("/")

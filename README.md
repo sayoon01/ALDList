@@ -71,7 +71,8 @@ aldList/
 │   ├── scan_and_export.py         # CSV 스캔 및 레지스트리 생성
 │   ├── export_column_meta_to_rag.py
 │   ├── export_rag_jsonl.py
-│   └── generate_column_meta_seed.py
+│   ├── generate_column_meta_seed.py
+│   └── generate_global_meta_generated.py  # 규칙 기반 desc 자동 생성
 ├── data/                          # CSV 파일들 (배포 시 Git 포함)
 ├── metadata/
 │   ├── datasets.json              # 데이터셋 레지스트리
@@ -353,6 +354,35 @@ python3 tools/scan_and_export.py
    → auto_generated: false (공식 메타데이터로 취급)
 ```
 
+**또는 규칙 기반 desc 자동 생성 (권장):**
+
+```
+3-1. 규칙 기반 메타데이터 생성
+   → python3 tools/generate_global_meta_generated.py 실행
+   → metadata/columns_union.json 읽기
+   → global_columns.yaml에 없는 컬럼만 필터링
+   → patterns.yaml 기반으로 기본 메타데이터 생성
+   → 규칙 기반으로 desc를 더 구체적으로 개선
+     - MFC류: MFC 관련 유량/설정/입력 값 설명
+     - 온도류: 챔버/히터/센서 온도 관련 설명
+     - 압력류: 챔버 압력 관련 설명
+     - AUX류: 보조 센서/모니터링 설명
+     - 밸브류: 밸브 채널 상태/제어 설명
+   → column_meta/global_columns.generated.yaml 생성/업데이트
+   → 실행 결과 예시:
+     ============================================================
+     columns_union: 207
+     global_columns: 207
+     generated_written: /path/to/global_columns.generated.yaml
+     created: 0, updated: 0
+     ============================================================
+     다음 단계:
+     1) column_meta/global_columns.generated.yaml 검수
+     2) 확정된 항목만 global_columns.yaml로 옮기기(승격)
+     3) 서버는 자동으로 반영(hot reload)
+     ============================================================
+```
+
 **생성되는 메타데이터 예시:**
 ```yaml
 MFCMon_DCS:
@@ -509,8 +539,13 @@ cp your_file.csv data/
 # 2. 메타데이터 스캔
 python3 tools/scan_and_export.py
 
-# 3. 메타데이터 시드 생성
+# 3. 메타데이터 시드 생성 (선택 1: 기본 방식)
 python3 tools/generate_column_meta_seed.py
+
+# 또는 규칙 기반 desc 자동 생성 (선택 2: 권장)
+python3 tools/generate_global_meta_generated.py
+# → 생성된 global_columns.generated.yaml 검수 후
+# → 확정된 항목만 global_columns.yaml로 승격
 
 # 4. RAG 문서 생성
 python3 tools/export_column_meta_to_rag.py
@@ -535,9 +570,15 @@ python3 tools/export_rag_jsonl.py
 ```bash
 # 컬럼 추가/변경 후
 python3 tools/generate_column_meta_seed.py
+# 또는
+python3 tools/generate_global_meta_generated.py
+
+# 생성된 파일 검수 후 승격
+# (global_columns.generated.yaml → global_columns.yaml)
+
 python3 tools/export_column_meta_to_rag.py
 python3 tools/export_rag_jsonl.py
-# 백엔드 재시작
+# 백엔드는 hot reload로 자동 반영 (재시작 불필요)
 ```
 
 ---
@@ -777,9 +818,35 @@ python3 tools/export_rag_jsonl.py
 1. CSV 스캔 (tools/scan_and_export.py)
    → metadata/columns_union.json 생성
 
-2. 메타데이터 시드 생성 (tools/generate_column_meta_seed.py)
+2. 메타데이터 시드 생성 (두 가지 방법 중 선택)
+
+   방법 A: 기본 시드 생성 (tools/generate_column_meta_seed.py)
    → column_meta/global_columns.generated.yaml 생성
    → column_meta/global_columns.yaml로 복사 (공식 메타)
+
+   방법 B: 규칙 기반 desc 자동 생성 (tools/generate_global_meta_generated.py) [권장]
+   → global_columns.yaml에 없는 컬럼만 필터링
+   → patterns.yaml 기반 기본 메타데이터 생성
+   → 규칙 기반으로 desc를 더 구체적으로 개선
+     - MFC류: "MFC(Mass Flow Controller) 관련 유량/설정/입력 값입니다..."
+     - 온도류: "챔버/히터/센서 온도 관련 측정/설정 값입니다..."
+     - 압력류: "챔버 압력 관련 값(측정/설정/게이지)입니다..."
+     - AUX류: "장비 보조 센서/모니터링 값입니다..."
+     - 밸브류: "밸브 채널 상태/제어/설정 값입니다..."
+   → column_meta/global_columns.generated.yaml 생성/업데이트
+   → 실행 결과:
+     ============================================================
+     columns_union: 207
+     global_columns: 207
+     generated_written: /path/to/global_columns.generated.yaml
+     created: 0, updated: 0
+     ============================================================
+     다음 단계:
+     1) column_meta/global_columns.generated.yaml 검수
+     2) 확정된 항목만 global_columns.yaml로 옮기기(승격)
+     3) 서버는 자동으로 반영(hot reload)
+     ============================================================
+   → 검수 후 확정된 항목만 global_columns.yaml로 승격
 
 3. RAG 문서 생성 (tools/export_column_meta_to_rag.py)
    → rag_docs/columns/*.md (207개)
@@ -789,7 +856,8 @@ python3 tools/export_rag_jsonl.py
    → rag_index/column_meta.jsonl
 
 5. 백엔드 실행
-   → core/column_meta.py가 global_columns.yaml 로드
+   → core/column_meta.py가 global_columns.yaml 로드 (hot reload 지원)
+   → 파일 변경 시 자동으로 mtime 기반 reload
    → API 엔드포인트에서 메타데이터 반환
    → 프론트엔드에서 UI 표시
 ```
