@@ -91,9 +91,8 @@ aldList/
 │
 ├── tools/                 # 유틸리티 스크립트
 │   ├── scan_and_export.py           # CSV 스캔 및 메타데이터 생성
-│   ├── generate_column_meta_seed.py # 컬럼 메타데이터 시드 생성
-│   ├── export_column_meta_to_rag.py # RAG 문서 생성
-│   └── export_rag_jsonl.py         # RAG JSONL 인덱스 생성
+│   ├── generate_meta.py            # 메타데이터 생성 통합 (patterns/inference/frequency)
+│   └── export_rag.py               # RAG 출력 통합 (markdown/jsonl)
 │
 ├── data/                  # CSV 데이터 파일들
 │   └── *.csv

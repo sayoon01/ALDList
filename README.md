@@ -69,10 +69,8 @@ aldList/
 │   └── start.sh                   # 프론트엔드 시작 스크립트
 ├── tools/
 │   ├── scan_and_export.py         # CSV 스캔 및 레지스트리 생성
-│   ├── export_column_meta_to_rag.py
-│   ├── export_rag_jsonl.py
-│   ├── generate_column_meta_seed.py
-│   └── generate_global_meta_generated.py  # 규칙 기반 desc 자동 생성
+│   ├── generate_meta.py      # 메타데이터 생성 통합 (patterns/inference/frequency)
+│   └── export_rag.py         # RAG 출력 통합 (markdown/jsonl)
 ├── data/                          # CSV 파일들 (배포 시 Git 포함)
 ├── metadata/
 │   ├── datasets.json              # 데이터셋 레지스트리
@@ -344,24 +342,32 @@ python3 tools/scan_and_export.py
 #### Phase 2: 메타데이터 자동 생성
 
 ```
-3. 메타데이터 시드 생성 (최초 1회 또는 컬럼 추가 시)
-   → python3 tools/generate_column_meta_seed.py 실행
-   → metadata/columns_union.json 읽기
-   → 컬럼명 패턴 분석 (MFC*, Temp*, Press* 등)
-   → column_meta/global_columns.generated.yaml 생성 (207개 전체)
-   → column_meta/global_columns.yaml로 복사 (공식 메타데이터)
-   → 모든 컬럼에 type, category, unit, desc 자동 생성
-   → auto_generated: false (공식 메타데이터로 취급)
-```
+3. 메타데이터 생성 (최초 1회 또는 컬럼 추가 시)
 
-**또는 규칙 기반 desc 자동 생성 (권장):**
+**방법 선택:**
 
 ```
-3-1. 규칙 기반 메타데이터 생성
-   → python3 tools/generate_global_meta_generated.py 실행
+3-1. patterns.yaml 기반 생성 (권장)
+   → python3 tools/generate_meta.py --method patterns
    → metadata/columns_union.json 읽기
    → global_columns.yaml에 없는 컬럼만 필터링
    → patterns.yaml 기반으로 기본 메타데이터 생성
+   → enrich_desc_rule_based()로 desc 보강
+   → column_meta/global_columns.generated.yaml 생성
+
+3-2. 컬럼명 패턴 추론 기반 생성
+   → python3 tools/generate_meta.py --method inference
+   → metadata/columns_union.json 읽기
+   → 컬럼명 패턴 분석 (MFC*, Temp*, Press* 등)
+   → column_meta/global_columns.generated.yaml 생성
+
+3-3. 빈도 기반 seed 생성
+   → python3 tools/generate_meta.py --method frequency
+   → columns_by_file.json에서 빈도 계산
+   → 빈도 높은 컬럼부터 seed 생성
+
+3-4. 모든 방법 순차 실행
+   → python3 tools/generate_meta.py --method all
    → 규칙 기반으로 desc를 더 구체적으로 개선
      - MFC류: MFC 관련 유량/설정/입력 값 설명
      - 온도류: 챔버/히터/센서 온도 관련 설명
@@ -433,7 +439,7 @@ MFCMon_DCS은 반도체 장비에서 사용되는 가스 유량 관련 필드입
 
 ```
 5. RAG 인덱스 생성 (Vector DB용)
-   → python3 tools/export_rag_jsonl.py 실행
+   → python3 tools/export_rag.py --format jsonl 실행
    → column_meta/global_columns.yaml 읽기
    → rag_index/column_meta.jsonl 생성 (207개 문서)
    → 각 줄은 JSON 객체 하나 (JSONL 형식)
@@ -519,7 +525,7 @@ MFCMon_DCS은 반도체 장비에서 사용되는 가스 유량 관련 필드입
 | 단계 | 초기 방식 | 현재 방식 |
 |------|----------|----------|
 | **메타데이터 생성** | 수동 작성 (10~30개) | 자동 생성 (207개 전체) |
-| **생성 도구** | 직접 YAML 편집 | `generate_column_meta_seed.py` |
+| **생성 도구** | 직접 YAML 편집 | `generate_meta.py` |
 | **RAG 문서** | 없음 | `rag_docs/columns/*.md` (207개) |
 | **RAG 그룹 문서** | 없음 | `rag_docs/groups/*.md` (10개) |
 | **RAG 인덱스** | 없음 | `rag_index/column_meta.jsonl` |
@@ -539,19 +545,24 @@ cp your_file.csv data/
 # 2. 메타데이터 스캔
 python3 tools/scan_and_export.py
 
-# 3. 메타데이터 시드 생성 (선택 1: 기본 방식)
-python3 tools/generate_column_meta_seed.py
-
-# 또는 규칙 기반 desc 자동 생성 (선택 2: 권장)
-python3 tools/generate_global_meta_generated.py
+# 3. 메타데이터 생성 (방법 선택)
+python3 tools/generate_meta.py --method patterns    # patterns.yaml 기반 (권장)
+# 또는
+python3 tools/generate_meta.py --method inference   # 컬럼명 패턴 추론
+# 또는
+python3 tools/generate_meta.py --method frequency   # 빈도 기반 seed
+# 또는
+python3 tools/generate_meta.py --method all          # 모든 방법 순차 실행
 # → 생성된 global_columns.generated.yaml 검수 후
 # → 확정된 항목만 global_columns.yaml로 승격
 
 # 4. RAG 문서 생성
-python3 tools/export_column_meta_to_rag.py
+python3 tools/export_rag.py --format markdown
 
 # 5. RAG 인덱스 생성
-python3 tools/export_rag_jsonl.py
+python3 tools/export_rag.py --format jsonl
+# 또는 둘 다 생성
+python3 tools/export_rag.py --format all
 ```
 
 **일반 사용:**
@@ -569,15 +580,16 @@ python3 tools/export_rag_jsonl.py
 **메타데이터 업데이트 시:**
 ```bash
 # 컬럼 추가/변경 후
-python3 tools/generate_column_meta_seed.py
+python3 tools/generate_meta.py --method patterns    # 권장
 # 또는
-python3 tools/generate_global_meta_generated.py
+python3 tools/generate_meta.py --method inference
+# 또는
+python3 tools/generate_meta.py --method frequency
 
 # 생성된 파일 검수 후 승격
 # (global_columns.generated.yaml → global_columns.yaml)
 
-python3 tools/export_column_meta_to_rag.py
-python3 tools/export_rag_jsonl.py
+python3 tools/export_rag.py --format all
 # 백엔드는 hot reload로 자동 반영 (재시작 불필요)
 ```
 
@@ -679,7 +691,7 @@ python3 tools/export_rag_jsonl.py
 #### 현재: 자동 생성 + RAG 시스템
 
 **현재 접근 방식:**
-- `tools/generate_column_meta_seed.py`로 207개 전체 컬럼의 기본 메타데이터 자동 생성
+- `tools/generate_meta.py`로 207개 전체 컬럼의 기본 메타데이터 자동 생성
 - `global_columns.generated.yaml` → `global_columns.yaml`로 복사하여 공식 메타데이터로 사용
 - 모든 컬럼에 `auto_generated: false` (공식 메타데이터로 취급)
 
@@ -722,7 +734,7 @@ python3 tools/export_rag_jsonl.py
 - `type`, `category`, `unit`, `desc` 등 포함
 
 **생성 과정:**
-1. `tools/generate_column_meta_seed.py` 실행
+1. `tools/generate_meta.py --method inference` 실행
 2. `metadata/columns_union.json` 읽기
 3. 컬럼명 패턴 기반으로 메타데이터 추론
 4. `column_meta/global_columns.generated.yaml` 생성
@@ -755,7 +767,7 @@ python3 tools/export_rag_jsonl.py
 - 예: `gas.md`, `temperature.md`, `pressure.md`
 
 **생성:**
-- `tools/export_column_meta_to_rag.py` 실행
+- `tools/export_rag.py --format markdown` 실행
 - `global_columns.yaml` → Markdown 변환
 
 #### 7.5.2 rag_index/ (JSONL 인덱스)
@@ -778,7 +790,7 @@ python3 tools/export_rag_jsonl.py
 ```
 
 **생성:**
-- `tools/export_rag_jsonl.py` 실행
+- `tools/export_rag.py --format jsonl` 실행
 - `global_columns.yaml` → JSONL 변환
 
 ### 7.6 global_columns.yaml vs RAG 시스템 비교

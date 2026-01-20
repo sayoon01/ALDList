@@ -88,20 +88,21 @@ export function useAldController() {
       });
   }, []);
 
-  // 1-2) 메타 타입 목록 로드 (카탈로그: allowed_types, ordered_types, labels)
+  // 1-2) 메타 타입 목록 로드 (카탈로그: types, labels)
   useEffect(() => {
-    getMetaTypes()
-      .then((res) => {
-        setMetaTypes(res.allowed_types);
-        setOrderedTypes(res.ordered_types);
-        setTypeLabels(res.labels);
-      })
-      .catch((error) => {
-        console.error("meta types 로드 실패:", error);
-        setMetaTypes([]); // fallback
+    (async () => {
+      try {
+        const res = await getMetaTypes();
+        setMetaTypes(res.types || []);
+        setOrderedTypes(res.types || []);  // types를 orderedTypes로도 사용
+        setTypeLabels(res.labels || {});
+      } catch (e) {
+        console.warn("meta/types 로드 실패, 로컬 타입으로 fallback", e);
+        setMetaTypes([]);
         setOrderedTypes([]);
         setTypeLabels({});
-      });
+      }
+    })();
   }, []);
 
   // 2) 선택된 데이터셋 preview 먼저 로드 -> 그 다음 columns meta 로드
@@ -418,9 +419,9 @@ export function useAldController() {
       // 6) 메타 타입 목록도 다시 로드
       try {
         const metaTypesRes = await getMetaTypes();
-        setMetaTypes(metaTypesRes.allowed_types);
-        setOrderedTypes(metaTypesRes.ordered_types);
-        setTypeLabels(metaTypesRes.labels);
+        setMetaTypes(metaTypesRes.types || []);
+        setOrderedTypes(metaTypesRes.types || []);
+        setTypeLabels(metaTypesRes.labels || {});
       } catch (error) {
         console.warn("메타 타입 목록 재로드 실패:", error);
       }

@@ -1,11 +1,13 @@
 """FastAPI 메인 애플리케이션"""
+import json
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .api.datasets import router as datasets_router
 from .api.stats import router as stats_router
 from .api.admin import router as admin_router
-from .api.meta import router as meta_router
+from .api import meta
 from .core.metadata_pipeline import refresh_registry_if_needed
 
 app = FastAPI(
@@ -13,6 +15,22 @@ app = FastAPI(
     description="CSV 데이터 분석 API",
     version="1.0.0"
 )
+
+
+# 한글 유니코드 이스케이프 방지를 위한 커스텀 JSON 인코더
+class UnicodeJSONResponse(JSONResponse):
+    def render(self, content) -> bytes:
+        return json.dumps(
+            content,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=None,
+            separators=(",", ":"),
+        ).encode("utf-8")
+
+
+# 기본 JSONResponse를 커스텀 인코더로 교체
+app.default_response_class = UnicodeJSONResponse
 
 # 서버 시작 시 메타데이터 확인 및 자동 생성
 @app.on_event("startup")
@@ -36,7 +54,7 @@ app.add_middleware(
 app.include_router(datasets_router)
 app.include_router(stats_router)
 app.include_router(admin_router)
-app.include_router(meta_router)
+app.include_router(meta.router)
 
 
 @app.get("/")

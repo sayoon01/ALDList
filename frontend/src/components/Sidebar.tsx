@@ -191,19 +191,19 @@ export default function Sidebar(props: SidebarProps) {
     );
   }, [allColumns, columnMeta]);
 
-  // 타입 목록: 서버에서 받은 orderedTypes와 현재 데이터셋에 실제 존재하는 타입의 교집합
+  // 타입 목록: 서버에서 받은 metaTypes(types)와 현재 데이터셋에 실제 존재하는 타입의 교집합
   const availableTypes = useMemo(() => {
-    // 1) 서버 ordered_types 우선 (순서도 서버가 정해준 순서 유지)
+    // 1) 서버 types 우선 (순서도 서버가 정해준 순서 유지)
     // 2) 서버가 비었거나 실패한 경우 datasetTypes로 fallback
     const baseTypes =
-      orderedTypes && orderedTypes.length > 0
-        ? orderedTypes.filter((t) => datasetTypes.includes(t))
+      metaTypes && metaTypes.length > 0
+        ? metaTypes.filter((t) => datasetTypes.includes(t))
         : datasetTypes;
 
     // 서버에서 이미 정렬된 순서를 사용하므로 추가 정렬 불필요
     // (원본 배열 mutate 방지를 위해 복사본 반환)
     return [...baseTypes];
-  }, [orderedTypes, datasetTypes]);
+  }, [metaTypes, datasetTypes]);
 
   return (
     <div className="sidebar">

@@ -121,9 +121,9 @@ class ProfileBuildResponse(BaseModel):
 
 
 class MetaTypesResponse(BaseModel):
-    allowed_types: List[str]
-    ordered_types: List[str]
+    types: List[str]
     labels: Dict[str, str]
+    order: Optional[List[str]] = None
 
 
 class InvalidTypeDetail(BaseModel):
