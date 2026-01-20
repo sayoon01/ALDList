@@ -13,11 +13,14 @@ from typing import Dict, Any
 from pathlib import Path
 import json
 
+import sys
+import subprocess
+
 from ..core.metadata_pipeline import refresh_registry_if_needed
 from ..core.registry import get_dataset, load_registry
 from ..core.profile_v1 import build_profile_v1
 from ..core.doc_v1 import build_doc_v1
-from ..core.settings import PROFILES_DIR, DOCS_DIR
+from ..core.settings import PROFILES_DIR, DOCS_DIR, PROJECT_ROOT
 from ..engine.duckdb_cache import get_cache
 from ..models.schemas import AdminRefreshResponse, RefreshResponse, ProfileBuildResponse
 
@@ -208,3 +211,37 @@ def get_doc(dataset_id: str):
     if not p.exists():
         raise HTTPException(status_code=404, detail="Doc not built yet")
     return p.read_text(encoding="utf-8")
+
+
+@router.post("/meta/generated/build")
+def build_generated_meta():
+    """
+    global_columns.generated.yaml 배치 생성 실행
+    - patterns.yaml 기반으로 메타데이터 생성 (가장 정확한 방법)
+    - scan_and_export와 분리: generated는 column meta 초안 생성 단계
+    - column_meta store는 파일 mtime 기반 핫리로드라 서버 재시작 불필요
+    """
+    script_path = PROJECT_ROOT / "tools" / "generate_meta.py"
+
+    r = subprocess.run(
+        [sys.executable, str(script_path), "--method", "patterns"],
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+    )
+
+    if r.returncode != 0:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "generated meta build failed",
+                "stderr": (r.stderr or "")[-4000:],
+                "stdout": (r.stdout or "")[-4000:],
+            },
+        )
+
+    # column_meta store는 파일 mtime 기반 핫리로드라 서버 재시작 불필요
+    return {
+        "ok": True,
+        "stdout": (r.stdout or "")[-4000:],
+    }

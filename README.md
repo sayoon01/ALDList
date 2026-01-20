@@ -98,6 +98,162 @@ aldList/
 └── VERCEL_DEPLOY.md               # Vercel 배포 가이드
 ```
 
+---
+
+## 📊 전체 워크플로우
+
+프로젝트는 CSV 파일부터 RAG 인덱스까지 자동화된 파이프라인으로 구성되어 있습니다.
+
+### 워크플로우 다이어그램
+
+```
+1. CSV 파일 스캔
+   data/*.csv
+   ↓
+   tools/scan_and_export.py
+   ↓
+   metadata/datasets.json (레지스트리)
+   metadata/columns_union.json (컬럼 목록)
+
+2. 메타데이터 생성
+   metadata/columns_union.json
+   ↓
+   tools/generate_meta.py
+   ↓
+   column_meta/global_columns.yaml (공식 메타데이터)
+
+3. RAG 문서 생성
+   column_meta/global_columns.yaml
+   ↓
+   tools/export_rag.py --format markdown
+   ↓
+   rag_docs/columns/*.md (개별 문서)
+   rag_docs/groups/*.md (타입별 그룹)
+
+4. RAG 인덱스 생성
+   column_meta/global_columns.yaml
+   ↓
+   tools/export_rag.py --format jsonl
+   ↓
+   rag_index/column_meta.jsonl (Vector DB용)
+```
+
+### 주요 디렉토리 설명
+
+| 디렉토리 | 용도 | 사용자 | 형식 | 생성 방법 |
+|---------|------|-------|------|----------|
+| `metadata/` | 백엔드 애플리케이션 메타데이터 | 백엔드 API | JSON | `tools/scan_and_export.py` |
+| `rag_docs/` | RAG 검색용 마크다운 문서 | LLM/RAG 시스템 | Markdown | `tools/export_rag.py --format markdown` |
+| `rag_index/` | Vector DB 인덱싱용 데이터 | Vector DB | JSONL | `tools/export_rag.py --format jsonl` |
+
+#### `metadata/` 디렉토리 상세
+
+백엔드 애플리케이션에서 사용하는 메타데이터 저장소입니다.
+
+- **`datasets.json`**: 데이터셋 레지스트리
+  - 각 CSV 파일의 메타데이터 (dataset_id, path, filename, size_bytes, mtime, columns)
+  - 백엔드가 시작할 때 로드하여 메모리 캐시로 사용
+  - `GET /api/datasets` API에서 사용
+
+- **`columns_union.json`**: 모든 CSV 파일에서 발견된 컬럼명의 합집합
+  - 예: `["APCValveMon", "APCValveSet", "TempAct_U", ...]` (207개)
+  - 메타데이터 생성 스크립트의 입력으로 사용
+
+- **`columns_by_file.json`**: 파일별 컬럼 목록
+  - 각 CSV 파일에 어떤 컬럼이 있는지 매핑
+  - 빈도 기반 메타데이터 생성에 사용
+
+- **`columns_intersection.json`**: 모든 파일에 공통으로 있는 컬럼
+  - 교집합 컬럼 목록
+
+- **`profiles/`**: 각 데이터셋의 프로파일 JSON 파일들
+  - 통계 정보, 데이터 분포 등
+
+- **`docs/`**: 각 데이터셋의 문서 Markdown 파일들
+  - 데이터셋 설명 문서
+
+#### `rag_docs/` 디렉토리 상세
+
+RAG(Retrieval-Augmented Generation) 검색을 위한 마크다운 문서 저장소입니다.
+
+**구조:**
+```
+rag_docs/
+├── columns/          # 컬럼별 개별 문서 (207개)
+│   ├── APCValveMon.md
+│   ├── TempAct_U.md
+│   └── ...
+└── groups/           # 타입별 묶음 문서 (10개)
+    ├── gas.md        # "가스 관련 컬럼 목록"
+    ├── temperature.md # "온도 관련 컬럼 목록"
+    ├── pressure.md
+    └── ...
+```
+
+**용도:**
+- 자연어 질의에 대응
+  - 예: "가스 관련 필드 보여줘" → `rag_docs/groups/gas.md` 검색
+  - 예: "APCValveMon이 뭐야?" → `rag_docs/columns/APCValveMon.md` 검색
+
+**문서 예시 (`rag_docs/columns/APCValveMon.md`):**
+```markdown
+# APCValveMon
+
+이 문서는 CSV 헤더(컬럼)의 의미를 설명하는 데이터 사전이다.
+이 컬럼은 반도체 장비 로그 CSV에 포함된 필드이다.
+이 컬럼은 챔버 압력/진공 게이지 등 압력과 관련된 필드이다.
+
+## 설명
+APC(Advanced Pressure Control) 밸브 관련 필드입니다. 압력 제어를 위해 사용됩니다.
+
+## 메타데이터
+- type: pressure (압력)
+- category: control
+- unit: %
+```
+
+#### `rag_index/` 디렉토리 상세
+
+Vector DB 인덱싱용 JSONL 파일 저장소입니다.
+
+- **`column_meta.jsonl`**: JSONL 형식의 컬럼 메타데이터
+  - 각 줄이 하나의 JSON 객체
+  - Vector DB에 직접 인덱싱 가능한 형태
+
+**파일 예시:**
+```jsonl
+{"id": "column:APCValveMon", "column": "APCValveMon", "type": "pressure", "category": "control", "equipment_field": "APCValveMon", "text": "이 컬럼은 반도체 장비 로그 CSV에 포함된 필드이다. APC(Advanced Pressure Control) 밸브 관련 필드입니다. 압력 제어를 위해 사용됩니다. 이 필드는 pressure 유형이다."}
+{"id": "column:TempAct_U", "column": "TempAct_U", "type": "temperature", "category": "monitor", "equipment_field": "TempAct_U", "text": "이 컬럼은 반도체 장비 로그 CSV에 포함된 필드이다. 챔버 온도 실제값(Actual) - Upper zone 이 필드는 temperature 유형이다."}
+```
+
+**용도:**
+- Vector DB (예: Pinecone, Weaviate, ChromaDB)에 임베딩하여 인덱싱
+- 의미 기반 검색 지원
+- LLM과 함께 사용하여 자연어 질의에 답변
+
+### 자동 생성 및 업데이트
+
+모든 디렉토리는 자동 생성되며, CSV 파일을 추가하거나 메타데이터를 업데이트할 때마다 재생성하면 됩니다:
+
+```bash
+# 1. CSV 스캔
+python3 tools/scan_and_export.py
+
+# 2. 메타데이터 생성
+python3 tools/generate_meta.py --method patterns
+
+# 3. RAG 문서 생성
+python3 tools/export_rag.py --format markdown
+
+# 4. RAG 인덱스 생성
+python3 tools/export_rag.py --format jsonl
+
+# 또는 한 번에 모두 생성
+python3 tools/export_rag.py --format all
+```
+
+---
+
 ## 🚀 빠른 시작
 
 ### 1. CSV 파일 준비
@@ -403,7 +559,7 @@ MFCMon_DCS:
 
 ```
 4. RAG 문서 생성 (최초 1회 또는 메타데이터 업데이트 시)
-   → python3 tools/export_column_meta_to_rag.py 실행
+   → python3 tools/export_rag.py --format markdown 실행
    → column_meta/global_columns.yaml 읽기
    ↓
    a) 컬럼별 문서 생성
@@ -832,11 +988,8 @@ python3 tools/export_rag.py --format all
 
 2. 메타데이터 시드 생성 (두 가지 방법 중 선택)
 
-   방법 A: 기본 시드 생성 (tools/generate_column_meta_seed.py)
-   → column_meta/global_columns.generated.yaml 생성
-   → column_meta/global_columns.yaml로 복사 (공식 메타)
-
-   방법 B: 규칙 기반 desc 자동 생성 (tools/generate_global_meta_generated.py) [권장]
+   방법 A: patterns.yaml 기반 생성 (권장)
+   → python3 tools/generate_meta.py --method patterns
    → global_columns.yaml에 없는 컬럼만 필터링
    → patterns.yaml 기반 기본 메타데이터 생성
    → 규칙 기반으로 desc를 더 구체적으로 개선
@@ -846,6 +999,15 @@ python3 tools/export_rag.py --format all
      - AUX류: "장비 보조 센서/모니터링 값입니다..."
      - 밸브류: "밸브 채널 상태/제어/설정 값입니다..."
    → column_meta/global_columns.generated.yaml 생성/업데이트
+
+   방법 B: 컬럼명 패턴 추론 기반 생성
+   → python3 tools/generate_meta.py --method inference
+   → 컬럼명 패턴 분석 (MFC*, Temp*, Press* 등)
+
+   방법 C: 빈도 기반 seed 생성
+   → python3 tools/generate_meta.py --method frequency
+   → columns_by_file.json에서 빈도 계산
+
    → 실행 결과:
      ============================================================
      columns_union: 207
@@ -860,11 +1022,13 @@ python3 tools/export_rag.py --format all
      ============================================================
    → 검수 후 확정된 항목만 global_columns.yaml로 승격
 
-3. RAG 문서 생성 (tools/export_column_meta_to_rag.py)
+3. RAG 문서 생성
+   → python3 tools/export_rag.py --format markdown
    → rag_docs/columns/*.md (207개)
    → rag_docs/groups/*.md (10개)
 
-4. RAG 인덱스 생성 (tools/export_rag_jsonl.py)
+4. RAG 인덱스 생성
+   → python3 tools/export_rag.py --format jsonl
    → rag_index/column_meta.jsonl
 
 5. 백엔드 실행

@@ -88,13 +88,14 @@ export function useAldController() {
       });
   }, []);
 
-  // 1-2) 메타 타입 목록 로드 (카탈로그: types, labels)
+  // 1-2) 메타 타입 목록 로드 (카탈로그: types, labels, order)
   useEffect(() => {
     (async () => {
       try {
         const res = await getMetaTypes();
         setMetaTypes(res.types || []);
-        setOrderedTypes(res.types || []);  // types를 orderedTypes로도 사용
+        // order가 있으면 order 우선, 없으면 types 순서 사용
+        setOrderedTypes(res.order || res.types || []);
         setTypeLabels(res.labels || {});
       } catch (e) {
         console.warn("meta/types 로드 실패, 로컬 타입으로 fallback", e);
@@ -420,7 +421,8 @@ export function useAldController() {
       try {
         const metaTypesRes = await getMetaTypes();
         setMetaTypes(metaTypesRes.types || []);
-        setOrderedTypes(metaTypesRes.types || []);
+        // order가 있으면 order 우선, 없으면 types 순서 사용
+        setOrderedTypes(metaTypesRes.order || metaTypesRes.types || []);
         setTypeLabels(metaTypesRes.labels || {});
       } catch (error) {
         console.warn("메타 타입 목록 재로드 실패:", error);

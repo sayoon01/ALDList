@@ -8,6 +8,6 @@
 데이터가 기록된 시각 정보입니다.
 
 ## 메타데이터
-- type: timestamp (시간/타임스탬프)
+- type: timestamp (시간)
 - category: system
 - equipment_field: Date

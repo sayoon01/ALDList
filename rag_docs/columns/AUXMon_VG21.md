@@ -8,6 +8,6 @@
 장비 보조 센서 또는 모니터링용 필드입니다.
 
 ## 메타데이터
-- type: aux (보조센서(AUX))
+- type: aux (AUX)
 - category: support
 - equipment_field: AUXMon_VG21

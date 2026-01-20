@@ -113,3 +113,27 @@ def ensure_file_exists(path: Path, description: str = "파일") -> None:
     if not path.exists():
         print(f"❌ {description}을(를) 찾을 수 없습니다: {path}")
         sys.exit(1)
+
+
+def safe_load_json(path: Path) -> Any:
+    """
+    JSON 파일을 안전하게 로드
+    
+    Args:
+        path: JSON 파일 경로
+        
+    Returns:
+        로드된 데이터 (파일이 없으면 None)
+    """
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"⚠️  JSON 로드 실패 ({path}): {e}")
+        return None
+
+
+def normalize_key(s: str) -> str:
+    """키 문자열 정규화"""
+    return s.strip()

@@ -16,18 +16,18 @@ type_labels:
   unknown: "기타"
 
 # (선택) UI에서 타입 버튼 순서까지 서버가 정해주고 싶으면 이것도 추가 가능
-# type_order:
-#   - gas
-#   - temperature
-#   - pressure
-#   - apc
-#   - valve
-#   - aux
-#   - heater
-#   - timestamp
-#   - recipe
-#   - index
-#   - unknown
+type_order:
+  - gas
+  - temperature
+  - pressure
+  - apc
+  - valve
+  - aux
+  - heater
+  - timestamp
+  - recipe
+  - index
+  - unknown
 
 zones:
   U: "Upper"

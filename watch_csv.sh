@@ -51,6 +51,16 @@ main_loop() {
       echo "$refresh_out" | cat
       echo ""
 
+      # ---- 1.5) generated column meta 빌드 ----
+      echo "[watch_csv] building generated column meta..."
+      gen_out="$(curl_json POST "$API_BASE/api/admin/meta/generated/build" || echo "")"
+      if [[ -z "$gen_out" ]]; then
+        echo "[watch_csv] generated meta build failed (empty response)"
+      else
+        echo "$gen_out" | cat
+      fi
+      echo ""
+
       # ---- 2) refresh 결과에서 changed/created만 뽑기 ----
       # refresh_out 형식이 아래를 포함한다고 가정:
       # { "changed": ["ds_x"], "created": ["ds_y"], ... }
