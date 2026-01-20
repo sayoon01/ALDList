@@ -50,6 +50,8 @@ export function useAldController() {
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string | null>(null);
   const [allowedTypes, setAllowedTypes] = useState<string[]>([]);
   const [metaTypes, setMetaTypes] = useState<string[]>([]);
+  const [typeLabels, setTypeLabels] = useState<Record<string, string>>({});
+  const [orderedTypes, setOrderedTypes] = useState<string[]>([]);
 
   // 선택한 컬럼만 보기 토글
   const [showSelectedOnly, setShowSelectedOnly] = useState<boolean>(false);
@@ -86,15 +88,19 @@ export function useAldController() {
       });
   }, []);
 
-  // 1-2) 메타 타입 목록 로드 (count 포함, UI 자동화 준비)
+  // 1-2) 메타 타입 목록 로드 (카탈로그: allowed_types, ordered_types, labels)
   useEffect(() => {
     getMetaTypes()
       .then((res) => {
-        setMetaTypes(res.types);
+        setMetaTypes(res.allowed_types);
+        setOrderedTypes(res.ordered_types);
+        setTypeLabels(res.labels);
       })
       .catch((error) => {
         console.error("meta types 로드 실패:", error);
         setMetaTypes([]); // fallback
+        setOrderedTypes([]);
+        setTypeLabels({});
       });
   }, []);
 
@@ -412,7 +418,9 @@ export function useAldController() {
       // 6) 메타 타입 목록도 다시 로드
       try {
         const metaTypesRes = await getMetaTypes();
-        setMetaTypes(metaTypesRes.types);
+        setMetaTypes(metaTypesRes.allowed_types);
+        setOrderedTypes(metaTypesRes.ordered_types);
+        setTypeLabels(metaTypesRes.labels);
       } catch (error) {
         console.warn("메타 타입 목록 재로드 실패:", error);
       }
@@ -445,6 +453,8 @@ export function useAldController() {
     selectedTypeFilter,
     allowedTypes,
     metaTypes,
+    orderedTypes,
+    typeLabels,
     showSelectedOnly,
     profile,
     docMd,

@@ -38,6 +38,9 @@ interface SidebarProps {
   selectedTypeFilter: string | null;
   onSelectedTypeFilterChange: (filter: string | null) => void;
   allowedTypes: string[];
+  metaTypes: string[];
+  orderedTypes: string[];
+  metaTypeLabels: Record<string, string>;
 
   isLoadingStats: boolean;
   onCalculateStats: () => void;
@@ -90,6 +93,9 @@ export default function Sidebar(props: SidebarProps) {
     selectedTypeFilter,
     onSelectedTypeFilterChange,
     allowedTypes,
+    metaTypes,
+    orderedTypes,
+    metaTypeLabels,
 
     isLoadingStats,
     onCalculateStats,
@@ -143,20 +149,7 @@ export default function Sidebar(props: SidebarProps) {
     );
   };
 
-  // 타입 버튼 라벨
-  const typeLabels: Record<string, string> = {
-    gas: "가스",
-    temperature: "온도",
-    pressure: "압력",
-    apc: "APC",
-    valve: "밸브",
-    aux: "AUX",
-    heater: "히터",
-    timestamp: "시간",
-    recipe: "레시피",
-    index: "인덱스",
-    unknown: "기타",
-  };
+  // 타입 버튼 라벨은 서버에서 받은 metaTypeLabels 사용 (하드코딩 제거)
 
   // 표시할 컬럼 리스트 (선택만 보기 토글 반영)
   const baseColumns = showSelectedOnly ? visibleColumns : allColumns;
@@ -176,22 +169,41 @@ export default function Sidebar(props: SidebarProps) {
     });
   }, [baseColumns, columnSearchQuery, columnMeta]);
 
-  // 타입 목록: 서버에서 받은 allowedTypes와 현재 데이터셋에 실제 존재하는 타입의 교집합
-  const availableTypes = useMemo(() => {
-    const typesInDataset = new Set<string>();
-    allColumns.forEach((col) => {
-      const m = columnMeta[col];
-      if (m?.type) typesInDataset.add(m.type);
-    });
-    
-    // 서버에서 받은 allowedTypes와 교집합 (서버 타입이 없으면 기존 방식 유지)
-    if (allowedTypes.length > 0) {
-      return allowedTypes.filter(type => typesInDataset.has(type)).sort();
+  // 타입 카운트 맵 (O(1) 조회를 위한 최적화)
+  const typeCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const c of allColumns) {
+      const t = columnMeta[c]?.type;
+      if (!t) continue;
+      m[t] = (m[t] || 0) + 1;
     }
-    
-    // fallback: 서버 타입이 없으면 기존 방식
-    return Array.from(typesInDataset).sort();
-  }, [allColumns, columnMeta, allowedTypes]);
+    return m;
+  }, [allColumns, columnMeta]);
+
+  // 현재 데이터셋에 실제 존재하는 타입 집합
+  const datasetTypes = useMemo(() => {
+    return Array.from(
+      new Set(
+        allColumns
+          .map((c) => columnMeta[c]?.type)
+          .filter((t): t is string => typeof t === "string" && t.length > 0)
+      )
+    );
+  }, [allColumns, columnMeta]);
+
+  // 타입 목록: 서버에서 받은 orderedTypes와 현재 데이터셋에 실제 존재하는 타입의 교집합
+  const availableTypes = useMemo(() => {
+    // 1) 서버 ordered_types 우선 (순서도 서버가 정해준 순서 유지)
+    // 2) 서버가 비었거나 실패한 경우 datasetTypes로 fallback
+    const baseTypes =
+      orderedTypes && orderedTypes.length > 0
+        ? orderedTypes.filter((t) => datasetTypes.includes(t))
+        : datasetTypes;
+
+    // 서버에서 이미 정렬된 순서를 사용하므로 추가 정렬 불필요
+    // (원본 배열 mutate 방지를 위해 복사본 반환)
+    return [...baseTypes];
+  }, [orderedTypes, datasetTypes]);
 
   return (
     <div className="sidebar">
@@ -455,7 +467,7 @@ export default function Sidebar(props: SidebarProps) {
                 </button>
 
                 {availableTypes.map((type) => {
-                  const count = allColumns.filter((c) => columnMeta[c]?.type === type).length;
+                  const count = typeCounts[type] || 0;
                   return (
                     <button
                       key={type}
@@ -473,7 +485,7 @@ export default function Sidebar(props: SidebarProps) {
                         }
                       }}
                     >
-                      {typeLabels[type] || type} ({count})
+                      {metaTypeLabels[type] || type} ({count})
                     </button>
                   );
                 })}

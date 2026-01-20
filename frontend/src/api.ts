@@ -159,8 +159,9 @@ export async function getAllowedTypes(): Promise<AllowedTypesResponse> {
 }
 
 export type MetaTypesResponse = {
-  types: string[];
-  count: number;
+  allowed_types: string[];
+  ordered_types: string[];
+  labels: Record<string, string>;
 };
 
 export async function getMetaTypes(): Promise<MetaTypesResponse> {

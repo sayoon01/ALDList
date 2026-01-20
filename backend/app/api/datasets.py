@@ -126,13 +126,7 @@ def get_fields_by_type(
     → 가스 관련 필드만 반환 + meta 포함
     """
     from ..core.column_meta import build_meta_map, get_allowed_types
-
-    allowed = set(get_allowed_types())
-    if type not in allowed:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid type: {type}. Allowed types: {', '.join(sorted(allowed))}",
-        )
+    from ..models.schemas import InvalidTypeDetail
 
     ds = get_dataset(dataset_id)
     if ds is None:
@@ -141,6 +135,15 @@ def get_fields_by_type(
     columns = ds.columns if not isinstance(ds, dict) else ds.get("columns")
     if not columns:
         raise HTTPException(status_code=500, detail="Dataset columns not found in registry")
+
+    allowed = get_allowed_types()
+    if type not in set(allowed):
+        detail = InvalidTypeDetail(
+            message="Invalid type",
+            invalid_type=type,
+            allowed_types=allowed,
+        )
+        raise HTTPException(status_code=400, detail=detail.model_dump())
 
     meta_map = build_meta_map(dataset_id, list(columns))
     filtered_cols = [c for c in columns if meta_map.get(c, {}).get("type") == type]

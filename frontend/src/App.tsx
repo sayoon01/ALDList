@@ -62,6 +62,9 @@ export default function App() {
           selectedTypeFilter={c.selectedTypeFilter}
           onSelectedTypeFilterChange={c.setSelectedTypeFilter}
           allowedTypes={c.allowedTypes}
+          metaTypes={c.metaTypes}
+          orderedTypes={c.orderedTypes}
+          metaTypeLabels={c.typeLabels}
           isLoadingStats={c.isLoadingStats}
           onCalculateStats={() => {
             c.handleCalculateStats().catch((e) => {

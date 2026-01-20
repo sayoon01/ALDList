@@ -118,3 +118,15 @@ class ProfileBuildResponse(BaseModel):
     generated_at: str
     sample_rows_used: int
     column_count: int
+
+
+class MetaTypesResponse(BaseModel):
+    allowed_types: List[str]
+    ordered_types: List[str]
+    labels: Dict[str, str]
+
+
+class InvalidTypeDetail(BaseModel):
+    message: str
+    invalid_type: str
+    allowed_types: List[str]

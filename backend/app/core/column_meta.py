@@ -31,6 +31,21 @@ GLOBAL_GENERATED_PATH = META_DIR / "global_columns.generated.yaml"
 PATTERNS_PATH = META_DIR / "patterns.yaml"
 DATASET_META_DIR = META_DIR / "datasets"
 
+# 기본 타입 라벨 (patterns.yaml에 없을 때 fallback)
+DEFAULT_TYPE_LABELS: Dict[str, str] = {
+    "gas": "가스",
+    "temperature": "온도",
+    "pressure": "압력",
+    "apc": "APC",
+    "valve": "밸브",
+    "aux": "AUX",
+    "heater": "히터",
+    "timestamp": "시간",
+    "recipe": "레시피",
+    "index": "인덱스",
+    "unknown": "기타",
+}
+
 
 def _safe_load_yaml(path: Path) -> Dict[str, Any]:
     """YAML 파일을 안전하게 로드"""
@@ -110,6 +125,10 @@ class ColumnMetaStore:
         # derived
         self._allowed_types: Set[str] = set()
 
+        # ✅ type catalog (labels/order) - patterns.yaml에서 읽어옴
+        self._type_labels: Dict[str, str] = {}
+        self._type_order: List[str] = []
+
         # dataset override caches: dataset_id -> (mtime, data)
         self._override_cache: Dict[str, Tuple[float, Dict[str, Dict[str, Any]]]] = {}
 
@@ -127,7 +146,7 @@ class ColumnMetaStore:
                 out[k] = {"key": k, **v}
         return out
 
-    def _load_patterns_file(self, path: Path) -> Tuple[Dict[str, str], List[PatternRule], Dict[str, Any]]:
+    def _load_patterns_file(self, path: Path) -> Tuple[Dict[str, str], List[PatternRule], Dict[str, Any], Dict[str, str], List[str]]:
         data = _safe_load_yaml(path)
 
         zones = data.get("zones") or {}
@@ -135,8 +154,15 @@ class ColumnMetaStore:
 
         patterns = data.get("patterns") or []
         fallback = data.get("fallback") or {}
-
         rules: List[PatternRule] = []
+
+        # ✅ optional UI metadata
+        type_labels = data.get("type_labels") or {}
+        type_labels = type_labels if isinstance(type_labels, dict) else {}
+
+        type_order = data.get("type_order") or []
+        type_order = [t for t in type_order if isinstance(t, str) and t.strip()] if isinstance(type_order, list) else []
+
         if isinstance(patterns, list):
             for p in patterns:
                 if not isinstance(p, dict):
@@ -149,7 +175,7 @@ class ColumnMetaStore:
                     except re.error as e:
                         print(f"⚠️  정규식 컴파일 실패 ({match}): {e}")
 
-        return zones, rules, fallback if isinstance(fallback, dict) else {}
+        return zones, rules, fallback if isinstance(fallback, dict) else {}, type_labels, type_order
 
     def _rebuild_allowed_types(self) -> None:
         """
@@ -200,7 +226,7 @@ class ColumnMetaStore:
                 return
 
             if patterns_changed:
-                self._zones, self._rules, self._fallback = self._load_patterns_file(PATTERNS_PATH)
+                self._zones, self._rules, self._fallback, self._type_labels, self._type_order = self._load_patterns_file(PATTERNS_PATH)
                 self._mt_patterns = mt_p
 
             if generated_changed:
@@ -217,6 +243,42 @@ class ColumnMetaStore:
         self.ensure_loaded()
         with self._lock:
             return sorted(self._allowed_types)
+
+    def get_type_catalog(self) -> Dict[str, Any]:
+        """
+        UI/Validation용 타입 카탈로그
+        - allowed_types: validation 기준
+        - ordered_types: UI 버튼 순서 (patterns.yaml의 type_order 우선)
+        - labels: UI 라벨 (patterns.yaml type_labels + 기본값)
+        """
+        self.ensure_loaded()
+        with self._lock:
+            allowed = sorted(self._allowed_types)
+
+            # labels: defaults -> patterns override
+            labels = dict(DEFAULT_TYPE_LABELS)
+            for k, v in (self._type_labels or {}).items():
+                if isinstance(k, str) and isinstance(v, str):
+                    labels[k] = v
+
+            # ordered: patterns.type_order 우선 + 나머지 알파벳, unknown 맨 뒤
+            seen = set()
+            ordered: List[str] = []
+            for t in (self._type_order or []):
+                if t in self._allowed_types and t not in seen:
+                    ordered.append(t)
+                    seen.add(t)
+
+            rest = [t for t in sorted(self._allowed_types) if t not in seen]
+            rest_no_unknown = [t for t in rest if t != "unknown"]
+            rest_unknown = ["unknown"] if "unknown" in rest else []
+            ordered.extend(rest_no_unknown + rest_unknown)
+
+            return {
+                "allowed_types": allowed,
+                "ordered_types": ordered,
+                "labels": labels,
+            }
 
     def _load_dataset_override(self, dataset_id: str) -> Dict[str, Dict[str, Any]]:
         """
@@ -344,3 +406,8 @@ def allowed_types() -> List[str]:
 def get_allowed_types() -> List[str]:
     """allowed_types()의 별칭"""
     return allowed_types()
+
+
+def get_type_catalog() -> Dict[str, Any]:
+    """타입 카탈로그 반환 (allowed_types, ordered_types, labels)"""
+    return get_store().get_type_catalog()
