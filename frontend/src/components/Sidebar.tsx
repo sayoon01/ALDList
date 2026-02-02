@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Dataset, ColumnMeta } from "../api";
-import { getFieldsByType } from "../api";
 import "./Sidebar.css";
 
 interface SidebarProps {
@@ -36,10 +35,9 @@ interface SidebarProps {
   onColumnSearchQueryChange: (query: string) => void;
 
   selectedTypeFilter: string | null;
-  onSelectedTypeFilterChange: (filter: string | null) => void;
-  allowedTypes: string[];
+  onSelectType: (type: string | null) => void | Promise<void>;
   metaTypes: string[];
-  orderedTypes: string[];
+  orderedTypes: string[]; // 나중에 사용 가능 (현재는 metaTypes 사용)
   metaTypeLabels: Record<string, string>;
 
   isLoadingStats: boolean;
@@ -91,10 +89,9 @@ export default function Sidebar(props: SidebarProps) {
     onColumnSearchQueryChange,
 
     selectedTypeFilter,
-    onSelectedTypeFilterChange,
-    allowedTypes,
+    onSelectType,
     metaTypes,
-    orderedTypes,
+    orderedTypes: _orderedTypes, // 사용하지 않지만 나중을 위해 유지 (경고 무시)
     metaTypeLabels,
 
     isLoadingStats,
@@ -458,10 +455,7 @@ export default function Sidebar(props: SidebarProps) {
               <div className="sb-typebar">
                 <button
                   className={`sb-typebtn ${selectedTypeFilter === null ? "active" : ""}`}
-                  onClick={() => {
-                    onSelectedTypeFilterChange(null);
-                    onVisibleColumnsChange([]);
-                  }}
+                  onClick={() => onSelectType(null)}
                 >
                   전체
                 </button>
@@ -472,18 +466,7 @@ export default function Sidebar(props: SidebarProps) {
                     <button
                       key={type}
                       className={`sb-typebtn ${selectedTypeFilter === type ? "active" : ""}`}
-                      onClick={async () => {
-                        onSelectedTypeFilterChange(type);
-                        try {
-                          const result = await getFieldsByType(selectedDatasetId, type);
-                          onVisibleColumnsChange(result.columns);
-                        } catch (error: any) {
-                          // 에러 발생 시 fallback: 로컬 메타데이터로 필터링
-                          console.warn("타입 필터 API 호출 실패, 로컬 필터링 사용:", error);
-                          const filtered = allColumns.filter((c) => columnMeta[c]?.type === type);
-                          onVisibleColumnsChange(filtered);
-                        }
-                      }}
+                      onClick={() => onSelectType(type)}
                     >
                       {metaTypeLabels[type] || type} ({count})
                     </button>

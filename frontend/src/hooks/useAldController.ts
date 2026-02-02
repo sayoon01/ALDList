@@ -8,8 +8,8 @@ import {
   buildDoc,
   readProfile,
   readDoc,
-  getAllowedTypes,
   getMetaTypes,
+  getFieldsByType,
   adminRefresh,
   Dataset,
   StatsResponse,
@@ -19,7 +19,6 @@ import {
 export function useAldController() {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string>("");
-  const [prevDatasetId, setPrevDatasetId] = useState<string>("");
 
   const [allColumns, setAllColumns] = useState<string[]>([]);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
@@ -48,7 +47,6 @@ export function useAldController() {
   // 컬럼 검색/타입 필터
   const [columnSearchQuery, setColumnSearchQuery] = useState<string>("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string | null>(null);
-  const [allowedTypes, setAllowedTypes] = useState<string[]>([]);
   const [metaTypes, setMetaTypes] = useState<string[]>([]);
   const [typeLabels, setTypeLabels] = useState<Record<string, string>>({});
   const [orderedTypes, setOrderedTypes] = useState<string[]>([]);
@@ -75,30 +73,16 @@ export function useAldController() {
       });
   }, []);
 
-  // 1-1) 허용된 타입 목록 로드 (서버에서 동적으로 가져오기)
-  useEffect(() => {
-    getAllowedTypes()
-      .then((res) => {
-        setAllowedTypes(res.types);
-      })
-      .catch((error) => {
-        console.error("타입 목록 로드 실패:", error);
-        // 실패 시 빈 배열로 설정 (기존 동작 유지)
-        setAllowedTypes([]);
-      });
-  }, []);
-
-  // 1-2) 메타 타입 목록 로드 (카탈로그: types, labels, order)
+  // 1-1) 메타 타입 목록 로드 (카탈로그: types, labels, order)
   useEffect(() => {
     (async () => {
       try {
         const res = await getMetaTypes();
         setMetaTypes(res.types || []);
-        // order가 있으면 order 우선, 없으면 types 순서 사용
         setOrderedTypes(res.order || res.types || []);
         setTypeLabels(res.labels || {});
       } catch (e) {
-        console.warn("meta/types 로드 실패, 로컬 타입으로 fallback", e);
+        console.warn("meta/types 로드 실패", e);
         setMetaTypes([]);
         setOrderedTypes([]);
         setTypeLabels({});
@@ -106,67 +90,86 @@ export function useAldController() {
     })();
   }, []);
 
-  // 2) 선택된 데이터셋 preview 먼저 로드 -> 그 다음 columns meta 로드
+  // 2) 선택된 데이터셋 columns/meta 로드 (datasetId만 의존)
   useEffect(() => {
     if (!selectedDatasetId) return;
 
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const columnsData = await fetchDatasetColumns(selectedDatasetId);
+        if (cancelled) return;
+
+        setColumnMeta(columnsData.meta || {});
+        setSelectedTypeFilter(null);
+      } catch (e) {
+        if (cancelled) return;
+        console.error("컬럼 메타 로드 실패:", e);
+        setColumnMeta({});
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDatasetId]);
+
+  // 3) 선택된 데이터셋 preview 로드 (datasetId, offset, limit에만 반응)
+  useEffect(() => {
+    if (!selectedDatasetId) return;
+
+    let cancelled = false;
     setIsLoading(true);
 
     getPreview(selectedDatasetId, offset, limit)
       .then((previewData) => {
+        if (cancelled) return;
+
         const data = previewData;
 
         if (data.rows && data.rows.length > 0) {
           const keys = data.columns || Object.keys(data.rows[0]);
           setAllColumns(keys);
-
-          if (prevDatasetId !== selectedDatasetId || visibleColumns.length === 0) {
-            const initialColumns = keys.length > 0 ? [keys[0]] : [];
-            setVisibleColumns(initialColumns);
-            setPrevDatasetId(selectedDatasetId);
-            setActiveColumn(keys.length > 0 ? keys[0] : null);
-          } else {
-            const newColumns = keys.filter((k) => !visibleColumns.includes(k));
-            const updatedColumns = visibleColumns.filter((k) => keys.includes(k));
-
-            if (newColumns.length > 0 || updatedColumns.length !== visibleColumns.length) {
-              setVisibleColumns([...updatedColumns, ...newColumns]);
-            }
-
-            setActiveColumn((prev) => {
-              if (!prev) return keys.length > 0 ? keys[0] : null;
-              if (keys.includes(prev)) return prev;
-              return keys.length > 0 ? keys[0] : null;
-            });
-          }
-
           setRowData(data.rows);
+
+          // ✅ 여기서 visibleColumns/activeColumn은 "비어있을 때만" 세팅
+          // (dataset 변경 시 초기화는 handleDatasetChange에서 이미 처리)
+          setVisibleColumns((prev) => {
+            if (prev.length > 0) return prev;
+            return keys.length > 0 ? [keys[0]] : [];
+          });
+
+          setActiveColumn((prev) => {
+            if (prev) return prev;
+            return keys.length > 0 ? keys[0] : null;
+          });
         } else {
           setAllColumns([]);
-          setVisibleColumns([]);
           setRowData([]);
+          setVisibleColumns([]);
+          setActiveColumn(null);
         }
-
-        // meta는 나중에
-        return fetchDatasetColumns(selectedDatasetId);
-      })
-      .then((columnsData) => {
-        setColumnMeta(columnsData.meta);
-        setSelectedTypeFilter(null);
       })
       .catch((error) => {
-        console.error("데이터 로딩 실패:", error);
+        if (cancelled) return;
+        console.error("preview 로딩 실패:", error);
         setRowData([]);
         setAllColumns([]);
         setVisibleColumns([]);
-        setColumnMeta({});
+        setActiveColumn(null);
       })
       .finally(() => {
+        if (cancelled) return;
         setIsLoading(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedDatasetId, offset, limit]);
 
-  // 3) visibleColumns 바뀌면 columnDefs 업데이트
+  // 4) visibleColumns 바뀌면 columnDefs 업데이트
   useEffect(() => {
     if (visibleColumns.length === 0) {
       setColumnDefs([]);
@@ -210,20 +213,20 @@ export function useAldController() {
     );
   }, [visibleColumns, columnMeta]);
 
-  // 4) activeColumn 바뀌면 그리드에서 해당 컬럼으로 스크롤
+  // 5) activeColumn 바뀌면 그리드에서 해당 컬럼으로 스크롤
   useEffect(() => {
     if (!gridApi || !activeColumn) return;
     gridApi.ensureColumnVisible(activeColumn);
   }, [gridApi, activeColumn]);
 
-  // 5) active 모드인데 activeColumn 없으면 all로
+  // 6) active 모드인데 activeColumn 없으면 all로
   useEffect(() => {
     if (statsComputeMode === "active" && !activeColumn) {
       setStatsComputeMode("all");
     }
   }, [activeColumn, statsComputeMode]);
 
-  // 6) dataset 선택될 때, profile/doc "있으면 자동 로드"
+  // 7) dataset 선택될 때, profile/doc "있으면 자동 로드"
   useEffect(() => {
     if (!selectedDatasetId) {
       setProfile(null);
@@ -336,15 +339,49 @@ export function useAldController() {
   // 데이터셋 변경 시 초기화
   const handleDatasetChange = (datasetId: string) => {
     setSelectedDatasetId(datasetId);
-    setPrevDatasetId("");
+
+    // ✅ dataset 변경 시 UI 상태 초기화는 여기서만
     setOffset(0);
     setRowRange(null);
     setManualRowStart(0);
     setManualRowEnd(0);
     setStats(null);
+
     setColumnSearchQuery("");
     setSelectedTypeFilter(null);
-    // Profile/Doc은 useEffect에서 자동 로드됨
+
+    // ✅ 컬럼 선택 초기화 (preview 로드 후 keys 기준으로 "비어있을 때만" 채워짐)
+    setVisibleColumns([]);
+    setActiveColumn(null);
+
+    // Profile/Doc은 아래 useEffect(#7)에서 자동 read
+  };
+
+  // 타입 선택 핸들러
+  const handleSelectType = async (type: string | null) => {
+    setSelectedTypeFilter(type);
+
+    // 전체 선택이면: visibleColumns 비우고 사용자가 다시 고르게 한다
+    if (type === null) {
+      setVisibleColumns([]);
+      return;
+    }
+
+    if (!selectedDatasetId) return;
+
+    try {
+      const result = await getFieldsByType(selectedDatasetId, type);
+      setVisibleColumns(result.columns || []);
+      setActiveColumn((prev) => {
+        const next = (result.columns || [])[0] ?? null;
+        return next ?? prev ?? null;
+      });
+    } catch (e) {
+      // fallback: 로컬 meta로 필터링
+      const filtered = allColumns.filter((c) => columnMeta[c]?.type === type);
+      setVisibleColumns(filtered);
+      setActiveColumn((prev) => filtered[0] ?? prev ?? null);
+    }
   };
 
   // Profile/Doc 빌드 및 로드 핸들러
@@ -409,15 +446,7 @@ export function useAldController() {
         }
       }
       
-      // 5) 타입 목록도 다시 로드 (patterns.yaml이 바뀔 수 있으므로)
-      try {
-        const typesRes = await getAllowedTypes();
-        setAllowedTypes(typesRes.types);
-      } catch (error) {
-        console.warn("타입 목록 재로드 실패:", error);
-      }
-      
-      // 6) 메타 타입 목록도 다시 로드
+      // 5) 메타 타입 목록도 다시 로드
       try {
         const metaTypesRes = await getMetaTypes();
         setMetaTypes(metaTypesRes.types || []);
@@ -454,7 +483,6 @@ export function useAldController() {
     statsComputeMode,
     columnSearchQuery,
     selectedTypeFilter,
-    allowedTypes,
     metaTypes,
     orderedTypes,
     typeLabels,
@@ -478,6 +506,7 @@ export function useAldController() {
 
     // handlers
     handleDatasetChange,
+    handleSelectType,
     handleCalculateStats,
     handleBuildProfile,
     handleBuildDoc,

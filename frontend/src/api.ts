@@ -150,14 +150,6 @@ export async function getFieldsByType(datasetId: string, type: string): Promise<
   return fetchAPI(`/api/datasets/${datasetId}/fields?type=${encodeURIComponent(type)}`);
 }
 
-export interface AllowedTypesResponse {
-  types: string[];
-}
-
-export async function getAllowedTypes(): Promise<AllowedTypesResponse> {
-  return fetchAPI("/api/meta/types");
-}
-
 export type MetaTypesResponse = {
   types: string[];
   labels: Record<string, string>;
@@ -166,6 +158,16 @@ export type MetaTypesResponse = {
 
 export async function getMetaTypes(): Promise<MetaTypesResponse> {
   return fetchAPI("/api/meta/types");
+}
+
+// 하위 호환성을 위한 alias (getMetaTypes를 단일 진실로 사용)
+export interface AllowedTypesResponse {
+  types: string[];
+}
+
+export async function getAllowedTypes(): Promise<AllowedTypesResponse> {
+  const res = await getMetaTypes();
+  return { types: res.types };
 }
 
 
