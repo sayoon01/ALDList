@@ -335,39 +335,25 @@ export function useAldController() {
 
   // ========= 타입 선택 핸들러 =========
   const handleTypeSelect = async (type: string | null) => {
-    // 1) UI 상태 먼저 반영
     setSelectedTypeFilter(type);
 
-    // "전체"면: 타입 필터 해제 + visibleColumns는 비우거나(기존 정책) 전체로 돌리거나 선택
+    // 전체: 필터 해제 → 전체 컬럼 보여주기
     if (type === null) {
-      // 너 기존 정책이 "전체 누르면 visibleColumns 비우기"였음. 그거 그대로면 아래:
-      setVisibleColumns([]);
+      setVisibleColumns(allColumns);
+      setActiveColumn(allColumns[0] ?? null);
       return;
     }
 
-    // dataset 없으면 종료
-    if (!selectedDatasetId) return;
-
-    // 2) 서버에 type별 컬럼 요청 (성공하면 그 결과로 visibleColumns 갱신)
+    // 타입 선택: 서버 fields 우선, 실패하면 로컬 fallback
     try {
+      if (!selectedDatasetId) throw new Error("dataset not selected");
       const res = await getFieldsByType(selectedDatasetId, type);
-      const cols = res.columns || [];
-      setVisibleColumns(cols);
-
-      // activeColumn도 자연스럽게 첫 컬럼으로 맞춰주기(원하면)
-      setActiveColumn((prev) => {
-        if (prev && cols.includes(prev)) return prev;
-        return cols.length ? cols[0] : null;
-      });
-      return;
-    } catch (e) {
-      // 3) 실패하면 로컬 fallback: columnMeta.type 기준 필터링
+      setVisibleColumns(res.columns);
+      setActiveColumn(res.columns[0] ?? null);
+    } catch {
       const filtered = allColumns.filter((c) => columnMeta[c]?.type === type);
       setVisibleColumns(filtered);
-      setActiveColumn((prev) => {
-        if (prev && filtered.includes(prev)) return prev;
-        return filtered.length ? filtered[0] : null;
-      });
+      setActiveColumn(filtered[0] ?? null);
     }
   };
 

@@ -446,11 +446,11 @@ export default DataGrid;
 
 ---
 
-### 2.3. StatsPanel (통계 패널)
+## 2.3. StatsPanel (통계 패널)
 
 #### 파일 위치
 `frontend/src/components/StatsPanel.tsx`
-
+#
 #### 주요 기능
 
 1. **컬럼 상세 정보**: 활성 컬럼의 메타데이터 표시

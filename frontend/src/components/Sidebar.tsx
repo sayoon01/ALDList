@@ -45,11 +45,11 @@ interface SidebarProps {
   selectedTypeFilter: string | null;
   onSelectedTypeFilterChange: (t: string | null) => void;
 
-  // ✅ 타입 UI에 필요한 카탈로그
+  // 타입 UI에 필요한 카탈로그
   orderedTypes: string[];
   metaTypeLabels: Record<string, string>;
 
-  // ✅ 여기만 새로 추가: Sidebar는 이것만 호출
+  // 타입 선택 액션 (서버 fields?type + fallback 포함은 컨트롤러가 처리)
   onTypeSelect: (type: string | null) => void;
 
   // misc
@@ -60,11 +60,19 @@ interface SidebarProps {
   onShowSelectedOnlyChange: (v: boolean) => void;
 }
 
-function Section(props: { id: string; title: string; children: React.ReactNode }) {
+function Section({
+  id,
+  title,
+  children,
+}: {
+  id: string;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="sb-section" id={props.id}>
-      <div className="sb-section-title">{props.title}</div>
-      <div className="sb-section-body">{props.children}</div>
+    <div className="sb-section" id={id}>
+      <div className="sb-section-title">{title}</div>
+      <div className="sb-section-body">{children}</div>
     </div>
   );
 }
@@ -102,8 +110,7 @@ export default function Sidebar(props: SidebarProps) {
     onColumnSearchQueryChange,
 
     selectedTypeFilter,
-    // ✅ 이제 selectedTypeFilter는 "표시 상태"로만 쓰고, 변경은 onTypeSelect가 담당
-    // onSelectedTypeFilterChange,
+    onSelectedTypeFilterChange,
 
     orderedTypes,
     metaTypeLabels,
@@ -154,11 +161,11 @@ export default function Sidebar(props: SidebarProps) {
     return m;
   }, [allColumns, columnMeta]);
 
-  // 화면에 보여줄 타입 목록: 서버 order(orderedTypes) 우선
+  // 화면에 보여줄 타입 목록: orderedTypes 우선, 없으면 columnMeta에서 추출
   const availableTypes = useMemo(() => {
-    const ts = orderedTypes && orderedTypes.length ? orderedTypes : [];
-    // 그래도 비어있으면 columnMeta에서 추출
-    if (ts.length) return ts;
+    if (orderedTypes && orderedTypes.length) {
+      return orderedTypes;
+    }
     const s = new Set<string>();
     for (const c of allColumns) {
       const t = columnMeta[c]?.type;
@@ -218,6 +225,7 @@ export default function Sidebar(props: SidebarProps) {
             <input
               type="number"
               value={manualRowStart}
+              min={0}
               onChange={(e) => onManualRowStartChange(Number(e.target.value))}
               className="num-input"
             />
@@ -227,6 +235,7 @@ export default function Sidebar(props: SidebarProps) {
             <input
               type="number"
               value={manualRowEnd}
+              min={0}
               onChange={(e) => onManualRowEndChange(Number(e.target.value))}
               className="num-input"
             />
@@ -234,36 +243,52 @@ export default function Sidebar(props: SidebarProps) {
 
           {rowRange && (
             <div className="sb-hint">
-              선택됨: {rowRange.start + 1} ~ {rowRange.end + 1}행
-              <button className="btn-small" onClick={onRowRangeReset} style={{ marginLeft: 8 }}>
-                선택 초기화
-              </button>
+              드래그 선택: {rowRange.start + 1} ~ {rowRange.end + 1}행
             </div>
           )}
 
           <div className="sb-row">
-            <label>계산 모드</label>
-            <select
-              value={statsComputeMode}
-              onChange={(e) => onStatsComputeModeChange(e.target.value as "all" | "active")}
-              className="select-input"
-            >
-              <option value="all">보이는 컬럼 전체</option>
-              <option value="active">활성 컬럼만</option>
-            </select>
+            <button className="btn-small" onClick={onRowRangeReset}>
+              범위 초기화
+            </button>
+          </div>
+        </Section>
+
+        <Section id="statsMode" title="통계 계산 모드">
+          <div className="sb-row">
+            <label className="sb-radio">
+              <input
+                type="radio"
+                checked={statsComputeMode === "all"}
+                onChange={() => onStatsComputeModeChange("all")}
+              />
+              전체(선택 컬럼)
+            </label>
+          </div>
+          <div className="sb-row">
+            <label className="sb-radio">
+              <input
+                type="radio"
+                checked={statsComputeMode === "active"}
+                onChange={() => onStatsComputeModeChange("active")}
+              />
+              활성 컬럼만
+            </label>
           </div>
 
-          <button className="btn" disabled={isLoadingStats} onClick={onCalculateStats}>
+          <button className="btn-primary" disabled={isLoadingStats} onClick={onCalculateStats}>
             {isLoadingStats ? "계산 중..." : "통계 계산"}
           </button>
         </Section>
 
         <Section id="columnSelect" title="컬럼 선택">
-          {/* ✅ 타입 바: 이제 여기서 API 안 부름 */}
+          {/* 타입 바: Sidebar는 서버 호출 안 함. onTypeSelect만 호출 */}
           <div className="sb-typebar">
             <button
               className={`sb-typebtn ${selectedTypeFilter === null ? "active" : ""}`}
-              onClick={() => onTypeSelect(null)}
+              onClick={() => {
+                onTypeSelect(null);
+              }}
             >
               전체
             </button>
@@ -274,23 +299,14 @@ export default function Sidebar(props: SidebarProps) {
                 <button
                   key={type}
                   className={`sb-typebtn ${selectedTypeFilter === type ? "active" : ""}`}
-                  onClick={() => onTypeSelect(type)}
+                  onClick={() => {
+                    onTypeSelect(type); // 서버 호출/로컬 fallback은 컨트롤러가 처리
+                  }}
                 >
                   {metaTypeLabels[type] || type} ({count})
                 </button>
               );
             })}
-          </div>
-
-          <div className="sb-row" style={{ marginTop: 8 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                type="checkbox"
-                checked={showSelectedOnly}
-                onChange={(e) => onShowSelectedOnlyChange(e.target.checked)}
-              />
-              선택한 컬럼만 보기
-            </label>
           </div>
 
           <input
@@ -300,6 +316,17 @@ export default function Sidebar(props: SidebarProps) {
             onChange={(e) => onColumnSearchQueryChange(e.target.value)}
             className="sb-search"
           />
+
+          <div className="sb-row" style={{ marginTop: 8 }}>
+            <label className="sb-toggle">
+              <input
+                type="checkbox"
+                checked={showSelectedOnly}
+                onChange={(e) => onShowSelectedOnlyChange(e.target.checked)}
+              />
+              선택한 컬럼만 보기
+            </label>
+          </div>
 
           <div className="column-list-wrap">
             <div className="column-list">
