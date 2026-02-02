@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   getDatasets,
   getPreview,
@@ -19,6 +19,7 @@ import {
 export function useAldController() {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string>("");
+  const [prevDatasetId, setPrevDatasetId] = useState<string>("");
 
   const [allColumns, setAllColumns] = useState<string[]>([]);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
@@ -68,129 +69,172 @@ export function useAldController() {
     return metaTypes || [];
   }, [allowedTypes, orderedTypes, metaTypes]);
 
-  // ===== Actions =====
+  // =========================
+  // 1) 로더 함수들 (분리)
+  // =========================
 
-  // ========= 액션 1) bootstrap =========
-  const bootstrap = async () => {
-    // datasets + meta types 로드 (앱 시작 1회)
-    try {
-      const [dsRes, typesRes] = await Promise.all([
-        getDatasets(),
-        getMetaTypes(), // 단일 진실
-      ]);
+  const loadPreview = useCallback(
+    async (datasetId: string, nextOffset: number, nextLimit: number) => {
+      const previewData = await getPreview(datasetId, nextOffset, nextLimit);
+      const data = previewData;
 
-      setDatasets(dsRes.datasets || []);
-      if ((dsRes.datasets || []).length > 0) {
-        setSelectedDatasetId(dsRes.datasets[0].dataset_id);
-      }
+      if (data.rows && data.rows.length > 0) {
+        const keys = data.columns || Object.keys(data.rows[0]);
+        setAllColumns(keys);
 
-      const types = typesRes.types || [];
-      setMetaTypes(types);
-      setOrderedTypes(typesRes.order || types);
-      setTypeLabels(typesRes.labels || {});
-      setAllowedTypes(types); // 선택: sidebarTypes 계산에 쓰고 싶으면 저장
-    } catch (e) {
-      console.error("bootstrap 실패:", e);
-    }
-  };
+        // dataset 변경이거나 visibleColumns 비었을 때만 초기화
+        setVisibleColumns((prevVisible) => {
+          const isDatasetChanged = prevDatasetId !== datasetId;
+          if (isDatasetChanged || prevVisible.length === 0) {
+            return keys.length > 0 ? [keys[0]] : [];
+          }
 
-  // ========= 액션 2) selectDataset =========
-  const selectDataset = (datasetId: string) => {
-    // "선택"은 state만 바꾸고, 실제 로드는 effect에서 통일
-    setSelectedDatasetId(datasetId);
+          // 기존 visibleColumns 유지하되, 새 키 생기면 반영
+          const newColumns = keys.filter((k) => !prevVisible.includes(k));
+          const updatedColumns = prevVisible.filter((k) => keys.includes(k));
+          return [...updatedColumns, ...newColumns];
+        });
 
-    // UI 상태 초기화 (너 코드랑 동일)
-    setOffset(0);
-    setRowRange(null);
-    setManualRowStart(0);
-    setManualRowEnd(0);
-    setStats(null);
-    setColumnSearchQuery("");
-    setSelectedTypeFilter(null);
+        setActiveColumn((prev) => {
+          const isDatasetChanged = prevDatasetId !== datasetId;
+          if (isDatasetChanged) return keys.length > 0 ? keys[0] : null;
+          if (!prev) return keys.length > 0 ? keys[0] : null;
+          if (keys.includes(prev)) return prev;
+          return keys.length > 0 ? keys[0] : null;
+        });
 
-    // profile/doc는 effect에서 자동 로드됨
-  };
-
-  // ========= 액션 3) loadPreviewAndColumns (내부) =========
-  const loadPreviewAndColumns = async (datasetId: string, nextOffset: number, nextLimit: number) => {
-    setIsLoading(true);
-    try {
-      const preview = await getPreview(datasetId, nextOffset, nextLimit);
-
-      const keys = preview.columns || (preview.rows?.[0] ? Object.keys(preview.rows[0]) : []);
-      setAllColumns(keys);
-      setRowData(preview.rows || []);
-
-      // visibleColumns / activeColumn 초기화 정책 (너 코드 정책 유지)
-      if (keys.length > 0) {
-        // visibleColumns이 비었거나 dataset이 바뀌었으면 첫 컬럼만
-        setVisibleColumns((prev) => (prev?.length ? prev : [keys[0]]));
-        setActiveColumn((prev) => prev ?? keys[0]);
+        setRowData(data.rows);
       } else {
+        setAllColumns([]);
         setVisibleColumns([]);
+        setRowData([]);
         setActiveColumn(null);
       }
+    },
+    [prevDatasetId]
+  );
 
-      // columns/meta
-      const cols = await fetchDatasetColumns(datasetId);
-      setColumnMeta(cols.meta || {});
-      setSelectedTypeFilter(null);
-    } catch (e) {
-      console.error("preview/columns 로딩 실패:", e);
-      setRowData([]);
-      setAllColumns([]);
-      setVisibleColumns([]);
-      setColumnMeta({});
-      setActiveColumn(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ========= 액션 4) updatePreviewRange =========
-  // ✅ 여기서는 "setOffset/setLimit 호출하라는 뜻 아님"
-  // 다만 "range 변경"이라는 개념을 이름으로 고정해두는 용도
-  const updatePreviewRange = (nextOffset: number, nextLimit: number) => {
-    setOffset(nextOffset);
-    setLimit(nextLimit);
-  };
-
-  // ========= Effects =========
-  // 1) bootstrap (1회)
-  useEffect(() => {
-    bootstrap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const loadColumnsMeta = useCallback(async (datasetId: string) => {
+    const columnsData = await fetchDatasetColumns(datasetId);
+    setColumnMeta(columnsData.meta || {});
+    setSelectedTypeFilter(null);
   }, []);
 
-  // 2) dataset/offset/limit 변경 시 preview+meta 로드
+  // =========================
+  // 2) 액션 3개 (핵심)
+  // =========================
+
+  const bootstrap = useCallback(async () => {
+    // datasets
+    const dsRes = await getDatasets();
+    setDatasets(dsRes.datasets || []);
+
+    // meta/types
+    try {
+      const t = await getMetaTypes();
+      const types = t.types || [];
+      setMetaTypes(types);
+      setOrderedTypes(t.order || types);
+      setTypeLabels(t.labels || {});
+      setAllowedTypes(types);
+    } catch {
+      setMetaTypes([]);
+      setOrderedTypes([]);
+      setTypeLabels({});
+      setAllowedTypes([]);
+    }
+
+    // 첫 데이터셋 자동 선택
+    if ((dsRes.datasets || []).length > 0) {
+      setSelectedDatasetId(dsRes.datasets[0].dataset_id);
+    }
+  }, []);
+
+  const selectDataset = useCallback(
+    async (datasetId: string) => {
+      // dataset 전환 시 필요한 상태 초기화(필수만)
+      setIsLoading(true);
+      try {
+        // 현재 selectedDatasetId를 prevDatasetId로 저장 (클로저로 캡처)
+        setPrevDatasetId(selectedDatasetId);
+        setSelectedDatasetId(datasetId);
+
+        // 선택 관련 초기화
+        setOffset(0);
+        setRowRange(null);
+        setManualRowStart(0);
+        setManualRowEnd(0);
+        setStats(null);
+        setColumnSearchQuery("");
+        setSelectedTypeFilter(null);
+
+        // Profile/Doc은 "있으면 자동 로드" 유지 (조용히 실패)
+        (async () => {
+          try {
+            const p = await readProfile(datasetId);
+            setProfile(p);
+          } catch {
+            setProfile(null);
+          }
+          try {
+            const md = await readDoc(datasetId);
+            setDocMd(md);
+          } catch {
+            setDocMd("");
+          }
+        })();
+
+        // preview -> columns/meta 순서
+        await loadPreview(datasetId, 0, limit);
+        await loadColumnsMeta(datasetId);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [limit, loadPreview, loadColumnsMeta]
+  );
+
+  const updatePreviewRange = useCallback(
+    async (nextOffset: number, nextLimit: number) => {
+      // 내부에서 setOffset/setLimit 호출하여 단일 진입점으로 만듦
+      setOffset(nextOffset);
+      setLimit(nextLimit);
+
+      if (!selectedDatasetId) return;
+
+      setIsLoading(true);
+      try {
+        await loadPreview(selectedDatasetId, nextOffset, nextLimit);
+        // columns/meta는 여기서 다시 안 불러도 됨
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [selectedDatasetId, loadPreview]
+  );
+
+  // =========================
+  // 3) useEffect는 "액션 호출만"
+  // =========================
+
+  // 앱 시작 1회
+  useEffect(() => {
+    bootstrap().catch((e) => console.error("bootstrap 실패:", e));
+  }, [bootstrap]);
+
+  // datasetId 바뀌면 selectDataset 실행
   useEffect(() => {
     if (!selectedDatasetId) return;
-    loadPreviewAndColumns(selectedDatasetId, offset, limit);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDatasetId, offset, limit]);
+    selectDataset(selectedDatasetId).catch((e) => console.error("selectDataset 실패:", e));
+  }, [selectedDatasetId, selectDataset]);
 
-  // 3) dataset 변경 시 profile/doc 있으면 로드(실패 무시)
+  // offset/limit 변경은 updatePreviewRange를 통해서만 하게 하는 게 이상적이라
+  // 아래 useEffect는 "안전망" 정도로만 둠 (원하면 삭제 가능)
   useEffect(() => {
-    if (!selectedDatasetId) {
-      setProfile(null);
-      setDocMd("");
-      return;
-    }
-    (async () => {
-      try {
-        const p = await readProfile(selectedDatasetId);
-        setProfile(p);
-      } catch {
-        setProfile(null);
-      }
-      try {
-        const md = await readDoc(selectedDatasetId);
-        setDocMd(md);
-      } catch {
-        setDocMd("");
-      }
-    })();
-  }, [selectedDatasetId]);
+    // offset/limit이 직접 set된 경우에도 preview는 맞춰주기
+    if (!selectedDatasetId) return;
+    loadPreview(selectedDatasetId, offset, limit).catch((e) => console.error("loadPreview 실패:", e));
+  }, [selectedDatasetId, offset, limit, loadPreview]);
 
   // 4) visibleColumns -> columnDefs 생성 (너 로직 유지)
   useEffect(() => {
