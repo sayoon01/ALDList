@@ -60,8 +60,8 @@ export default function App() {
           columnSearchQuery={c.columnSearchQuery}
           onColumnSearchQueryChange={c.setColumnSearchQuery}
           selectedTypeFilter={c.selectedTypeFilter}
-          onSelectType={c.handleSelectType}
-          metaTypes={c.metaTypes}
+          onSelectedTypeFilterChange={c.setSelectedTypeFilter}
+          onTypeSelect={c.handleTypeSelect}
           orderedTypes={c.orderedTypes}
           metaTypeLabels={c.typeLabels}
           isLoadingStats={c.isLoadingStats}
