@@ -21,6 +21,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 META_DIR = PROJECT_ROOT / "column_meta"
 METADATA_DIR = PROJECT_ROOT / "metadata"
 DATA_DIR = PROJECT_ROOT / "data"
+PROFILES_DIR = METADATA_DIR / "profiles"
+REPORTS_DIR = METADATA_DIR / "reports"
 
 
 def safe_load_yaml(path: Path) -> Dict[str, Any]:
@@ -137,3 +139,76 @@ def safe_load_json(path: Path) -> Any:
 def normalize_key(s: str) -> str:
     """키 문자열 정규화"""
     return s.strip()
+
+
+def load_datasets() -> List[Dict[str, Any]]:
+    """
+    metadata/datasets.json 파일을 로드
+    
+    Returns:
+        데이터셋 메타데이터 리스트
+        
+    Raises:
+        SystemExit: 파일이 없거나 형식이 잘못된 경우
+    """
+    path = METADATA_DIR / "datasets.json"
+    if not path.exists():
+        raise SystemExit(f"missing: {path} (run scan_and_export.py first)")
+    
+    try:
+        data = safe_load_json(path)
+        if data is None:
+            raise SystemExit(f"JSON 로드 실패: {path}")
+        if not isinstance(data, list):
+            raise SystemExit("datasets.json is not a list")
+        return data
+    except Exception as e:
+        raise SystemExit(f"datasets.json 파싱 실패: {e}")
+
+
+def load_profiles() -> Dict[str, Dict[str, Any]]:
+    """
+    모든 프로필 파일을 로드
+    
+    Returns:
+        dataset_id -> 프로필 데이터 매핑 딕셔너리
+    """
+    profiles: Dict[str, Dict[str, Any]] = {}
+    
+    if not PROFILES_DIR.exists():
+        return profiles
+    
+    datasets = load_datasets()
+    for ds in datasets:
+        if not isinstance(ds, dict):
+            continue
+        dsid = ds.get("dataset_id")
+        if not isinstance(dsid, str):
+            continue
+        
+        profile_path = PROFILES_DIR / f"{dsid}.json"
+        if profile_path.exists():
+            try:
+                profile_data = safe_load_json(profile_path)
+                if profile_data is not None:
+                    profiles[dsid] = profile_data
+            except Exception:
+                pass  # 실패한 프로필은 무시
+    
+    return profiles
+
+
+def tokenize_column(col: str) -> List[str]:
+    """
+    컬럼명을 토큰으로 분리
+    
+    Args:
+        col: 컬럼명
+        
+    Returns:
+        토큰 리스트 (구분자: ., _, -, /, 공백)
+    """
+    import re
+    token_split = re.compile(r"[._\-/\s]+")
+    tokens = [t for t in token_split.split(col) if t]
+    return tokens
