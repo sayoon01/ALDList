@@ -199,6 +199,9 @@ export default function Sidebar(props: SidebarProps) {
         </Section>
 
         <Section id="preview" title="미리보기 범위">
+          <div className="sb-hint" style={{ marginBottom: 10 }}>
+            화면 표시 범위 (초기 300행, 필요 시 늘리세요)
+          </div>
           <div className="sb-row">
             <label>offset</label>
             <input

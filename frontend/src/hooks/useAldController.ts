@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   getDatasets,
   getPreview,
@@ -20,6 +20,7 @@ export function useAldController() {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string>("");
   const [prevDatasetId, setPrevDatasetId] = useState<string>("");
+  const selectedDatasetIdRef = useRef<string>("");
 
   const [allColumns, setAllColumns] = useState<string[]>([]);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
@@ -34,7 +35,7 @@ export function useAldController() {
   const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   const [offset, setOffset] = useState(0);
-  const [limit, setLimit] = useState(500);
+  const [limit, setLimit] = useState(300);
 
   const [rowRange, setRowRange] = useState<{ start: number; end: number } | null>(null);
   const [manualRowStart, setManualRowStart] = useState<number>(0);
@@ -125,28 +126,40 @@ export function useAldController() {
   // =========================
 
   const bootstrap = useCallback(async () => {
-    // datasets
-    const dsRes = await getDatasets();
-    setDatasets(dsRes.datasets || []);
-
-    // meta/types
     try {
-      const t = await getMetaTypes();
-      const types = t.types || [];
-      setMetaTypes(types);
-      setOrderedTypes(t.order || types);
-      setTypeLabels(t.labels || {});
-      setAllowedTypes(types);
-    } catch {
+      // datasets
+      const dsRes = await getDatasets();
+      setDatasets(dsRes.datasets || []);
+
+      // meta/types
+      try {
+        const t = await getMetaTypes();
+        const types = t.types || [];
+        setMetaTypes(types);
+        setOrderedTypes(t.order || types);
+        setTypeLabels(t.labels || {});
+        setAllowedTypes(types);
+      } catch (e) {
+        console.warn("meta/types 로드 실패:", e);
+        setMetaTypes([]);
+        setOrderedTypes([]);
+        setTypeLabels({});
+        setAllowedTypes([]);
+      }
+
+      // 첫 데이터셋 자동 선택 (useEffect가 selectDataset 호출)
+      if ((dsRes.datasets || []).length > 0) {
+        const firstId = dsRes.datasets[0].dataset_id;
+        selectedDatasetIdRef.current = firstId;
+        setSelectedDatasetId(firstId);
+      }
+    } catch (e) {
+      console.error("bootstrap 실패:", e);
+      setDatasets([]);
       setMetaTypes([]);
       setOrderedTypes([]);
       setTypeLabels({});
       setAllowedTypes([]);
-    }
-
-    // 첫 데이터셋 자동 선택
-    if ((dsRes.datasets || []).length > 0) {
-      setSelectedDatasetId(dsRes.datasets[0].dataset_id);
     }
   }, []);
 
@@ -155,8 +168,9 @@ export function useAldController() {
       // dataset 전환 시 필요한 상태 초기화(필수만)
       setIsLoading(true);
       try {
-        // 현재 selectedDatasetId를 prevDatasetId로 저장 (클로저로 캡처)
-        setPrevDatasetId(selectedDatasetId);
+        // 현재 selectedDatasetId를 prevDatasetId로 저장 (ref 사용)
+        setPrevDatasetId(selectedDatasetIdRef.current);
+        selectedDatasetIdRef.current = datasetId;
         setSelectedDatasetId(datasetId);
 
         // 선택 관련 초기화
@@ -184,14 +198,14 @@ export function useAldController() {
           }
         })();
 
-        // preview -> columns/meta 순서
-        await loadPreview(datasetId, 0, limit);
+        // preview -> columns/meta 순서 (기본 limit 300 사용)
+        await loadPreview(datasetId, 0, 300);
         await loadColumnsMeta(datasetId);
       } finally {
         setIsLoading(false);
       }
     },
-    [limit, loadPreview, loadColumnsMeta]
+    [loadPreview, loadColumnsMeta]
   );
 
   const updatePreviewRange = useCallback(
@@ -225,7 +239,10 @@ export function useAldController() {
   // datasetId 바뀌면 selectDataset 실행
   useEffect(() => {
     if (!selectedDatasetId) return;
-    selectDataset(selectedDatasetId).catch((e) => console.error("selectDataset 실패:", e));
+    selectDataset(selectedDatasetId).catch((e) => {
+      console.error("selectDataset 실패:", e);
+      console.error("에러 상세:", e.message);
+    });
   }, [selectedDatasetId, selectDataset]);
 
   // offset/limit 변경은 updatePreviewRange를 통해서만 하게 하는 게 이상적이라
@@ -233,7 +250,10 @@ export function useAldController() {
   useEffect(() => {
     // offset/limit이 직접 set된 경우에도 preview는 맞춰주기
     if (!selectedDatasetId) return;
-    loadPreview(selectedDatasetId, offset, limit).catch((e) => console.error("loadPreview 실패:", e));
+    loadPreview(selectedDatasetId, offset, limit).catch((e) => {
+      console.error("loadPreview 실패:", e);
+      console.error("에러 상세:", e.message);
+    });
   }, [selectedDatasetId, offset, limit, loadPreview]);
 
   // 4) visibleColumns -> columnDefs 생성 (너 로직 유지)
@@ -448,7 +468,9 @@ export function useAldController() {
 
       const stillExists = (res.datasets || []).some((ds) => ds.dataset_id === selectedDatasetId);
       if (!stillExists) {
-        setSelectedDatasetId((res.datasets || [])[0]?.dataset_id || "");
+        const newId = (res.datasets || [])[0]?.dataset_id || "";
+        selectedDatasetIdRef.current = newId;
+        setSelectedDatasetId(newId);
       }
 
       // meta/types 재로드

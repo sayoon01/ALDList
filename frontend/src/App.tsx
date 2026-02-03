@@ -38,8 +38,8 @@ export default function App() {
           }}
           offset={c.offset}
           limit={c.limit}
-          onOffsetChange={c.setOffset}
-          onLimitChange={c.setLimit}
+          onOffsetChange={(nextOffset) => c.updatePreviewRange(nextOffset, c.limit)}
+          onLimitChange={(nextLimit) => c.updatePreviewRange(c.offset, nextLimit)}
           manualRowStart={c.manualRowStart}
           manualRowEnd={c.manualRowEnd}
           onManualRowStartChange={c.setManualRowStart}
