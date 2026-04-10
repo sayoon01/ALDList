@@ -125,6 +125,7 @@ cp your_file.csv data/
 - `GET /api/datasets/{dataset_id}/fields?type={type}` - 타입별 컬럼 필터링
 - `POST /api/datasets/{dataset_id}/stats` - 통계 계산
 - `POST /api/datasets/{dataset_id}/histogram` - 선택 범위 기반 히스토그램 계산
+- `POST /api/query` - 컬럼명/메타 텍스트 기반 컬럼 검색
 
 자세한 API 문서: http://localhost:8000/docs
 
@@ -187,6 +188,7 @@ python3 tools/suggest_patterns.py
 - ✅ 히스토그램 분포 시각화 (활성 컬럼, 선택 범위 기준)
 - ✅ 드래그 범위 선택
 - ✅ 타입 필터링
+- ✅ 컬럼 검색(Query API: 컬럼명 + 메타 텍스트 점수 검색)
 
 ## 🔧 개발 환경 설정
 

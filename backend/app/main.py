@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from .api.datasets import router as datasets_router
 from .api.stats import router as stats_router
 from .api.admin import router as admin_router
+from .api.query import router as query_router
 from .api import meta
 from .core.metadata_pipeline import refresh_registry_if_needed
 
@@ -54,6 +55,7 @@ app.add_middleware(
 app.include_router(datasets_router)
 app.include_router(stats_router)
 app.include_router(admin_router)
+app.include_router(query_router)
 app.include_router(meta.router)
 
 
@@ -68,7 +70,8 @@ def root():
             "datasets": "/api/datasets",
             "preview": "/api/datasets/{dataset_id}/preview",
             "stats": "/api/datasets/{dataset_id}/stats",
-            "columns": "/api/datasets/{dataset_id}/columns"
+            "histogram": "/api/datasets/{dataset_id}/histogram",
+            "columns": "/api/datasets/{dataset_id}/columns",
+            "query": "/api/query"
         }
     }
-
