@@ -41,6 +41,7 @@ ALDList는 CSV 데이터를 빠르게 탐색/필터링/통계 분석하기 위�
 - `start_backend.sh`, `start_frontend.sh`: 개발 서버 실행
 - `scan_metadata.sh`: 메타데이터 전체 재생성
 - `watch_csv.sh`: CSV 변경 감시 보조
+- `rebuild_rag.sh`: 메타→RAG문서→Chroma 인덱스 전체 재빌드
 
 ---
 
@@ -53,6 +54,7 @@ ALDList는 CSV 데이터를 빠르게 탐색/필터링/통계 분석하기 위�
   - `datasets.py`: 데이터셋 목록/미리보기/컬럼 메타/타입별 컬럼 API
   - `stats.py`: 선택 범위 통계 API
   - `query.py`: 컬럼 메타 기반 키워드 검색 API
+  - `rag.py`: 벡터 검색 API (`/api/rag/search`)
   - `admin.py`, `meta.py`: 관리/메타 관련 API
 - `core/`
   - `registry.py`: `metadata/datasets.json` 로드/조회
@@ -83,6 +85,8 @@ ALDList는 CSV 데이터를 빠르게 탐색/필터링/통계 분석하기 위�
   - 선택 행 범위 + 활성 컬럼 기준 분포(histogram) 계산
 - `POST /api/query`
   - 컬럼명/메타 텍스트 기반 룰 점수 검색 (현재 벡터 RAG 검색 아님)
+- `POST /api/rag/search`
+  - ChromaDB + Ollama(`nomic-embed-text`) 기반 벡터 검색
 - `POST /api/admin/refresh`
   - 레지스트리/메타 갱신 트리거
 - `POST /api/admin/profile/{dataset_id}/build`

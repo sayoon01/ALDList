@@ -126,6 +126,7 @@ cp your_file.csv data/
 - `POST /api/datasets/{dataset_id}/stats` - 통계 계산
 - `POST /api/datasets/{dataset_id}/histogram` - 선택 범위 기반 히스토그램 계산
 - `POST /api/query` - 컬럼명/메타 텍스트 기반 컬럼 검색
+- `POST /api/rag/search` - ChromaDB + Ollama 임베딩 기반 벡터 검색
 
 자세한 API 문서: http://localhost:8000/docs
 
@@ -199,6 +200,12 @@ python3 tools/suggest_patterns.py
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload
+```
+
+### RAG 인덱스 재빌드
+
+```bash
+./rebuild_rag.sh
 ```
 
 ### 프론트엔드
