@@ -93,6 +93,8 @@ export default function App() {
           activeColumn={c.activeColumn}
           columnMeta={c.columnMeta}
           stats={c.stats}
+          histogram={c.histogram}
+          isLoadingHistogram={c.isLoadingHistogram}
           profile={c.profile}
           docMd={c.docMd}
           selectedDatasetId={c.selectedDatasetId || null}
@@ -121,6 +123,7 @@ export default function App() {
             setToastType((type || "info") as ToastType);
             setToastMsg(msg);
           }}
+          onRefreshHistogram={c.refreshHistogram}
         />
       </div>
     </div>

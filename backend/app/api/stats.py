@@ -2,8 +2,15 @@
 from fastapi import APIRouter, HTTPException
 
 from ..core.registry import get_dataset
-from ..engine.duckdb_engine import compute_metrics
-from ..models.schemas import StatsRequest, StatsResponse, Metric
+from ..engine.duckdb_engine import compute_metrics, compute_histogram
+from ..models.schemas import (
+    StatsRequest,
+    StatsResponse,
+    Metric,
+    HistogramRequest,
+    HistogramResponse,
+    HistogramBin,
+)
 
 router = APIRouter(prefix="/api/datasets", tags=["stats"])
 
@@ -68,4 +75,43 @@ def stats(dataset_id: str, request: StatsRequest):
         print(f"통계 계산 API 오류: {error_detail}")
         raise HTTPException(status_code=500, detail=f"Statistics calculation failed: {str(e)}")
 
+
+@router.post("/{dataset_id}/histogram", response_model=HistogramResponse)
+def histogram(dataset_id: str, request: HistogramRequest):
+    """선택 범위 기준 숫자형 히스토그램 계산"""
+    meta = get_dataset(dataset_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    if request.column not in meta.columns:
+        raise HTTPException(status_code=400, detail=f"Invalid column: {request.column}")
+
+    row_start = 0
+    row_end = None
+    if request.row_range:
+        row_start = request.row_range.start
+        row_end = request.row_range.end
+
+    try:
+        result = compute_histogram(
+            meta.path,
+            request.column,
+            row_start=row_start,
+            row_end=row_end,
+            bins=request.bins,
+            dataset_id=dataset_id,
+        )
+        bins = [HistogramBin(**b) for b in result.get("bins", [])]
+        return HistogramResponse(
+            column=request.column,
+            min=result.get("min"),
+            max=result.get("max"),
+            mean=result.get("mean"),
+            stddev=result.get("stddev"),
+            count=result.get("count", 0),
+            bins=bins,
+            note=result.get("note"),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Histogram calculation failed: {str(e)}")
 

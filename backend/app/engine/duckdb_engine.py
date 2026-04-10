@@ -144,3 +144,93 @@ def compute_metrics(
         if not cached:
             conn.close()
 
+
+def compute_histogram(
+    csv_path: str,
+    column: str,
+    row_start: int = 0,
+    row_end: Optional[int] = None,
+    bins: int = 12,
+    dataset_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    숫자형 컬럼 분포(히스토그램) 계산.
+    """
+    conn, relation, cached = _get_conn_and_relation(csv_path, dataset_id)
+    try:
+        if row_end is not None:
+            limit_count = max(0, row_end - row_start)
+            base_query = f"SELECT * FROM {relation} LIMIT {limit_count} OFFSET {row_start}"
+        else:
+            base_query = f"SELECT * FROM {relation} OFFSET {row_start}"
+
+        col_q = quote_ident(column)
+        numeric_expr = f"TRY_CAST({col_q} AS DOUBLE)"
+        value_query = f"""
+        SELECT {numeric_expr} AS v
+        FROM ({base_query})
+        WHERE {numeric_expr} IS NOT NULL
+        """
+
+        summary_row = conn.execute(
+            f"SELECT COUNT(*), MIN(v), MAX(v), AVG(v), STDDEV(v) FROM ({value_query})"
+        ).fetchone()
+        if not summary_row:
+            return {"count": 0, "bins": [], "note": "no_data"}
+
+        count, v_min, v_max, v_mean, v_stddev = summary_row
+        if not count:
+            return {"count": 0, "bins": [], "note": "no_numeric_values"}
+
+        if v_min == v_max:
+            return {
+                "count": int(count),
+                "min": float(v_min),
+                "max": float(v_max),
+                "mean": float(v_mean) if v_mean is not None else None,
+                "stddev": float(v_stddev) if v_stddev is not None else None,
+                "bins": [{"start": float(v_min), "end": float(v_max), "count": int(count)}],
+                "note": "constant_value",
+            }
+
+        bin_count = max(5, min(int(bins), 60))
+        width = (v_max - v_min) / bin_count
+        hist_query = f"""
+        WITH values AS (
+          {value_query}
+        ),
+        bucketed AS (
+          SELECT
+            LEAST(FLOOR((v - {v_min}) / {width}), {bin_count - 1})::INTEGER AS bucket,
+            COUNT(*) AS cnt
+          FROM values
+          GROUP BY 1
+        )
+        SELECT gs.i AS bucket, COALESCE(b.cnt, 0) AS cnt
+        FROM generate_series(0, {bin_count - 1}) AS gs(i)
+        LEFT JOIN bucketed b ON gs.i = b.bucket
+        ORDER BY gs.i
+        """
+
+        rows = conn.execute(hist_query).fetchall()
+        histogram_bins: List[Dict[str, Any]] = []
+        for bucket_idx, bucket_count in rows:
+            start = v_min + width * bucket_idx
+            end = v_max if bucket_idx == bin_count - 1 else (start + width)
+            histogram_bins.append({
+                "start": float(start),
+                "end": float(end),
+                "count": int(bucket_count),
+            })
+
+        return {
+            "count": int(count),
+            "min": float(v_min),
+            "max": float(v_max),
+            "mean": float(v_mean) if v_mean is not None else None,
+            "stddev": float(v_stddev) if v_stddev is not None else None,
+            "bins": histogram_bins,
+        }
+    finally:
+        if not cached:
+            conn.close()

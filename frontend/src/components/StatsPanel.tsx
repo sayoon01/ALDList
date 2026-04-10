@@ -1,10 +1,12 @@
-import { ColumnMeta, StatsResponse } from "../api";
+import { ColumnMeta, HistogramResponse, StatsResponse } from "../api";
 import "./StatsPanel.css";
 
 interface StatsPanelProps {
   activeColumn: string | null;
   columnMeta: Record<string, ColumnMeta>;
   stats: StatsResponse | null;
+  histogram: HistogramResponse | null;
+  isLoadingHistogram: boolean;
   profile: any | null;
   docMd: string;
   selectedDatasetId: string | null;
@@ -12,6 +14,7 @@ interface StatsPanelProps {
   onBuildProfile: (datasetId: string) => Promise<void>;
   onBuildDoc: (datasetId: string) => Promise<void>;
   onToast: (msg: string, type?: "info" | "error") => void;
+  onRefreshHistogram: () => Promise<void>;
 }
 
 function fmtNum(v: any) {
@@ -32,6 +35,8 @@ export default function StatsPanel({
   activeColumn,
   columnMeta,
   stats,
+  histogram,
+  isLoadingHistogram,
   profile,
   docMd,
   selectedDatasetId,
@@ -39,6 +44,7 @@ export default function StatsPanel({
   onBuildProfile,
   onBuildDoc,
   onToast,
+  onRefreshHistogram,
 }: StatsPanelProps) {
   const activeMetric = stats && activeColumn ? stats.metrics?.[activeColumn] : null;
 
@@ -235,6 +241,62 @@ export default function StatsPanel({
               ))}
             </div>
           </>
+        )}
+      </div>
+
+      <div className="sp-section">
+        <div className="sp-title">분포 시각화 (활성 컬럼)</div>
+        {!activeColumn ? (
+          <div className="sp-empty">활성 컬럼을 먼저 선택하세요.</div>
+        ) : !stats ? (
+          <div className="sp-empty">통계를 먼저 계산하면 선택 범위 기준 분포를 확인할 수 있습니다.</div>
+        ) : (
+          <div className="sp-card">
+            <div className="sp-hist-header">
+              <div>
+                <div className="sp-mini">컬럼</div>
+                <strong>{columnMeta[activeColumn]?.title ?? activeColumn}</strong>
+              </div>
+              <button
+                className="btn-small"
+                disabled={isLoadingHistogram}
+                onClick={() => onRefreshHistogram().catch(() => onToast("분포 계산 실패", "error"))}
+              >
+                {isLoadingHistogram ? "계산 중..." : "분포 다시 계산"}
+              </button>
+            </div>
+
+            {!histogram || histogram.column !== activeColumn || histogram.bins.length === 0 ? (
+              <div className="sp-empty">숫자형 값이 부족해 분포를 만들 수 없습니다.</div>
+            ) : (
+              <>
+                <div className="sp-hist-meta">
+                  <span>count: {fmtNum(histogram.count)}</span>
+                  <span>mean: {fmtFloat(histogram.mean)}</span>
+                  <span>std: {fmtFloat(histogram.stddev)}</span>
+                </div>
+                <div className="sp-hist-chart">
+                  {(() => {
+                    const maxCount = Math.max(...histogram.bins.map((b) => b.count), 1);
+                    return histogram.bins.map((bin, idx) => (
+                      <div className="sp-hist-row" key={`${bin.start}-${idx}`}>
+                        <div className="sp-hist-range">
+                          {fmtFloat(bin.start)} ~ {fmtFloat(bin.end)}
+                        </div>
+                        <div className="sp-hist-bar-wrap">
+                          <div
+                            className="sp-hist-bar"
+                            style={{ width: `${(bin.count / maxCount) * 100}%` }}
+                          />
+                        </div>
+                        <div className="sp-hist-count">{fmtNum(bin.count)}</div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
 

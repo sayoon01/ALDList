@@ -110,7 +110,6 @@ export default function Sidebar(props: SidebarProps) {
     onColumnSearchQueryChange,
 
     selectedTypeFilter,
-    onSelectedTypeFilterChange,
 
     orderedTypes,
     metaTypeLabels,
