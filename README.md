@@ -70,16 +70,15 @@ cp your_file.csv data/
 
 ## 📁 프로젝트 구조
 
-```
-aldList/
-├── backend/          # FastAPI 백엔드
-├── frontend/         # React 프론트엔드
-├── tools/            # 메타데이터 생성 스크립트
-├── data/             # CSV 파일들
-├── metadata/         # 데이터셋 메타데이터 (레지스트리, 프로필, 문서)
-├── column_meta/      # 컬럼 메타데이터 (YAML)
-├── rag_docs/         # RAG 문서 (Markdown)
-└── rag_index/        # RAG 인덱스 (JSONL)
+구조와 주요 기능을 역할별로 정리한 프로젝트 가이드를 제공합니다.
+
+- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - 전체 구조, 주요 기능, 수정 원칙, 온보딩 순서
+
+```text
+핵심만 요약:
+- 수정 중심: backend/, frontend/, tools/
+- 입력 원본: data/
+- 생성 산출물: metadata/, column_meta/, rag_docs/, rag_index/
 ```
 
 ## 📊 워크플로우
