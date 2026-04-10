@@ -89,27 +89,39 @@ ALDList는 CSV 데이터를 빠르게 탐색/필터링/통계 분석하기 위�
 ## 5) 주요 기능 (사용자 관점)
 
 1. **데이터셋 목록 조회 + 선택**
-   - CSV 파일을 데이터셋 단위로 탐색
+   - 사용 기술: `FastAPI` + `registry.py` + `GET /api/datasets`
+   - 무엇을 하는가: `metadata/datasets.json` 기준으로 CSV를 데이터셋 단위로 보여주고 선택
 
 2. **대용량 미리보기 (페이징)**
-   - offset/limit 기반 구간 조회
+   - 사용 기술: `DuckDB` + `GET /api/datasets/{dataset_id}/preview` + `AG Grid`
+   - 무엇을 하는가: `offset/limit` 구간만 조회해 대용량 CSV도 빠르게 스크롤/탐색
 
 3. **컬럼 선택 및 타입 필터링**
-   - 필요한 컬럼만 표시
-   - `gas`, `temperature` 등 타입별 컬럼 조회
+   - 사용 기술: `GET /api/datasets/{dataset_id}/columns`, `GET /api/datasets/{dataset_id}/fields?type=...`
+   - 무엇을 하는가: 필요한 컬럼만 표시하고 `gas`, `temperature` 같은 타입 기준으로 즉시 필터링
 
 4. **범위 기반 통계 계산**
-   - 드래그 선택 또는 수동 행 범위 입력
-   - 전체 선택 컬럼 또는 active 컬럼만 계산
+   - 사용 기술: `POST /api/datasets/{dataset_id}/stats`, `duckdb_engine.compute_metrics`
+   - 무엇을 하는가: 드래그/수동 범위를 기준으로 `count`, `min`, `max`, `avg`, `stddev` 계산
+   - 계산 모드: 선택 컬럼 전체 또는 active 컬럼 1개만 계산 가능
 
 5. **컬럼 메타데이터 확인**
-   - title/desc/unit/category/type 정보 확인
+   - 사용 기술: `column_meta/*.yaml` + `/api/datasets/{dataset_id}/columns` + `StatsPanel`
+   - 무엇을 하는가: `title/desc/unit/category/type`을 UI에서 컬럼별로 확인
 
 6. **프로필/문서 생성(관리 기능)**
-   - 선택 데이터셋의 profile/doc 생성 및 즉시 로드
+   - 사용 기술: `POST /api/admin/profile/{dataset_id}/build`, `POST /api/admin/doc/{dataset_id}/build`
+   - 무엇을 하는가: 선택 데이터셋 profile/doc를 생성하고 화면에 즉시 로드
 
 7. **컬럼 검색(Query API)**
-   - 컬럼명 + 메타 텍스트 기반 간단 점수 검색
+   - 사용 기술: `POST /api/query` (`query.py`)
+   - 무엇을 하는가: 컬럼명 + 메타 텍스트(title/desc/type/category/unit) 기반 점수 검색
+
+8. **범위 기반 분포 시각화(히스토그램)**
+   - 사용 기술(백엔드): `POST /api/datasets/{dataset_id}/histogram` + `duckdb_engine.compute_histogram`
+   - 사용 기술(프론트): `StatsPanel.tsx` + `StatsPanel.css` (막대 너비를 비율로 그리는 커스텀 UI)
+   - 무엇을 하는가: 선택 범위 + 활성 컬럼의 숫자 분포를 bin 구간별 막대로 시각화
+   - 참고: `matplotlib/plotly` 같은 외부 차트 라이브러리 없이, 현재는 React + CSS 기반 커스텀 렌더링
 
 ---
 
