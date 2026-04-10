@@ -19,6 +19,17 @@ ALDList는 CSV 데이터를 빠르게 탐색/필터링/통계 분석하기 위�
 
 핵심은 `data/`에 CSV를 넣고, 백엔드 실행 시 레지스트리를 자동 갱신해 즉시 조회 가능한 상태를 만드는 것입니다.
 
+### 최근 반영된 기능 (요약)
+
+- **히스토그램 API/UI**
+  - 백엔드: `POST /api/datasets/{dataset_id}/histogram`
+  - 프론트: Stats 패널에서 활성 컬럼 분포 시각화
+- **RAG 벡터 검색(1차)**
+  - 백엔드: `POST /api/rag/search`
+  - 검색 스택: `Ollama(nomic-embed-text)` + `ChromaDB`
+- **RAG 재빌드 자동화**
+  - `rebuild_rag.sh`로 메타→RAG 문서/JSONL→벡터 인덱스 전체 재생성
+
 ---
 
 ## 2) 디렉토리 구조 (역할 기준)

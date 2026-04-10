@@ -8,6 +8,7 @@ CSV 파일을 쉽게 탐색하고 분석할 수 있는 웹 애플리케이션입
 - **실시간 분석**: 대용량 CSV 파일도 빠르게 탐색 및 분석
 - **직관적인 UI**: 드래그로 범위 선택, 컬럼 필터링, 통계 계산
 - **범위 기반 분포 시각화**: 활성 컬럼 히스토그램으로 구간별 분포 확인
+- **RAG 벡터 검색(1차)**: ChromaDB + Ollama 임베딩 기반 `/api/rag/search` 지원
 - **완전한 메타데이터**: 선택적으로 전체 메타데이터 파이프라인 실행 가능
 - **프로필 기반 보강**: 프로필 데이터를 활용한 자동 desc/title 생성
 - **패턴 제안 자동화**: 컬럼명 패턴 분석 및 정규식 제안 리포트 생성
@@ -82,6 +83,22 @@ cp your_file.csv data/
 - 입력 원본: data/
 - 생성 산출물: metadata/, column_meta/, rag_docs/, rag_index/
 ```
+
+## 🆕 최근 추가된 기능 요약
+
+1. **범위 기반 히스토그램**
+   - API: `POST /api/datasets/{dataset_id}/histogram`
+   - UI: Stats 패널의 "분포 시각화(활성 컬럼)"
+   - 계산: 선택 범위 + 활성 컬럼 기준 분포 bin 생성
+
+2. **RAG 벡터 검색(1차)**
+   - API: `POST /api/rag/search`
+   - 스택: `Ollama(nomic-embed-text)` + `ChromaDB`
+   - 지원: `top_k`, `filters(dataset_id/source_type/...)`
+
+3. **RAG 전체 재빌드 스크립트**
+   - `./rebuild_rag.sh`
+   - 내부 순서: 메타 갱신 → RAG 문서/JSONL 생성 → Chroma 인덱스 재빌드
 
 ## 📊 워크플로우
 
