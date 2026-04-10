@@ -63,6 +63,39 @@ ALDList는 CSV 데이터를 빠르게 탐색/필터링/통계 분석하기 위�
   - `duckdb_cache.py`: 쿼리/접속 캐시
 - `models/schemas.py`: API 응답 스키마
 
+### 구현된 API 엔드포인트 (현재 기준)
+
+> 아래는 실제 구현되어 라우터에 연결된 API입니다.
+
+- `GET /api/datasets`
+  - 데이터셋 목록 조회 (`dataset_id`, `filename`, `size_bytes`, `columns`)
+- `GET /api/datasets/{dataset_id}`
+  - 단일 데이터셋 메타데이터 조회
+- `GET /api/datasets/{dataset_id}/preview?offset=&limit=`
+  - CSV 미리보기 페이징 조회 (DuckDB 기반)
+- `GET /api/datasets/{dataset_id}/columns`
+  - 컬럼 메타데이터 조회 (`title`, `desc`, `unit`, `type` 등)
+- `GET /api/datasets/{dataset_id}/fields?type={type}`
+  - 타입별 컬럼 목록 조회 (`gas`, `temperature`, ...)
+- `POST /api/datasets/{dataset_id}/stats`
+  - 선택 행 범위 기준 통계 계산 (`count`, `min`, `max`, `avg`, `stddev`)
+- `POST /api/datasets/{dataset_id}/histogram`
+  - 선택 행 범위 + 활성 컬럼 기준 분포(histogram) 계산
+- `POST /api/query`
+  - 컬럼명/메타 텍스트 기반 룰 점수 검색 (현재 벡터 RAG 검색 아님)
+- `POST /api/admin/refresh`
+  - 레지스트리/메타 갱신 트리거
+- `POST /api/admin/profile/{dataset_id}/build`
+  - profile 생성
+- `GET /api/admin/profile/{dataset_id}`
+  - profile 조회
+- `POST /api/admin/doc/{dataset_id}/build`
+  - doc 생성
+- `GET /api/admin/doc/{dataset_id}`
+  - doc 조회
+- `GET /api/meta/types`
+  - 메타 타입/라벨/표시 순서 조회
+
 ---
 
 ## 4) 프론트엔드 구조
