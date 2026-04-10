@@ -57,37 +57,41 @@ export interface DatasetColumnsResponse {
 
 async function fetchAPI<T>(endpoint: string): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
+  const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+  console.log(`API 호출: ${fullUrl} (API_BASE: "${API_BASE}", endpoint: "${endpoint}")`);
+  
   try {
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+    
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    console.log(`API 응답 상태: ${response.status} ${response.statusText}`);
+    
     if (!response.ok) {
-      const text = await response.text().catch(() => response.statusText);
-
-      // ✅ JSON 에러(detail dict)면 파싱해서 message를 더 보기 좋게
-      try {
-        const j = JSON.parse(text);
-        const detail = j?.detail;
-
-        // detail이 객체면 message + allowed_types를 붙여줌
-        if (detail && typeof detail === "object") {
-          const msg = detail.message || `API Error (${response.status})`;
-          const allowed = Array.isArray(detail.allowed_types) ? detail.allowed_types.join(", ") : null;
-          throw new Error(allowed ? `${msg}\nAllowed: ${allowed}` : msg);
-        }
-
-        // detail이 문자열이면 그대로
-        if (typeof detail === "string") {
-          throw new Error(detail);
-        }
-
-        throw new Error(text);
-      } catch {
-        throw new Error(`API Error (${response.status}): ${text}`);
-      }
+      const errorText = await response.text();
+      console.error(`API 응답 오류: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
     }
-    return response.json();
+    const data = await response.json();
+    console.log(`API 응답 성공: ${endpoint}`, data);
+    return data;
   } catch (error: any) {
-    if (error instanceof TypeError && error.message === 'Load failed') {
-      throw new Error(`네트워크 오류: 백엔드 서버에 연결할 수 없습니다. 백엔드가 http://localhost:8000에서 실행 중인지 확인하세요.`);
+    if (error.name === 'AbortError') {
+      console.error(`API 호출 타임아웃: ${endpoint} (10초 초과)`);
+      throw new Error(`백엔드 서버 응답 시간 초과. 서버가 실행 중인지 확인하세요. (${endpoint})`);
+    }
+    console.error(`API 호출 실패: ${endpoint}`, error);
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      console.error('네트워크 오류: 백엔드 서버가 실행 중인지 확인하세요.');
+      throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인하세요.');
     }
     throw error;
   }
@@ -111,11 +115,10 @@ export async function getDatasets(): Promise<{ datasets: Dataset[] }> {
 }
 
 export async function getPreview(
-  datasetId: string,
-  offset: number = 0,
-  limit: number = 2000
+  datasetId: string
 ): Promise<PreviewResponse> {
-  return fetchAPI(`/api/datasets/${datasetId}/preview?offset=${offset}&limit=${limit}`);
+  // 화면표시범위 기능 제거: 전체 데이터 로드 (백엔드 기본값 사용)
+  return fetchAPI(`/api/datasets/${datasetId}/preview`);
 }
 
 export async function getStats(
@@ -150,102 +153,14 @@ export async function getFieldsByType(datasetId: string, type: string): Promise<
   return fetchAPI(`/api/datasets/${datasetId}/fields?type=${encodeURIComponent(type)}`);
 }
 
-export type MetaTypesResponse = {
-  types: string[];
-  labels: Record<string, string>;
-  order: string[] | null;
-};
-
-export async function getMetaTypes(): Promise<MetaTypesResponse> {
-  return fetchAPI("/api/meta/types");
-}
-
-// 하위 호환성을 위한 alias (getMetaTypes를 단일 진실로 사용)
-export interface AllowedTypesResponse {
-  types: string[];
-}
-
-export async function getAllowedTypes(): Promise<AllowedTypesResponse> {
-  const res = await getMetaTypes();
-  return { types: res.types };
-}
-
-
-// Admin API
-export interface AdminTextResponse {
+export interface DatasetTypesResponse {
   dataset_id: string;
-  path: string;
-  profile?: string;
-  doc?: string;
+  types: Array<{ type: string; count: number }>;
 }
 
-async function checkResponse(res: Response) {
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => res.statusText);
-    throw new Error(`API Error (${res.status}): ${errorText}`);
-  }
-  return res;
+export async function getDatasetTypes(datasetId: string): Promise<DatasetTypesResponse> {
+  return fetchAPI(`/api/datasets/${datasetId}/types`);
 }
 
-export async function adminRefresh(force: boolean = false): Promise<any> {
-  const url = `${API_BASE}/api/admin/refresh?force=${force}`;
-  const res = await fetch(url, { method: "POST" });
-  await checkResponse(res);
-  return res.json();
-}
 
-export async function buildProfile(datasetId: string): Promise<any> {
-  const url = `${API_BASE}/api/admin/profile/${datasetId}/build`;
-  const res = await fetch(url, { method: "POST" });
-  await checkResponse(res);
-  return res.json();
-}
-
-export async function readProfile(datasetId: string): Promise<any> {
-  const url = `${API_BASE}/api/admin/profile/${datasetId}`;
-  const res = await fetch(url);
-  await checkResponse(res);
-  return res.json();
-}
-
-export async function buildDoc(
-  datasetId: string,
-  groupTopN?: number,
-  highlightTopN?: number
-): Promise<any> {
-  const params = new URLSearchParams();
-  if (groupTopN !== undefined) params.append("group_top_n", String(groupTopN));
-  if (highlightTopN !== undefined) params.append("highlight_top_n", String(highlightTopN));
-  
-  const url = `${API_BASE}/api/admin/doc/${datasetId}/build${params.toString() ? `?${params.toString()}` : ""}`;
-  const res = await fetch(url, { method: "POST" });
-  await checkResponse(res);
-  return res.json();
-}
-
-export async function readDoc(datasetId: string): Promise<string> {
-  const url = `${API_BASE}/api/admin/doc/${datasetId}`;
-  const res = await fetch(url);
-  await checkResponse(res);
-  return res.text();
-}
-
-// 기존 함수들 (하위 호환성 유지)
-export async function getProfileText(datasetId: string): Promise<AdminTextResponse> {
-  const profile = await readProfile(datasetId);
-  return {
-    dataset_id: profile.dataset_id || datasetId,
-    path: profile.path || "",
-    profile: JSON.stringify(profile),
-  };
-}
-
-export async function getDocText(datasetId: string): Promise<AdminTextResponse> {
-  const doc = await readDoc(datasetId);
-  return {
-    dataset_id: datasetId,
-    path: "",
-    doc: doc,
-  };
-}
 
