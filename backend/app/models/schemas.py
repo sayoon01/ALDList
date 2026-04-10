@@ -29,6 +29,29 @@ class StatsResponse(BaseModel):
     metrics: dict[str, Metric]
 
 
+class HistogramRequest(BaseModel):
+    column: str
+    row_range: Optional[RowRange] = None
+    bins: int = Field(default=12, ge=5, le=60)
+
+
+class HistogramBin(BaseModel):
+    start: float
+    end: float
+    count: int
+
+
+class HistogramResponse(BaseModel):
+    column: str
+    min: Optional[float] = None
+    max: Optional[float] = None
+    mean: Optional[float] = None
+    stddev: Optional[float] = None
+    count: int = 0
+    bins: List[HistogramBin] = Field(default_factory=list)
+    note: Optional[str] = None
+
+
 # --- 응답 모델 ---
 
 class Dataset(BaseModel):

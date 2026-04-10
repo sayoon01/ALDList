@@ -3,6 +3,7 @@ import {
   getDatasets,
   getPreview,
   getStats,
+  getHistogram,
   fetchDatasetColumns,
   buildProfile,
   buildDoc,
@@ -13,6 +14,7 @@ import {
   adminRefresh,
   Dataset,
   StatsResponse,
+  HistogramResponse,
   ColumnMeta,
 } from "../api";
 
@@ -33,6 +35,8 @@ export function useAldController() {
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [histogram, setHistogram] = useState<HistogramResponse | null>(null);
+  const [isLoadingHistogram, setIsLoadingHistogram] = useState(false);
 
   const [offset, setOffset] = useState(0);
   const [limit, setLimit] = useState(300);
@@ -179,6 +183,7 @@ export function useAldController() {
         setManualRowStart(0);
         setManualRowEnd(0);
         setStats(null);
+        setHistogram(null);
         setColumnSearchQuery("");
         setSelectedTypeFilter(null);
 
@@ -313,6 +318,13 @@ export function useAldController() {
     }
   }, [activeColumn, statsComputeMode]);
 
+  useEffect(() => {
+    if (!stats || !activeColumn) return;
+    refreshHistogram().catch(() => {
+      setHistogram(null);
+    });
+  }, [activeColumn]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // ========= 액션 5) computeStats =========
   const computeStats = async () => {
@@ -340,6 +352,19 @@ export function useAldController() {
       }
       const result = await getStats(selectedDatasetId, visibleColumns, rowStart, rowEnd, computeColumns);
       setStats(result);
+      if (activeColumn) {
+        setIsLoadingHistogram(true);
+        try {
+          const hist = await getHistogram(selectedDatasetId, activeColumn, rowStart, rowEnd, 12);
+          setHistogram(hist);
+        } catch {
+          setHistogram(null);
+        } finally {
+          setIsLoadingHistogram(false);
+        }
+      } else {
+        setHistogram(null);
+      }
       return result;
     } finally {
       setIsLoadingStats(false);
@@ -491,6 +516,30 @@ export function useAldController() {
     }
   };
 
+  const refreshHistogram = async () => {
+    if (!selectedDatasetId || !activeColumn) return;
+    let rowStart: number;
+    let rowEnd: number;
+
+    if (manualRowStart !== 0 || manualRowEnd !== 0) {
+      rowStart = manualRowStart;
+      rowEnd = manualRowEnd + 1;
+    } else if (rowRange) {
+      rowStart = rowRange.start;
+      rowEnd = rowRange.end + 1;
+    } else {
+      return;
+    }
+
+    setIsLoadingHistogram(true);
+    try {
+      const hist = await getHistogram(selectedDatasetId, activeColumn, rowStart, rowEnd, 12);
+      setHistogram(hist);
+    } finally {
+      setIsLoadingHistogram(false);
+    }
+  };
+
   return {
     datasets,
     selectedDatasetId,
@@ -501,7 +550,9 @@ export function useAldController() {
     columnMeta,
     activeColumn,
     stats,
+    histogram,
     isLoadingStats,
+    isLoadingHistogram,
     offset,
     limit,
     rowRange,
@@ -536,6 +587,7 @@ export function useAldController() {
     selectDataset,
     updatePreviewRange,
     computeStats,
+    refreshHistogram,
 
     // 타입 선택 핸들러
     handleTypeSelect,

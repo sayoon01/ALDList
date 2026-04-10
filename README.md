@@ -7,6 +7,8 @@ CSV 파일을 쉽게 탐색하고 분석할 수 있는 웹 애플리케이션입
 - **빠른 시작**: CSV 파일만 `data/` 디렉토리에 넣으면 레지스트리 자동 생성
 - **실시간 분석**: 대용량 CSV 파일도 빠르게 탐색 및 분석
 - **직관적인 UI**: 드래그로 범위 선택, 컬럼 필터링, 통계 계산
+- **범위 기반 분포 시각화**: 활성 컬럼 히스토그램으로 구간별 분포 확인
+- **RAG 벡터 검색(1차)**: ChromaDB + Ollama 임베딩 기반 `/api/rag/search` 지원
 - **완전한 메타데이터**: 선택적으로 전체 메타데이터 파이프라인 실행 가능
 - **프로필 기반 보강**: 프로필 데이터를 활용한 자동 desc/title 생성
 - **패턴 제안 자동화**: 컬럼명 패턴 분석 및 정규식 제안 리포트 생성
@@ -67,20 +69,36 @@ cp your_file.csv data/
 3. **데이터 탐색**: 중앙 그리드에서 데이터 스크롤 및 필터링
 4. **범위 선택**: 그리드에서 마우스로 드래그하여 행 범위 선택
 5. **통계 계산**: "통계 계산" 버튼 클릭하여 선택한 범위의 통계 확인
+6. **분포 확인**: Stats 패널의 "분포 시각화 (활성 컬럼)"에서 히스토그램 확인
 
 ## 📁 프로젝트 구조
 
+구조와 주요 기능을 역할별로 정리한 프로젝트 가이드를 제공합니다.
+
+- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - 전체 구조, 주요 기능, 수정 원칙, 온보딩 순서
+
+```text
+핵심만 요약:
+- 수정 중심: backend/, frontend/, tools/
+- 입력 원본: data/
+- 생성 산출물: metadata/, column_meta/, rag_docs/, rag_index/
 ```
-aldList/
-├── backend/          # FastAPI 백엔드
-├── frontend/         # React 프론트엔드
-├── tools/            # 메타데이터 생성 스크립트
-├── data/             # CSV 파일들
-├── metadata/         # 데이터셋 메타데이터 (레지스트리, 프로필, 문서)
-├── column_meta/      # 컬럼 메타데이터 (YAML)
-├── rag_docs/         # RAG 문서 (Markdown)
-└── rag_index/        # RAG 인덱스 (JSONL)
-```
+
+## 🆕 최근 추가된 기능 요약
+
+1. **범위 기반 히스토그램**
+   - API: `POST /api/datasets/{dataset_id}/histogram`
+   - UI: Stats 패널의 "분포 시각화(활성 컬럼)"
+   - 계산: 선택 범위 + 활성 컬럼 기준 분포 bin 생성
+
+2. **RAG 벡터 검색(1차)**
+   - API: `POST /api/rag/search`
+   - 스택: `Ollama(nomic-embed-text)` + `ChromaDB`
+   - 지원: `top_k`, `filters(dataset_id/source_type/...)`
+
+3. **RAG 전체 재빌드 스크립트**
+   - `./rebuild_rag.sh`
+   - 내부 순서: 메타 갱신 → RAG 문서/JSONL 생성 → Chroma 인덱스 재빌드
 
 ## 📊 워크플로우
 
@@ -123,6 +141,9 @@ aldList/
 - `GET /api/datasets/{dataset_id}/columns` - 컬럼 메타데이터 조회
 - `GET /api/datasets/{dataset_id}/fields?type={type}` - 타입별 컬럼 필터링
 - `POST /api/datasets/{dataset_id}/stats` - 통계 계산
+- `POST /api/datasets/{dataset_id}/histogram` - 선택 범위 기반 히스토그램 계산
+- `POST /api/query` - 컬럼명/메타 텍스트 기반 컬럼 검색
+- `POST /api/rag/search` - ChromaDB + Ollama 임베딩 기반 벡터 검색
 
 자세한 API 문서: http://localhost:8000/docs
 
@@ -182,8 +203,11 @@ python3 tools/suggest_patterns.py
 - ✅ 컬럼 선택 및 필터링
 - ✅ 컬럼 상세 정보 표시
 - ✅ 통계 계산 (평균, 최소/최대값, 표준편차)
+- ✅ 히스토그램 분포 시각화 (활성 컬럼, 선택 범위 기준)
+  - 구현: DuckDB 히스토그램 API + React/CSS 커스텀 막대 렌더링(외부 차트 라이브러리 미사용)
 - ✅ 드래그 범위 선택
 - ✅ 타입 필터링
+- ✅ 컬럼 검색(Query API: 컬럼명 + 메타 텍스트 점수 검색)
 
 ## 🔧 개발 환경 설정
 
@@ -193,6 +217,12 @@ python3 tools/suggest_patterns.py
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload
+```
+
+### RAG 인덱스 재빌드
+
+```bash
+./rebuild_rag.sh
 ```
 
 ### 프론트엔드

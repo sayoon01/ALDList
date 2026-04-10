@@ -35,6 +35,23 @@ export interface StatsResponse {
   metrics: Record<string, Metric>;
 }
 
+export interface HistogramBin {
+  start: number;
+  end: number;
+  count: number;
+}
+
+export interface HistogramResponse {
+  column: string;
+  min?: number;
+  max?: number;
+  mean?: number;
+  stddev?: number;
+  count: number;
+  bins: HistogramBin[];
+  note?: string;
+}
+
 export interface ColumnMeta {
   key: string;
   title?: string;
@@ -131,6 +148,22 @@ export async function getStats(
       ? { start: rowStart ?? 0, end: rowEnd ?? null }
       : null,
     compute_columns: computeColumns || undefined,  // 선택적 파라미터 (없으면 전체 columns 사용)
+  });
+}
+
+export async function getHistogram(
+  datasetId: string,
+  column: string,
+  rowStart?: number,
+  rowEnd?: number,
+  bins: number = 12
+): Promise<HistogramResponse> {
+  return postAPI(`/api/datasets/${datasetId}/histogram`, {
+    column,
+    row_range: rowStart !== undefined || rowEnd !== undefined
+      ? { start: rowStart ?? 0, end: rowEnd ?? null }
+      : null,
+    bins,
   });
 }
 
@@ -248,4 +281,3 @@ export async function getDocText(datasetId: string): Promise<AdminTextResponse> 
     doc: doc,
   };
 }
-
